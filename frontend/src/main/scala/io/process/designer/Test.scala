@@ -25,10 +25,10 @@ object Test extends js.JSApp {
     editor.addLayer(Fill("#efefef", Rect(Point.origin, w, h)))
     editor.addLayer(new Grid(20, 20, w, h))
 
-    val insert = new ObjectInsertionTool[Place](PetriNetModel.placeProvider)
-    val move = new ObjectMoveTool[Place](1)
+    val insert = new ObjectInsertionTool[Place](0, PetriNetModel.placeProvider)
+    //    val move = new ObjectMoveTool[Place](1)
 
     editor.addLayerWithTool(PetriNetModel.placeLayer, insert)
-    editor.addLayerWithTool[Drawing, None.type](None, new ShowCoordinatesTool())
+    editor.addLayerWithTool[Drawing](None, new ShowCoordinatesTool())
   }
 }

@@ -1,35 +1,29 @@
 package io.process.designer.ui
 
-import io.process.geometry.Point
+trait MouseTool[S] {
+  type Transform = PartialFunction[MouseEvent, S]
 
-case class MouseEvent(eventType: EventType, button: Int, location: Point)
+  def onMouseEvent: S => Transform
 
-sealed trait EventType
-case object Up extends EventType
-case object Down extends EventType
-case object Move extends EventType
-
-object MouseTool {
-  def nothing[T, S](): MouseTool[T, S] = new MouseTool[T, S] {
-    override def onMouseEvent = Map.empty
-  }
-}
-
-trait MouseTool[M, S] {
-  type State = (M, Option[S])
-
-  def onLoseFocus(s: State): State = s
-  def onMouseEvent: PartialFunction[(MouseEvent, State), State]
-}
-
-trait StateLessMouseTool[M] extends MouseTool[M, None.type] {
-
-  override def onMouseEvent = {
-    case (e, (model, None)) if updateModel.isDefinedAt(e, model) =>
-      updateModel.lift(e, model) match {
-        case Some(updatedModel) => (updatedModel, None)
+  def or(other: MouseTool[S]) = {
+    val self = this
+    new MouseTool[S] {
+      override def onMouseEvent: (S) => PartialFunction[MouseEvent, S] = { state =>
+        val fn1 = self.onMouseEvent(state)
+        val fn2 = other.onMouseEvent(state)
+        fn1.orElse(fn2)
       }
+    }
   }
 
-  def updateModel: PartialFunction[(MouseEvent, M), M]
+  //  def and[B](other:MTool[B]): MTool[(S,B)] = {
+  //    val self = this
+  //    new MTool[(S,B)] {
+  //      override def onMouseEvent: (S,B) => PartialFunction[MouseEvent, (S,B)] = { (a, b) =>
+  //        val fn1 = self.onMouseEvent(a)
+  //        val fn2 = other.onMouseEvent(b)
+  //        fn1.orElse(fn2)
+  //      }
+  //    }
+  //  }
 }

@@ -3,9 +3,8 @@ package io.process.designer.ui.tools
 import io.process.designer.model.Layer
 import io.process.designer.ui._
 
-class ObjectInsertionTool[T](provider: () => T) extends StateLessMouseTool[Layer[T, _]] {
-
-  override def updateModel = {
-    case (MouseEvent(Down, button, p), layer) if layer.pick(p).isEmpty => layer + (provider(), p)
+class ObjectInsertionTool[T](button: Int, provider: () => T) extends MouseTool[Layer[T, _]] {
+  override def onMouseEvent = (layer: Layer[T, _]) => {
+    case (MouseEvent(Down, `button`, p)) if layer.pick(p).isEmpty => layer.+(provider())(p)
   }
 }

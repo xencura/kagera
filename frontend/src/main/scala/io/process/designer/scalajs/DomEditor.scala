@@ -7,25 +7,19 @@ import io.process.designer.ui._
 import org.scalajs.dom
 import scala.scalajs.js.Dynamic.{ global => g }
 
-case class Layer[T : Drawable, S : Drawable](
-  canvas: dom.html.Canvas,
-  model: T,
-  tool: MouseTool[T, S],
-  updateFn: Option[T => Any]
-) extends EditState[(T, Option[S])] {
+case class Node[M : Drawable](canvas: dom.html.Canvas, model: M, tool: Option[MouseTool[M]]) extends EditState[M] {
 
-  override def initialState = (model, None)
-  override def onChange(from: (T, Option[S]), to: (T, Option[S])): Unit = {
-    if (from._1 != to._1)
-      canvas.clearAndDraw(to._1)
+  override def initialState = model
+  override def onChange(from: M, to: M): Unit = {
+    canvas.clearAndDraw(to)
   }
 
-  def onMouseEvent(e: MouseEvent) = apply { s => tool.onMouseEvent.lift(e, s).getOrElse(s) }
+  def onMouseEvent(e: MouseEvent) = apply { s => tool.map(t => t.onMouseEvent(s).lift(e)).flatten.getOrElse(s) }
 }
 
 class DomEditor(parent: dom.Element, val width: Int, val height: Int) {
 
-  var layers: List[Layer[_, _]] = List.empty
+  var layers: List[Node[_]] = List.empty
   val toolLayer = addCanvas(20)
 
   Seq("mousemove" -> Move, "mouseup" -> Up, "mousedown" -> Down).foreach { case (name, event) =>
@@ -33,19 +27,16 @@ class DomEditor(parent: dom.Element, val width: Int, val height: Int) {
   }
 
   def mouseListener(t: EventType) = (e: dom.MouseEvent) => {
+    g.console.log(e.button)
     layers.foreach { layer => layer.onMouseEvent(MouseEvent(t, e.button, layer.canvas.toCanvasPoint(e))) }
   }
 
-  def addLayerWithTool[T : Drawable, S : Drawable](model: T, tool: MouseTool[T, S]) = addLayer(model, Some(tool))
+  def addLayerWithTool[M : Drawable](model: M, tool: MouseTool[M]) = addLayer(model, Some(tool))
 
-  def addLayer[T : Drawable, S : Drawable](
-    model: T,
-    tool: Option[MouseTool[T, S]] = None,
-    fn: Option[T => Any] = None
-  ) = {
+  def addLayer[M : Drawable](model: M, tool: Option[MouseTool[M]] = None) = {
     val canvas = addCanvas(parent.childElementCount + 1)
     canvas.context.draw(model)
-    layers = new Layer[T, S](canvas, model, tool.getOrElse(MouseTool.nothing()), fn) :: layers
+    layers = new Node[M](canvas, model, tool) :: layers
   }
 
   private def addCanvas(zindex: Int) = {

@@ -3,13 +3,18 @@ package io.process.designer.ui.tools
 import io.process.designer.model.Layer
 import io.process.designer.ui._
 
-class ObjectMoveTool[T](button: Int) extends MouseTool[Layer[T, _], T] {
-
-  // format: OFF
+class ObjectMoveTool[T](button: Int) extends MouseTool[(Layer[T, _], Option[T])] {
   override def onMouseEvent = {
-    case (MouseEvent(Down, `button`, p), (layer, None))    => (layer, layer.pick(p))
-    case (MouseEvent(Up,   `button`, p), (layer, Some(e))) => (layer, None)
-    case (MouseEvent(Move, `button`, p), (layer, Some(e))) => (layer.move(e, p), Some(e))
+    case (layer, None) => pick(layer)
+    case (layer, Some(e)) => moveOrDrop(layer, e)
   }
-  // format: ON
+
+  def pick(layer: Layer[T, _]): Transform = { case MouseEvent(Down, `button`, p) =>
+    (layer, layer.pick(p))
+  }
+
+  def moveOrDrop(layer: Layer[T, _], e: T): Transform = {
+    case MouseEvent(Move, `button`, p) => (layer.move(e)(p), Some(e))
+    case MouseEvent(Up, `button`, p) => (layer, None)
+  }
 }
