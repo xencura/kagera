@@ -16,14 +16,9 @@ object PetriNetModel {
 
   case class PetriNet(places: Set[Place], transitions: Set[Transition], edges: Set[Arc])
 
-  case class VisualNode(drawing: Drawing)
-  case class View()
-
-  case class Label(text: String, font: String, offset: Point)
-  case class Documentation(text: String)
-
   //  gc.arc(-r, -r, r, 0.0, Math.PI * 2, false)
-  val placeDrawable = Stroke("#7777ff", Circle(r))
+  val placeShape = Circle(r)
+  val placeDrawable: Drawing = Seq(Fill("white", placeShape), Stroke("#7777ff", placeShape))
   val transitionDrawable: Drawing = Stroke("#7777ee", Rect((-r, -r), 2 * r, 2 * r))
 
   val placeLayer = new SimpleLayer[Place](Map.empty, placeDrawable)

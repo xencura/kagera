@@ -26,9 +26,12 @@ object Test extends js.JSApp {
     editor.addLayer(new Grid(20, 20, w, h))
 
     val insert = new ObjectInsertionTool[Place](0, PetriNetModel.placeProvider)
-    //    val move = new ObjectMoveTool[Place](1)
+    val move = new ObjectMoveTool[Place](0)
 
-    editor.addLayerWithTool(PetriNetModel.placeLayer, insert)
-    editor.addLayerWithTool[Drawing](None, new ShowCoordinatesTool())
+    val tool = insert.or(move)
+    val initial = (PetriNetModel.placeLayer, (None, None))
+
+    editor.addLayerWithTool(initial, tool)
+    editor.addLayerWithTool[None.type, Drawing]((None, None), new ShowCoordinatesTool())
   }
 }
