@@ -12,6 +12,7 @@ case class Point(x: Double, y: Double) {
   def *(factor: Double) = transformXY(factor *)
   def +(other: Point) = Point(x + other.x, y + other.y)
   def -(other: Point) = Point(x - other.x, y - other.y)
+  def - = Point(-x, -y)
 
   def ~(other: Point): Double = { // euclidean distance
     val d = this - other

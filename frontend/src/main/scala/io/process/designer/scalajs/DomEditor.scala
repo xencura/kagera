@@ -1,44 +1,41 @@
 package io.process.designer.scalajs
 
-import io.process.common.EditState
-import io.process.draw._
+import io.process.designer.model.Node
 import io.process.designer.ui._
+import io.process.geometry.Dimensions
 
 import org.scalajs.dom
 import scala.scalajs.js.Dynamic.{ global => g }
 
-case class Node[M : Drawable, S](canvas: dom.html.Canvas, initialState: (M, S), tool: MouseTool[M, S])
-    extends EditState[(M, S)] {
+class DomEditor(parent: dom.Element, val width: Int, val height: Int) extends Dimensions {
 
-  override def onChange(from: (M, S), to: (M, S)): Unit = {
-    canvas.clearAndDraw(to._1)
-  }
-
-  def onMouseEvent(e: MouseEvent) = {
-    tool.onMouseEvent.tupled(state).lift(e).foreach(update => apply(s => update))
-  }
-}
-
-class DomEditor(parent: dom.Element, val width: Int, val height: Int) {
-
-  var layers: List[Node[_, _]] = List.empty
+  var layers: List[(Node[_, _], dom.html.Canvas)] = List.empty
   val toolLayer = addCanvas(20)
 
-  Seq("mousemove" -> Move, "mouseup" -> Up, "mousedown" -> Down).foreach { case (name, event) =>
+  Seq("mousemove" -> MouseMove, "mouseup" -> MouseUp, "mousedown" -> MouseDown).foreach { case (name, event) =>
     parent.addEventListener(name, mouseListener(event))
   }
 
-  def mouseListener(t: EventType) = (e: dom.MouseEvent) => {
-    g.console.log(e.button)
-    layers.foreach { layer => layer.onMouseEvent(MouseEvent(t, e.button, layer.canvas.toCanvasPoint(e))) }
+  parent.addEventListener("wheel", wheelListener _)
+
+  def wheelListener(e: dom.WheelEvent) = {
+    g.console.log(s"$e")
   }
 
-  def addLayer[M : Drawable](model: M) = addLayerWithTool((model, None), MouseTool.nothing())
+  def mouseListener(t: MouseEventType) = (e: dom.MouseEvent) => {
+    layers = layers.map { case (node, canvas) =>
+      (node.onEvent(MouseEvent(t, e.button, canvas.toCanvasPoint(e), 0)), canvas)
+    }
+    layers.foreach { case (node, canvas) =>
+      canvas.clear()
+      node.seq.foreach(n => canvas.context.draw(n.draw(this)))
+    }
+  }
 
-  def addLayerWithTool[M : Drawable, S](model: (M, S), tool: MouseTool[M, S]) = {
+  def setScene[M, S](node: Node[M, S]) = {
     val canvas = addCanvas(parent.childElementCount + 1)
-    canvas.context.draw(model._1)
-    layers = new Node[M, S](canvas, model, tool) :: layers
+    canvas.clearAndDraw(node.draw(this))
+    layers = (node, canvas) :: layers
   }
 
   private def addCanvas(zindex: Int) = {

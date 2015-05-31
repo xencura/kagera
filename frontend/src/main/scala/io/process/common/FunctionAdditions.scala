@@ -11,4 +11,9 @@ object FunctionAdditions {
   implicit class FunctionWithSideEffect[A, B](fn: A => B) {
     def withSideEffect(sideEffect: B => Unit): A => B = applySideEffect(fn, sideEffect)
   }
+  //
+  //  implicit class PartialFunctionAdditions[A, B](fn: PartialFunction[A, B]) {
+  //
+  //    def | ()
+  //  }
 }

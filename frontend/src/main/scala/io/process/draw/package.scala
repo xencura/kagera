@@ -8,6 +8,8 @@ package object draw {
 
   // Types
   type Drawable[T] = T => Drawing
+  type BoundedDrawable[T] = Dimensions => Drawable[T]
+
   type Drawing = Iterable[DrawInstruction]
 
   type Tracable[T] = T => Path
@@ -16,11 +18,18 @@ package object draw {
   type StrokeStyle = String
   type FillStyle = String
 
-  // Drawing API
+  //  implicit def asDrawable[T](tracable[T])
+
+  implicit def drawIterable[T](implicit d: Drawable[T]): Drawable[Iterable[T]] = set => {
+    set.toIterable.map(e => d(e)).reduce((a, b) => a ++ b)
+  }
+
+  // Drawing Instructions
+
   sealed trait PathSegment
   case class MoveTo(p: Point) extends PathSegment
   case class LineTo(p: Point) extends PathSegment
-  case class Rect(p: Point, w: Double, h: Double) extends PathSegment
+  case class Rect(p: Point, width: Double, height: Double) extends PathSegment
   case class Text(text: String, point: Point) extends PathSegment
   case class Arc(centre: Point, radius: Double, startAngle: Double, endAngle: Double) extends PathSegment
 
@@ -29,11 +38,16 @@ package object draw {
   case class Stroke(style: StrokeStyle, i: Path) extends DrawInstruction
 
   case class Clip(rect: Rectangle, drawing: Drawing) extends DrawInstruction
-  case class Transform(transform: AffineTransformation, drawing: Drawing) extends DrawInstruction
+  case class Transform(transform: AffineTransform, drawing: Drawing) extends DrawInstruction
 
-  def scale(xs: Double, ys: Double)(f: => Drawing) = Transform(AffineTransformation.scale(xs, ys), f)
-  def translate(xt: Double, yt: Double)(f: => Drawing) = Transform(AffineTransformation.translate(xt, yt), f)
+  // DSL
+  def transform(t: AffineTransform)(f: => Drawing) = Transform(t, f)
+  def rotate(angle: Double)(f: => Drawing) = Transform(AffineTransform.rotation(angle), f)
+  def scale(xs: Double, ys: Double)(f: => Drawing) = Transform(AffineTransform.scale(xs, ys), f)
+  def translate(xt: Double, yt: Double)(f: => Drawing) = Transform(AffineTransform.translate(xt, yt), f)
   def clip(rect: Rectangle, f: => Drawing) = Clip(rect, f)
+  def stroke(style: StrokeStyle, p: Path) = Stroke(style, p)
+  def fill(style: FillStyle, p: Path) = Fill(style, p)
 
   // Implicit conversions
 
