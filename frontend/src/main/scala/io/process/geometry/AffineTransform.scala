@@ -4,8 +4,12 @@ case object AffineTransform {
 
   private val IDENTITY = AffineTransform(1, 0, 0, 1, 0, 0)
   val identity = IDENTITY
-  def scale(xs: Double, ys: Double) = AffineTransform(xs, 0, 0, ys, 0, 0)
-  def translate(xt: Double, yt: Double) = AffineTransform(1, 0, 0, 1, xt, yt)
+
+  def scale(p: Point): AffineTransform = scale(p.x, p.y)
+  def scale(xs: Double, ys: Double): AffineTransform = AffineTransform(xs, 0, 0, ys, 0, 0)
+
+  def translate(p: Point): AffineTransform = translate(p.x, p.y)
+  def translate(xt: Double, yt: Double): AffineTransform = AffineTransform(1, 0, 0, 1, xt, yt)
 
   def rotation(angle: Double) = {
     val sin = Math.sin(angle)
@@ -22,6 +26,12 @@ case class AffineTransform(m: (Double, Double, Double, Double, Double, Double)) 
   def isIdentity: Boolean = cond(m) { case (1, 0, 0, 1, 0, 0) => true }
   def isTranslation: Boolean = cond(m) { case (1, 0, 0, 1, xt, yt) => true }
   def isScale: Boolean = cond(m) { case (xs, 0, 0, ys, 0, 0) => true }
+
+  def rotate(angle: Double) = &(AffineTransform.rotation(angle))
+  def scale(p: Point) = &(AffineTransform.scale(p))
+  def scale(xs: Double, ys: Double) = &(AffineTransform.scale(xs, ys))
+  def translate(xt: Double, yt: Double) = &(AffineTransform.translate(xt, yt))
+  def translate(p: Point) = &(AffineTransform.translate(p))
 
   def &(other: AffineTransform): AffineTransform = {
     val (a1, a2, a3, a4, a5, a6) = m
