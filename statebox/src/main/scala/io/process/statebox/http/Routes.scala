@@ -1,12 +1,9 @@
 package io.process.statebox.http
 
-import io.process.statebox.common.ActorSystemProvider
-import io.process.statebox.http.routes.ProcessRoutes
-import spray.routing._
+import akka.http.scaladsl.server.Directives
 
-trait Routes extends HttpService with ProcessRoutes {
+trait Routes extends Directives {
 
-  self: ActorSystemProvider =>
-
-  val routes = processRoute
+  val helloWorld =
+    (get & path("hello")) { complete("hello world") }
 }

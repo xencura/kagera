@@ -1,10 +1,11 @@
-package io
+package io.process
 
 package object statebox {
 
-  // TODO share between client / server
-  type Marking = Map[Place, Set[Token]]
-  type Token = Long
+  type Id = Long
+  type ProcessModel = String
+  type Marking = Set[Token]
+  type Token = (Id, Any)
   type Transition = Long
   type Place = Long
 }

@@ -18,5 +18,6 @@ trait PetriNetDebugging {
 
   val breakPoints: Map[Transition, ActorRef]
 
+  // override receive command
   override def receiveCommand: Unit = {}
 }
