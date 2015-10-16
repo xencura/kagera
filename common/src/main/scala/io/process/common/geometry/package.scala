@@ -1,4 +1,4 @@
-package io.process
+package io.process.common
 
 package object geometry {
 

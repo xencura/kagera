@@ -1,6 +1,6 @@
 package io.process.designer
 
-import io.process.draw._
+import io.process.common.draw._
 import org.scalajs.dom
 
 package object scalajs {
@@ -18,6 +18,8 @@ package object scalajs {
         case Arc(c, r, sa, ea) => gc.arc(c.x, c.y, r, sa, ea)
         case Rect(p, w, h) => gc.rect(p.x, p.y, w, h)
         case Text(text, p) => gc.fillText(text, p.x, p.y)
+        case ArcTo(p1, p2, r) => gc.arcTo(p1.x, p1.y, p2.x, p2.y, r)
+        case BezierCurveTo(cp1, cp2, p) => gc.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, p.x, p.y)
       }
       gc.closePath()
     }
@@ -37,15 +39,24 @@ package object scalajs {
           gc.strokeStyle = style
           addPath(path)
           gc.stroke()
+        case Clip(rect, drawing) =>
+          gc.save()
+          gc.addPath(Rect(rect.point, rect.width, rect.height))
+          gc.clip()
+          gc.draw(drawing)
+          gc.restore()
+        case ClearRect(rect) =>
+          gc.clearRect(rect.x, rect.y, rect.width, rect.height)
       }
     }
   }
 
   class DomCanvas(canvas: dom.html.Canvas) extends Canvas {
-
     override def draw[T : Drawable](drawable: T): Unit = canvas.context.draw(drawable)
     override def height: Int = canvas.height
     override def width: Int = canvas.width
+
+    override def addLayer(d: Drawing, handler: io.process.common.draw.ui.UIHandler): Unit = ???
   }
 
   implicit class CanvasWithAdditions(canvas: GraphicsCanvas) {

@@ -1,11 +1,14 @@
 package io.process.designer
 
-import io.process.designer.model.Node
+import io.process.designer.model.Graph.VisualNode
+import io.process.designer.model.{ Foo, Node, PetriNetModel }
 import io.process.designer.model.PointCloud._
-import io.process.designer.ui.MouseTools
+import io.process.designer.model.PetriNetModel._
+import io.process.common.draw.ui.MouseTools.SimpleMoveTool
 import io.process.designer.views.Grid
-import io.process.draw._
-import io.process.geometry._
+import io.process.designer.views.Grid.GridProperties
+import io.process.common.draw._
+import io.process.common.geometry._
 import io.process.designer.scalajs.DomEditor
 
 import scala.scalajs.js
@@ -16,17 +19,25 @@ object Test extends js.JSApp {
 
   def main(): Unit = {
 
-    val editor = new DomEditor(dom.document.getElementById("viewport"), 800, 600)
+    val bounds = Rectangle((0, 0), 800, 600)
 
-    val background = Node.noui[FillStyle]("#efefef")(d => fill => Fill(fill, Rect(Point.origin, d.width, d.height)))
+    val background: BoundedDrawable[FillStyle] = d => fillStyle => Fill(fillStyle, Rect(Point.origin, d.width, d.height))
+    val drawGrid: BoundedDrawable[GridProperties] = Grid.drawGrid
 
-    val nodes = Node[Set[Point], Option[Point]](
-      state = (Set(Point(10, 10), Point(50, 50)), None),
-      tool = MouseTools.moveTool,
-      drawFn = d => s => drawIterable[Point].apply(s._1)
-    )
+    val editor = new DomEditor(dom.document.getElementById("viewport"), bounds.width.toInt, bounds.height.toInt)
 
-    val scene = background ~> (Grid(20, 20, "#ababab") ~> nodes)
+    val bgNode = Node.noui[FillStyle]("#efefef")(background)
+
+    val transitions =
+      Node.set(PetriNetModel.transitions(10, bounds)).withTool(None, new SimpleMoveTool[VisualNode[Transition]](0))
+    val places = Node.set(PetriNetModel.places(10, bounds)).withTool(None, new SimpleMoveTool[VisualNode[Place]](1))
+    val grid = Grid(20, 20, "#ababab")
+
+    val scene = bgNode ~> (grid ~> (places ~> transitions))
+
+    /**
+     * (pointCloud & selection) % { (p, s) => { case KeyEvent(Down, 'DELETE') => (p - s, Set.empty) } } * }
+     */
 
     editor.setScene(scene)
   }

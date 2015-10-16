@@ -1,4 +1,4 @@
-package io.process.geometry
+package io.process.common.geometry
 
 case class Circle(r: Double, centre: Point = Point.origin) extends ClosedPath with Transformable[Ellipse] {
 

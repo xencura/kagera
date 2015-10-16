@@ -1,4 +1,4 @@
-package io.process.geometry
+package io.process.common.geometry
 
 case class Rectangle(point: Point, width: Double, height: Double) extends ClosedPath with Transformable[Polygon] {
 

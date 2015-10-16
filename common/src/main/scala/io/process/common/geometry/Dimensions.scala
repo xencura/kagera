@@ -1,4 +1,4 @@
-package io.process.geometry
+package io.process.common.geometry
 
 trait Dimensions {
 

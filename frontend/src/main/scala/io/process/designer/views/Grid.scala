@@ -1,8 +1,8 @@
 package io.process.designer.views
 
 import io.process.designer.model.Node
-import io.process.draw._
-import io.process.geometry._
+import io.process.common.draw._
+import io.process.common.geometry._
 
 object Grid {
 
@@ -19,7 +19,9 @@ object Grid {
     val xlines = (1 until (w / gridX)).map(gridX *).map { x => MoveTo(x, 0) ~> LineTo(x, h) }.flatten
     val ylines = (1 until (h / gridY)).map(gridY *).map { y => MoveTo(0, y) ~> LineTo(w, y) }.flatten
 
-    translate(0.5, 0.5)(stroke(props.strokeStyle, xlines ++ ylines))
+    translate(0.5, 0.5) {
+      stroke(props.strokeStyle, xlines ++ ylines)
+    }
   }
 
   def apply(gridX: Int, gridY: Int, strokeStyle: StrokeStyle) = Node.noui(GridProperties(gridX, gridY, strokeStyle))

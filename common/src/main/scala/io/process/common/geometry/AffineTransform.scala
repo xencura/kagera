@@ -1,4 +1,7 @@
-package io.process.geometry
+package io.process.common.geometry
+
+import scalaz._
+import scalaz.syntax.std.boolean._
 
 case object AffineTransform {
 
@@ -21,7 +24,6 @@ case object AffineTransform {
 case class AffineTransform(m: (Double, Double, Double, Double, Double, Double)) extends Function[Point, Point] {
 
   import PartialFunction._
-  import scalaz.syntax.std.boolean._
 
   def isIdentity: Boolean = cond(m) { case (1, 0, 0, 1, 0, 0) => true }
   def isTranslation: Boolean = cond(m) { case (1, 0, 0, 1, xt, yt) => true }

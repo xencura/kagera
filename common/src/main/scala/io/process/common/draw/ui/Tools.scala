@@ -1,4 +1,4 @@
-package io.process.designer.ui
+package io.process.common.draw.ui
 
 object Tools {
 

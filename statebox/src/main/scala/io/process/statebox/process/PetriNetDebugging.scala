@@ -12,9 +12,9 @@ object PetriNetDebugging {
   case class RemoveBreakPoint(t: Transition) extends Command
 }
 
-trait PetriNetDebugging {
+trait PetriNetDebugging[T, P] {
 
-  self: PetriNetActor =>
+  self: PetriNetActor[T, P] =>
 
   val breakPoints: Map[Transition, ActorRef]
 

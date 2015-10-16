@@ -1,8 +1,8 @@
 package io.process.designer.scalajs
 
 import io.process.designer.model.Node
-import io.process.designer.ui._
-import io.process.geometry.Dimensions
+import io.process.common.draw.ui._
+import io.process.common.geometry.Dimensions
 
 import org.scalajs.dom
 import scala.scalajs.js.Dynamic.{ global => g }

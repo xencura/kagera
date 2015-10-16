@@ -5,6 +5,7 @@ import java.util.concurrent.atomic.AtomicLong
 
 import akka.actor.{ ActorLogging, ActorRef }
 import akka.persistence.PersistentActor
+import io.process.{ PTProcess, TProcess }
 import io.process.statebox.process.PetriNetActor._
 
 // states
@@ -14,62 +15,48 @@ case object Active extends ExecutionState
 
 object PetriNetActor {
 
-  def apply(petrinet: ProcessModel, id: Long, scheduler: ActorRef) = new PetriNetActor(petrinet, id, scheduler)
+  //  def apply(petrinet: ProcessModel, id: Long, scheduler: ActorRef) = new PetriNetActor(petrinet, id, scheduler)
 
   sealed trait Command
 
   case object GetState extends Command
   case object Start extends Command
-  case class FireTransition(transition: Long, tokens: Set[Token] = Set.empty, data: Any = None) extends Command
+  case class FireTransition(fn: Marking => (Transition, Marking, Any)) extends Command
   case object Stop extends Command
 
   sealed trait Event
 
-  case class TransitionFired(transition: Long, consumed: Set[Token], produced: Marking) extends Event
+  case class TransitionFired(transition: Long, consumed: Marking, produced: Marking, meta: Any) extends Event
 }
 
-/**
- * An instance of a petri net
- *
- * design
- *
- *   - a token id is unique for the lifetime of a process instance
- *   - a token that is not consumed retains it's id in the next marking
- */
-class PetriNetActor(petrinet: ProcessModel, id: Long, scheduler: ActorRef) extends PersistentActor with ActorLogging {
+class PetriNetActor[T, P](process: PTProcess[T, P], scheduler: ActorRef) extends PersistentActor with ActorLogging {
 
-  override val persistenceId = id.toString
+  override val persistenceId = s"persistent-process-${context.self.path.name}"
 
-  var marking: Set[Token] = Set.empty
-  var seq: AtomicLong = new AtomicLong(0)
-  val executionState: ExecutionState = Active
+  var marking: Marking = Map.empty
+  val seq: AtomicLong = new AtomicLong(0)
 
   override def receiveCommand = active
-
   override def receiveRecover = { case e: Event => updateState(e) }
 
   def active: Receive = {
-    case FireTransition(t, consume, data) => fire(t, consume, data)
-    case GetState => sender() ! marking
+    case FireTransition(fn) => (fire _ tupled)(fn(marking))
+    case GetState => (seq, sender() ! marking)
   }
 
-  def fire(t: Long, consume: Set[Token], data: Any) = {
+  def fire(t: Transition, consume: Marking, data: Any) = {
 
     val initiator = sender()
-    val tfn: Marking => Marking = s => s
-    val produced = tfn.apply(consume)
-
-    persist(TransitionFired(t, consume, produced)) { e =>
-      updateState(e)
-      initiator ! e
-    }
+    //    persist(TransitionFired(t, consume, produced)) { e =>
+    //      updateState(e)
+    //      initiator ! e
+    //    }
   }
 
   def updateState(e: Event) = e match {
-    case TransitionFired(t, consume, produced) =>
-      marking --= consume
+    case TransitionFired(t, consume, produced, meta) =>
+      //      marking --= consume.seq
       marking ++= produced
       seq.incrementAndGet()
-
   }
 }
