@@ -14,8 +14,8 @@ package object dsl {
 
   sealed trait Place {
     type Color
-    def id: Long = label.hashCode
     override def toString = label
+    def id: Long = label.hashCode
     def label: String
   }
 
@@ -40,9 +40,7 @@ package object dsl {
   def arc(t: Transition[_, _], p: Place, weight: Long): Arc = WDiEdge[Node](Right(t), Left(p))(weight)
   def arc(p: Place, t: Transition[_, _], weight: Long): Arc = WDiEdge[Node](Left(p), Right(t))(weight)
 
-  type |~>[A, B] = Transition[A, B]
-
-  type Token[T] = (Place, T)
+  type Token[T] = (Place { type Color = T }, T)
 
   trait Marking[T] {
     def marking: Map[Place, Long]
@@ -67,9 +65,34 @@ package object dsl {
 
   def process(params: Seq[Arc]*): PetriNet = Graph(params.reduce(_ ++ _): _*)
 
+  implicit def toNode(p: Place): Node = Left(p)
+  implicit def toNode(t: Transition[_, _]): Node = Right(t)
+  implicit class NodeAdditions(node: Node) {
+    def asPlace(): Place = node match {
+      case Left(p) => p
+      case _ => throw new IllegalStateException(s"node $node is not a place!")
+    }
+    def asTransition(): Transition[_, _] = node match {
+      case Right(t) => t
+      case _ => throw new IllegalStateException(s"node $node is not a place!")
+    }
+  }
+
   implicit class PetriNetAdditions(process: PetriNet) {
 
-    def enabledTransitions(marking: Map[Place, Long]) = {}
+    def enabledTransitions(marking: Map[Place, Long]) = {
+      marking
+        .map { case (p, cnt) =>
+          process.get(p).outgoing.collect {
+            case edge if (edge.weight <= cnt) => edge.target.value.asTransition()
+          }
+        }
+        .reduce(_ ++ _)
+    }
+
+    def places() = process.nodes.map(_.value).collect { case Left(place) => place }
+
+    def transitions() = process.nodes.map(_.value).collect { case Right(transition) => transition }
 
     def toDot() = {
 
