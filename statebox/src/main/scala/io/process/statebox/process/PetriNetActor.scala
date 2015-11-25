@@ -3,10 +3,10 @@ package process
 
 import java.util.concurrent.atomic.AtomicLong
 
-import akka.actor.{ ActorLogging, ActorRef }
-import akka.persistence.PersistentActor
-import io.process.{ PTProcess, TProcess }
+import akka.actor.{ Actor, ActorLogging, Status }
 import io.process.statebox.process.PetriNetActor._
+import io.process.statebox.process.PetriNetDebugging.Step
+import io.process.statebox.process.dsl._
 
 // states
 sealed trait ExecutionState
@@ -15,48 +15,50 @@ case object Active extends ExecutionState
 
 object PetriNetActor {
 
-  //  def apply(petrinet: ProcessModel, id: Long, scheduler: ActorRef) = new PetriNetActor(petrinet, id, scheduler)
-
   sealed trait Command
 
   case object GetState extends Command
   case object Start extends Command
-  case class FireTransition(fn: Marking => (Transition, Marking, Any)) extends Command
+  //  case class FireTransition(fn: MarkingHolder => (Transition, MarkingHolder, Any)) extends Command
   case object Stop extends Command
 
   sealed trait Event
 
-  case class TransitionFired(transition: Long, consumed: Marking, produced: Marking, meta: Any) extends Event
+  case class TransitionFired(transition: Long, consumed: SimpleMarking, produced: SimpleMarking, meta: Any)
+      extends Event
+
+  case object NoFireableTransitions extends IllegalStateException
+
 }
 
-class PetriNetActor[T, P](process: PTProcess[T, P], scheduler: ActorRef) extends PersistentActor with ActorLogging {
+class PetriNetActor[T, P](id: String, process: ColoredPetriNet) extends Actor with ActorLogging {
 
-  override val persistenceId = s"persistent-process-${context.self.path.name}"
-
-  var marking: Marking = Map.empty
+  var marking: SimpleMarking = Map.empty
   val seq: AtomicLong = new AtomicLong(0)
 
-  override def receiveCommand = active
-  override def receiveRecover = { case e: Event => updateState(e) }
-
-  def active: Receive = {
-    case FireTransition(fn) => (fire _ tupled)(fn(marking))
-    case GetState => (seq, sender() ! marking)
+  def receive: Receive = { case Step =>
+    process.enabledTransitions(marking).headOption match {
+      case None => sender() ! Status.Failure(NoFireableTransitions)
+      case Some(t) => fire(t)
+    }
   }
 
-  def fire(t: Transition, consume: Marking, data: Any) = {
+  def fire(t: Transition) = {
 
-    val initiator = sender()
-    //    persist(TransitionFired(t, consume, produced)) { e =>
-    //      updateState(e)
-    //      initiator ! e
-    //    }
-  }
+    log.warning(s"Firing transition $t")
 
-  def updateState(e: Event) = e match {
-    case TransitionFired(t, consume, produced, meta) =>
-      //      marking --= consume.seq
-      marking ++= produced
-      seq.incrementAndGet()
+    val in = process.inMarking(t)
+    log.warning(s"inMarking: $in")
+
+    val out = process.outMarking(t)
+    log.warning(s"outMarking: $out")
+
+    marking = marking.consume(in).produce(out)
+
+    log.warning(s"result: $marking")
+
+    seq.incrementAndGet()
+
+    sender() ! "fired"
   }
 }

@@ -1,8 +1,14 @@
 package io.process.statebox.process
 
+import akka.actor.Props
+import akka.util.Timeout
+import io.process.statebox.ServicesImpl
+import io.process.statebox.process.PetriNetDebugging.Step
 import io.process.statebox.process.dsl._
 
-object Test extends App {
+import scala.concurrent.Await
+
+object Test extends App with ServicesImpl {
 
   val a = Place[Int]("a")
   val b = Place[Int]("b")
@@ -14,9 +20,16 @@ object Test extends App {
   val sumT = toTransition2("sum", sum)
   val initT = toTransition0("init", init)
 
-  val p = process(initT ~> %(a, b), %(a, b) ~> sumT, sumT ~> c)
+  val simpleProcess = process(initT ~> %(a, b), %(a, b) ~> sumT, sumT ~> c)
 
-  println(p.toDot)
+  val actor = system.actorOf(Props(new PetriNetActor("foo", simpleProcess)))
 
-  println(p.enabledTransitions(Map(a -> 1, b -> 2)))
+  import akka.pattern.ask
+  import scala.concurrent.duration._
+
+  implicit val timeout = Timeout(2 seconds)
+
+  actor ? Step
+
+  Await.result(actor ? Step, timeout.duration)
 }

@@ -3,49 +3,63 @@ package io.process
 import akka.stream.scaladsl.Flow
 import io.process.statebox.process.PetriNetActor.TransitionFired
 import io.process.statebox.process.StateBox.Command
-import io.process.statebox.{ Id, Identifiable, Marking }
+import io.process.statebox.process.dsl.Place
 
 package object statebox {
 
   type Id = Long
-  type ProcessModel = String
-  type Marking = Map[Id, Set[Int]]
   type Token = (Id, Any)
-  type Transition = Long
-  type Place = Long
-  trait Identifiable { val id: Long }
 
   type ManagedProcess[M] = Flow[Command, TransitionFired, M]
-}
 
-trait PetriNet[P, T] {
+  type SimpleMarking = Map[Place, Long]
 
-  type Marking <: Map[P, Int]
+  implicit class MarkingFunctions(marking: SimpleMarking) {
+    def consume(other: SimpleMarking) = {
+      other.foldLeft(marking) { case (m, (p, amount)) =>
+        m.get(p) match {
+          case None => throw new IllegalStateException(s"No such place in marking: $p")
+          case Some(count) if count < amount => throw new IllegalStateException(s"Too few tokens in place: $p")
+          case Some(count) if count == amount => m - p
+          case Some(count) => m + (p -> (count - amount))
+        }
+      }
+    }
 
-  type Transition = T with Identifiable
-  type Place = P with Identifiable
-  type EdgeTP = Int
-  type EdgePT = Int
+    def produce(other: SimpleMarking) = {
+      other.foldLeft(marking) { case (m, (p, amount)) =>
+        m.get(p) match {
+          case None => m + (p -> amount)
+          case Some(count) => m + (p -> (count + amount))
+        }
+      }
+    }
+  }
 
-  def places: Set[P]
-  def transitions: Set[T]
-}
+  trait PetriNet[P, T] {
 
-trait PTProcess[T, P] extends PetriNet[P, T] with TokenGame[P, T] with TransitionExecutor[P, T] {}
+    type Marking <: Map[P, Int]
 
-trait TransitionExecutor[P, T] {
+    def places: Set[P]
+    def transitions: Set[T]
+  }
 
-  self: PetriNet[P, T] =>
+  trait PTProcess[T, P] extends PetriNet[P, T] with TokenGame[P, T] with TransitionExecutor[P, T] {}
 
-  def fire(transition: T, consume: Marking): Marking
-}
+  trait TransitionExecutor[P, T] {
 
-trait TokenGame[P, T] {
+    self: PetriNet[P, T] =>
 
-  self: PetriNet[P, T] =>
+    def fire(transition: T, consume: Marking): Marking
+  }
 
-  def fireable(m: Marking): Iterable[T]
-  def consumableMarkings(m: Marking)(t: T): Iterable[Marking]
-  def enabledTransitions(m: Marking): Iterable[T] = transitions.filter(t => isEnabled(m)(t))
-  def isEnabled(m: Marking)(t: T) = consumableMarkings(m)(t).nonEmpty
+  trait TokenGame[P, T] {
+
+    self: PetriNet[P, T] =>
+
+    def fireable(m: Marking): Iterable[T]
+    def consumableMarkings(m: Marking)(t: T): Iterable[Marking]
+    def enabledTransitions(m: Marking): Iterable[T] = transitions.filter(t => isEnabled(m)(t))
+    def isEnabled(m: Marking)(t: T) = consumableMarkings(m)(t).nonEmpty
+  }
 }

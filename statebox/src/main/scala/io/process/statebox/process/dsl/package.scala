@@ -1,9 +1,18 @@
 package io.process.statebox.process
 
+import scala.PartialFunction._
 import scalax.collection.Graph
 import scalax.collection.edge.WDiEdge
 
 package object dsl {
+
+  trait Identifiable {
+    def id: Long
+  }
+
+  trait HasLabel {
+    def label: String
+  }
 
   object Place {
     def apply[A](l: String) = new Place {
@@ -12,87 +21,129 @@ package object dsl {
     }
   }
 
-  sealed trait Place {
+  trait Place extends HasLabel with Identifiable {
     type Color
-    override def toString = label
-    def id: Long = label.hashCode
-    def label: String
-  }
-
-  sealed trait Transition[I, O] {
     def id: Long = label.hashCode
     override def toString = label
-    def label: String
   }
 
-  implicit def toTransition2[A, B, O](name: String, fn: (A, B) => O): Transition[(A, B), O] = new Transition[(A, B), O] {
+  trait Transition extends HasLabel with Identifiable {
+    type Input
+    type Output
+    override def toString = label
+    def id: Long = label.hashCode
+  }
+
+  def toTransition2[A, B, OUT](name: String, fn: (A, B) => OUT) = new Transition {
+    type Input = (A, B)
+    type Output = OUT
     override def label: String = name
   }
 
-  implicit def toTransition0[O](name: String, fn: () => O): Transition[Unit, O] = new Transition[Unit, O] {
+  def toTransition0[OUT](name: String, fn: () => OUT) = new Transition {
+    type Input = Unit
+    type Output = OUT
     override def label: String = name
   }
 
-  type Node = Either[Place, Transition[_, _]]
+  type Node = Either[Place, Transition]
   type Arc = WDiEdge[Node]
-  type PetriNet = Graph[Node, WDiEdge]
+  type ColoredPetriNet = Graph[Node, WDiEdge]
 
-  def arc(t: Transition[_, _], p: Place, weight: Long): Arc = WDiEdge[Node](Right(t), Left(p))(weight)
-  def arc(p: Place, t: Transition[_, _], weight: Long): Arc = WDiEdge[Node](Left(p), Right(t))(weight)
+  def arc(t: Transition, p: Place, weight: Long): Arc = WDiEdge[Node](Right(t), Left(p))(weight)
+  def arc(p: Place, t: Transition, weight: Long): Arc = WDiEdge[Node](Left(p), Right(t))(weight)
 
   type Token[T] = (Place { type Color = T }, T)
 
-  trait Marking[T] {
+  sealed trait MarkingHolder[T] {
     def marking: Map[Place, Long]
   }
 
-  implicit def %[A](p: Place { type Color = A }): Marking[A] = new Marking[A] {
+  implicit def %[A](p: Place { type Color = A }): MarkingHolder[A] = new MarkingHolder[A] {
     override val marking = Map[Place, Long](p -> 1)
   }
 
-  implicit def %[A, B](places: (Place { type Color = A }, Place { type Color = B })): Marking[(A, B)] =
-    new Marking[(A, B)] {
+  implicit def %[A, B](places: (Place { type Color = A }, Place { type Color = B })): MarkingHolder[(A, B)] =
+    new MarkingHolder[(A, B)] {
       override val marking = Map[Place, Long](places._1 -> 1, places._2 -> 1)
     }
 
-  implicit class TF[A, B](t: Transition[A, B]) {
-    def ~>(m: Marking[B]) = m.marking.map { case (p, weight) => arc(t, p, weight) }.toSeq
+  implicit class TF[B](t: Transition { type Output = B }) {
+    def ~>(m: MarkingHolder[B]) = m.marking.map { case (p, weight) => arc(t, p, weight) }.toSeq
   }
 
-  implicit class M[A](m: Marking[A]) {
-    def ~>[B](t: Transition[A, B]) = m.marking.map { case (p, weight) => arc(p, t, weight) }.toSeq
+  implicit class M[A](m: MarkingHolder[A]) {
+    def ~>[B](t: Transition { type Input = A }) = m.marking.map { case (p, weight) => arc(p, t, weight) }.toSeq
   }
 
-  def process(params: Seq[Arc]*): PetriNet = Graph(params.reduce(_ ++ _): _*)
+  def process(params: Seq[Arc]*): ColoredPetriNet = Graph(params.reduce(_ ++ _): _*)
+
+  // ----- READING
 
   implicit def toNode(p: Place): Node = Left(p)
-  implicit def toNode(t: Transition[_, _]): Node = Right(t)
+  implicit def toNode(t: Transition): Node = Right(t)
+
   implicit class NodeAdditions(node: Node) {
-    def asPlace(): Place = node match {
+
+    import PartialFunction._
+
+    def isPlace = cond(node) { case Left(place) => true }
+    def isTransition = cond(node) { case Right(transition) => true }
+  }
+
+  implicit class NodeTAdditions(node: ColoredPetriNet#NodeT) {
+    def asPlace: Place = node.value match {
       case Left(p) => p
       case _ => throw new IllegalStateException(s"node $node is not a place!")
     }
-    def asTransition(): Transition[_, _] = node match {
+    def asTransition: Transition = node.value match {
       case Right(t) => t
       case _ => throw new IllegalStateException(s"node $node is not a place!")
     }
+
+    def isPlace = cond(node.value) { case Left(place) => true }
+    def isTransition = cond(node.value) { case Right(transition) => true }
   }
 
-  implicit class PetriNetAdditions(process: PetriNet) {
+  implicit class PetriNetAdditions(val process: ColoredPetriNet) {
 
-    def enabledTransitions(marking: Map[Place, Long]) = {
+    def enabledTransitions(marking: Map[Place, Long]): Set[Transition] = {
       marking
-        .map { case (p, cnt) =>
-          process.get(p).outgoing.collect {
-            case edge if (edge.weight <= cnt) => edge.target.value.asTransition()
+        .map { case (place, count) =>
+          process.get(place).outgoing.collect {
+            case edge if (edge.weight <= count) => edge.target
           }
         }
-        .reduce(_ ++ _)
+        .reduceOption(_ ++ _)
+        .getOrElse(Set.empty)
+        .collect {
+          case node if incomingPlaces(node).subsetOf(marking.keySet) => node.asTransition
+        } ++ constructors
     }
 
-    def places() = process.nodes.map(_.value).collect { case Left(place) => place }
+    def incomingPlaces(node: ColoredPetriNet#NodeT): Set[Place] = node.incoming.map(_.source.asPlace)
+    def incomingPlaces(t: Transition): Set[Place] = incomingPlaces(process.get(t))
 
-    def transitions() = process.nodes.map(_.value).collect { case Right(transition) => transition }
+    def outgoingPlaces(node: ColoredPetriNet#NodeT): Set[Place] = node.outgoing.map(_.target.asPlace)
+    def outgoingPlaces(t: Transition): Set[Place] = outgoingPlaces(process.get(t))
+
+    def incomingTransitions(p: Place): Set[Transition] = incomingTransitions(process.get(p))
+    def incomingTransitions(node: ColoredPetriNet#NodeT): Set[Transition] = node.incoming.map(_.source.asTransition)
+
+    def outgoingTransitions(node: ColoredPetriNet#NodeT): Set[Transition] = node.outgoing.map(_.target.asTransition)
+    def outgoingTransitions(t: Place): Set[Transition] = outgoingTransitions(process.get(t))
+
+    def inMarking(t: Transition): Map[Place, Long] = process.get(t).incoming.map(e => e.source.asPlace -> e.weight).toMap
+    def outMarking(t: Transition): Map[Place, Long] =
+      process.get(t).outgoing.map(e => e.target.asPlace -> e.weight).toMap
+
+    lazy val constructors = process.nodes.collect {
+      case node if node.isTransition && node.incoming.isEmpty => node.asTransition
+    }
+
+    def places() = process.nodes.collect { case n if n.isPlace => n.asPlace }
+
+    def transitions() = process.nodes.collect { case n if n.isTransition => n.asTransition }
 
     def toDot() = {
 
@@ -106,19 +157,19 @@ package object dsl {
         attrList = List(DotAttr("attr_1", """"one""""), DotAttr("attr_2", "<two>"))
       )
 
-      def nodeId(node: PetriNet#NodeT): String = {
+      def nodeId(node: ColoredPetriNet#NodeT): String = {
         node.value match {
           case Left(place) => place.label
           case Right(transition) => transition.label
         }
       }
 
-      def myNodeTransformer(innerNode: PetriNet#NodeT): Option[(DotGraph, DotNodeStmt)] = innerNode.value match {
+      def myNodeTransformer(innerNode: ColoredPetriNet#NodeT): Option[(DotGraph, DotNodeStmt)] = innerNode.value match {
         case Left(place) => Some((root, DotNodeStmt(place.label, List(DotAttr("shape", "circle")))))
         case Right(transition) => Some((root, DotNodeStmt(transition.label, List(DotAttr("shape", "square")))))
       }
 
-      def myEdgeTransformer(innerEdge: PetriNet#EdgeT): Option[(DotGraph, DotEdgeStmt)] = innerEdge.edge match {
+      def myEdgeTransformer(innerEdge: ColoredPetriNet#EdgeT): Option[(DotGraph, DotEdgeStmt)] = innerEdge.edge match {
         case WDiEdge(source, target, weight) =>
           Some((root, DotEdgeStmt(nodeId(source), nodeId(target), List(DotAttr("weight", weight.toString)))))
       }
