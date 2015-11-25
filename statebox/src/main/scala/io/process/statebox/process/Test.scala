@@ -22,7 +22,7 @@ object Test extends App with ServicesImpl {
 
   val simpleProcess = process(initT ~> %(a, b), %(a, b) ~> sumT, sumT ~> c)
 
-  val actor = system.actorOf(Props(new PetriNetActor("foo", simpleProcess)))
+  val actor = system.actorOf(Props(new PetriNetActor(simpleProcess)))
 
   import akka.pattern.ask
   import scala.concurrent.duration._

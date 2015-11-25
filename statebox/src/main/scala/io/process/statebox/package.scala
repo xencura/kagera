@@ -12,10 +12,10 @@ package object statebox {
 
   type ManagedProcess[M] = Flow[Command, TransitionFired, M]
 
-  type SimpleMarking = Map[Place, Long]
+  type SimpleMarking[P] = Map[P, Long]
 
-  implicit class MarkingFunctions(marking: SimpleMarking) {
-    def consume(other: SimpleMarking) = {
+  implicit class MarkingFunctions[P](marking: SimpleMarking[P]) {
+    def consume(other: SimpleMarking[P]) = {
       other.foldLeft(marking) { case (m, (p, amount)) =>
         m.get(p) match {
           case None => throw new IllegalStateException(s"No such place in marking: $p")
@@ -26,7 +26,7 @@ package object statebox {
       }
     }
 
-    def produce(other: SimpleMarking) = {
+    def produce(other: SimpleMarking[P]) = {
       other.foldLeft(marking) { case (m, (p, amount)) =>
         m.get(p) match {
           case None => m + (p -> amount)
