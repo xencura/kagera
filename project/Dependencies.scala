@@ -11,7 +11,7 @@ object Dependencies {
     )
   )
 
-  val akkaVersion = "2.4-M3"
+  val akkaVersion = "2.4.0"
   val sprayVersion = "1.3.2"
 
   val akkaActor = "com.typesafe.akka" %% "akka-actor" % akkaVersion
@@ -22,6 +22,8 @@ object Dependencies {
 
   val graphConstrained = "com.assembla.scala-incubator" %% "graph-core" % "1.9.0"
   val graph = "com.assembla.scala-incubator" %% "graph-core" % "1.9.4"
+  val graphDot = "com.assembla.scala-incubator" %% "graph-dot" % "1.10.0"
+
   val logback = "ch.qos.logback" % "logback-classic" % "1.1.2"
   val ficus = "net.ceedubs" %% "ficus" % "1.1.2"
   val scalatest = "org.scalatest" %% "scalatest" % "2.2.1"
