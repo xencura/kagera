@@ -1,27 +1,21 @@
 package io.process.statebox.process
 
+import io.process.statebox.process.simple.Marking
+
 import scala.PartialFunction._
 import scalax.collection.Graph
 import scalax.collection.edge.WDiEdge
 
-package object dsl {
+package object colored {
 
-  trait Identifiable {
-    def id: Long
-  }
-
-  trait HasLabel {
-    def label: String
-  }
-
-  object Place {
-    def apply[A](l: String) = new Place {
+  object ColoredPlace {
+    def apply[A](l: String) = new ColoredPlace {
       type Color = A
       override val label = l
     }
   }
 
-  trait Place extends HasLabel with Identifiable {
+  trait ColoredPlace extends HasLabel with Identifiable {
     type Color
     def id: Long = label.hashCode
     override def toString = label
@@ -46,27 +40,28 @@ package object dsl {
     override def label: String = name
   }
 
-  type Node = Either[Place, Transition]
+  type Node = Either[ColoredPlace, Transition]
   type Arc = WDiEdge[Node]
   type ColoredPetriNet = Graph[Node, WDiEdge]
 
-  def arc(t: Transition, p: Place, weight: Long): Arc = WDiEdge[Node](Right(t), Left(p))(weight)
-  def arc(p: Place, t: Transition, weight: Long): Arc = WDiEdge[Node](Left(p), Right(t))(weight)
+  def arc(t: Transition, p: ColoredPlace, weight: Long): Arc = WDiEdge[Node](Right(t), Left(p))(weight)
+  def arc(p: ColoredPlace, t: Transition, weight: Long): Arc = WDiEdge[Node](Left(p), Right(t))(weight)
 
-  type Token[T] = (Place { type Color = T }, T)
+  type Token[T] = (ColoredPlace { type Color = T }, T)
 
   sealed trait MarkingHolder[T] {
-    def marking: Map[Place, Long]
+    def marking: Map[ColoredPlace, Long]
   }
 
-  implicit def %[A](p: Place { type Color = A }): MarkingHolder[A] = new MarkingHolder[A] {
-    override val marking = Map[Place, Long](p -> 1)
+  implicit def %[A](p: ColoredPlace { type Color = A }): MarkingHolder[A] = new MarkingHolder[A] {
+    override val marking = Map[ColoredPlace, Long](p -> 1)
   }
 
-  implicit def %[A, B](places: (Place { type Color = A }, Place { type Color = B })): MarkingHolder[(A, B)] =
-    new MarkingHolder[(A, B)] {
-      override val marking = Map[Place, Long](places._1 -> 1, places._2 -> 1)
-    }
+  implicit def %[A, B](
+    places: (ColoredPlace { type Color = A }, ColoredPlace { type Color = B })
+  ): MarkingHolder[(A, B)] = new MarkingHolder[(A, B)] {
+    override val marking = Map[ColoredPlace, Long](places._1 -> 1, places._2 -> 1)
+  }
 
   implicit class TF[B](t: Transition { type Output = B }) {
     def ~>(m: MarkingHolder[B]) = m.marking.map { case (p, weight) => arc(t, p, weight) }.toSeq
@@ -80,7 +75,7 @@ package object dsl {
 
   // ----- READING
 
-  implicit def toNode(p: Place): Node = Left(p)
+  implicit def toNode(p: ColoredPlace): Node = Left(p)
   implicit def toNode(t: Transition): Node = Right(t)
 
   implicit class NodeAdditions(node: Node) {
@@ -92,7 +87,7 @@ package object dsl {
   }
 
   implicit class NodeTAdditions(node: ColoredPetriNet#NodeT) {
-    def asPlace: Place = node.value match {
+    def asPlace: ColoredPlace = node.value match {
       case Left(p) => p
       case _ => throw new IllegalStateException(s"node $node is not a place!")
     }
@@ -107,7 +102,8 @@ package object dsl {
 
   implicit class PetriNetAdditions(val process: ColoredPetriNet) {
 
-    def enabledTransitions(marking: Map[Place, Long]): Set[Transition] = {
+    def enabledTransitions(marking: Marking[ColoredPlace]): Set[Transition] = {
+
       marking
         .map { case (place, count) =>
           process.get(place).outgoing.collect {
@@ -121,21 +117,22 @@ package object dsl {
         } ++ constructors
     }
 
-    def incomingPlaces(node: ColoredPetriNet#NodeT): Set[Place] = node.incoming.map(_.source.asPlace)
-    def incomingPlaces(t: Transition): Set[Place] = incomingPlaces(process.get(t))
+    def incomingPlaces(node: ColoredPetriNet#NodeT): Set[ColoredPlace] = node.incoming.map(_.source.asPlace)
+    def incomingPlaces(t: Transition): Set[ColoredPlace] = incomingPlaces(process.get(t))
 
-    def outgoingPlaces(node: ColoredPetriNet#NodeT): Set[Place] = node.outgoing.map(_.target.asPlace)
-    def outgoingPlaces(t: Transition): Set[Place] = outgoingPlaces(process.get(t))
+    def outgoingPlaces(node: ColoredPetriNet#NodeT): Set[ColoredPlace] = node.outgoing.map(_.target.asPlace)
+    def outgoingPlaces(t: Transition): Set[ColoredPlace] = outgoingPlaces(process.get(t))
 
-    def incomingTransitions(p: Place): Set[Transition] = incomingTransitions(process.get(p))
+    def incomingTransitions(p: ColoredPlace): Set[Transition] = incomingTransitions(process.get(p))
     def incomingTransitions(node: ColoredPetriNet#NodeT): Set[Transition] = node.incoming.map(_.source.asTransition)
 
     def outgoingTransitions(node: ColoredPetriNet#NodeT): Set[Transition] = node.outgoing.map(_.target.asTransition)
-    def outgoingTransitions(t: Place): Set[Transition] = outgoingTransitions(process.get(t))
+    def outgoingTransitions(t: ColoredPlace): Set[Transition] = outgoingTransitions(process.get(t))
 
-    def inMarking(t: Transition): Map[Place, Long] = process.get(t).incoming.map(e => e.source.asPlace -> e.weight).toMap
-    def outMarking(t: Transition): Map[Place, Long] =
-      process.get(t).outgoing.map(e => e.target.asPlace -> e.weight).toMap
+    def inMarking(t: Transition): Map[ColoredPlace, Int] =
+      process.get(t).incoming.map(e => e.source.asPlace -> e.weight.toInt).toMap
+    def outMarking(t: Transition): Map[ColoredPlace, Int] =
+      process.get(t).outgoing.map(e => e.target.asPlace -> e.weight.toInt).toMap
 
     lazy val constructors = process.nodes.collect {
       case node if node.isTransition && node.incoming.isEmpty => node.asTransition

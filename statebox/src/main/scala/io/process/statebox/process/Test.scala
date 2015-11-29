@@ -3,16 +3,17 @@ package io.process.statebox.process
 import akka.actor.Props
 import akka.util.Timeout
 import io.process.statebox.ServicesImpl
-import io.process.statebox.process.PetriNetDebugging.Step
-import io.process.statebox.process.dsl._
+import io.process.statebox.actor.{ PetriNetActor, PetriNetDebugging }
+import PetriNetDebugging.Step
+import io.process.statebox.process.colored._
 
 import scala.concurrent.Await
 
 object Test extends App with ServicesImpl {
 
-  val a = Place[Int]("a")
-  val b = Place[Int]("b")
-  val c = Place[Int]("result")
+  val a = ColoredPlace[Int]("a")
+  val b = ColoredPlace[Int]("b")
+  val c = ColoredPlace[Int]("result")
 
   def init() = (5, 5)
   def sum(a: Int, b: Int) = a + b

@@ -1,7 +1,7 @@
-package io.process.statebox.process
+package io.process.statebox.actor
 
 import akka.actor.ActorRef
-import io.process.statebox.process.dsl.Transition
+import io.process.statebox.process.colored.Transition
 
 object PetriNetDebugging {
 

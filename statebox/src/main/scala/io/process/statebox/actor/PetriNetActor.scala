@@ -1,10 +1,10 @@
-package io.process.statebox
-package process
+package io.process.statebox.actor
 
 import akka.actor._
-import io.process.statebox.process.PetriNetActor._
-import io.process.statebox.process.PetriNetDebugging.Step
-import io.process.statebox.process.dsl._
+import io.process.statebox.actor.PetriNetActor.NoFireableTransitions
+import io.process.statebox.actor.PetriNetDebugging.Step
+import io.process.statebox.process.colored._
+import io.process.statebox.process.simple._
 
 // states
 sealed trait ExecutionState
@@ -26,8 +26,8 @@ object PetriNetActor {
 
   case class TransitionFired(
     transition: Long,
-    consumed: SimpleMarking[Place],
-    produced: SimpleMarking[Place],
+    consumed: Marking[ColoredPlace],
+    produced: Marking[ColoredPlace],
     meta: Any
   ) extends Event
 
@@ -39,29 +39,29 @@ class PetriNetActor[T, P](process: ColoredPetriNet) extends Actor with ActorLogg
 
   def receive = active(Map.empty)
 
-  def active(marking: SimpleMarking[Place]): Receive = { case Step =>
+  def active(marking: Marking[ColoredPlace]): Receive = { case Step =>
     process.enabledTransitions(marking).headOption match {
       case None => sender() ! Status.Failure(NoFireableTransitions)
-      case Some(t) => fire(marking, t)
+      case Some(t) =>
+        val newMarking = fireTransition(marking, t)
+        context become active(newMarking)
     }
   }
 
-  def fire(marking: SimpleMarking[Place], t: Transition) = {
+  def fireTransition(marking: Marking[ColoredPlace], t: Transition): Marking[ColoredPlace] = {
 
-    log.warning(s"Firing transition $t")
+    log.debug("Firing transition {}", t)
 
     val in = process.inMarking(t)
-    log.warning(s"inMarking: $in")
+    log.debug("inMarking: {}", in)
 
     val out = process.outMarking(t)
-    log.warning(s"outMarking: $out")
+    log.debug("outMarking: {}", out)
 
     val newMarking = marking.consume(in).produce(out)
 
-    log.warning(s"result: $marking")
+    log.info("fired transition {}, result: {}", t, newMarking)
 
-    context become active(newMarking)
-
-    sender() ! "fired"
+    newMarking
   }
 }

@@ -1,9 +1,8 @@
-package io.process.statebox.process
+package io.process.statebox.actor
 
 import akka.actor.Actor
-import akka.actor.Actor.Receive
-import io.process.statebox.process.StateBox.CreateInstance
-import io.process.statebox.process.dsl.ColoredPetriNet
+import io.process.statebox.actor.StateBox.CreateInstance
+import io.process.statebox.process.colored.ColoredPetriNet
 
 object StateBox {
 
