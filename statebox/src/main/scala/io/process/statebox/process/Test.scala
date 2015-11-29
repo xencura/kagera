@@ -11,9 +11,9 @@ import scala.concurrent.Await
 
 object Test extends App with ServicesImpl {
 
-  val a = ColoredPlace[Int]("a")
-  val b = ColoredPlace[Int]("b")
-  val c = ColoredPlace[Int]("result")
+  val a = Place[Int]("a")
+  val b = Place[Int]("b")
+  val c = Place[Int]("result")
 
   def init() = (5, 5)
   def sum(a: Int, b: Int) = a + b

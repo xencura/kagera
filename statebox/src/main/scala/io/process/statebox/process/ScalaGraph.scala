@@ -1,0 +1,116 @@
+package io.process.statebox.process
+
+import io.process.statebox.process.simple.Marking
+
+import scala.PartialFunction._
+import scalax.collection.Graph
+import scalax.collection.edge.WDiEdge
+
+object ScalaGraph {
+
+  type BiPartiteGraph[P, T] = Graph[Either[P, T], WDiEdge]
+
+  class ScalaGraphWrapper[P, T](val graph: BiPartiteGraph[P, T]) extends PetriNet[P, T] {
+
+    override def enabledTransitions(marking: Marking[P]): Set[T] = {
+
+      marking
+        .map { case (place, count) =>
+          graph.get(place).outgoing.collect {
+            case edge if (edge.weight <= count) => edge.target
+          }
+        }
+        .reduceOption(_ ++ _)
+        .getOrElse(Set.empty)
+        .collect {
+          case node if node.incomingA.subsetOf(marking.keySet) => node.valueB
+        } ++ constructors
+    }
+
+    lazy val constructors = graph.nodes.collect {
+      case node if node.isNodeB && node.incoming.isEmpty => node.valueB
+    }
+
+    override def inMarking(t: T): Map[P, Int] = graph.get(t).incoming.map(e => e.source.valueA -> e.weight.toInt).toMap
+    override def outMarking(t: T): Map[P, Int] = graph.get(t).outgoing.map(e => e.target.valueA -> e.weight.toInt).toMap
+
+    override lazy val places = graph.nodesA().toSet
+    override lazy val transitions = graph.nodesB().toSet
+
+    override def nodes() = graph.nodes.map(_.value)
+  }
+
+  implicit def placeToNode[P, T](p: P): Either[P, T] = Left(p)
+  implicit def transitionToNode[P, T](t: T): Either[P, T] = Right(t)
+
+  implicit class NodeTAdditions[P, T](val node: BiPartiteGraph[P, T]#NodeT) {
+
+    def valueA: P = node.value match {
+      case Left(p) => p
+      case _ => throw new IllegalStateException(s"node $node is not a place!")
+    }
+
+    def valueB: T = node.value match {
+      case Right(t) => t
+      case _ => throw new IllegalStateException(s"node $node is not a transition!")
+    }
+
+    def incomingA = node.incoming.map(_.source.valueA)
+    def incomingB = node.incoming.map(_.source.valueB)
+
+    def outgoingA = node.outgoing.map(_.target.valueA)
+    def outgoingB = node.outgoing.map(_.target.valueB)
+
+    def isNodeA = cond(node.value) { case Left(n) => true }
+    def isNodeB = cond(node.value) { case Right(n) => true }
+  }
+
+  implicit class BiPartiteGraphAdditions[P, T](val process: BiPartiteGraph[P, T]) {
+
+    def incomingA(t: T): Set[P] = process.get(t).incomingA
+    def outgoingA(t: T): Set[P] = process.get(t).outgoingA
+    def incomingB(p: P): Set[T] = process.get(p).incomingB
+    def outgoingB(p: P): Set[T] = process.get(p).outgoingB
+
+    def nodesA() = process.nodes.collect { case n if n.isNodeA => n.valueA }
+    def nodesB() = process.nodes.collect { case n if n.isNodeB => n.valueB }
+
+    def toDot() = {
+
+      import scalax.collection.io.dot._
+      import scalax.collection.io.dot.implicits._
+
+      val root = DotRootGraph(
+        directed = true,
+        id = Some("Process"),
+        attrStmts = List(DotAttrStmt(Elem.node, List(DotAttr("shape", "record")))),
+        attrList = List(DotAttr("attr_1", """"one""""), DotAttr("attr_2", "<two>"))
+      )
+
+      def nodeId(node: BiPartiteGraph[P, T]#NodeT): String = {
+        node.value match {
+          case Left(place) => place.toString //place.label
+          case Right(transition) => transition.toString //transition.label
+        }
+      }
+
+      def myNodeTransformer(innerNode: BiPartiteGraph[P, T]#NodeT): Option[(DotGraph, DotNodeStmt)] =
+        innerNode.value match {
+          case Left(place) => Some((root, DotNodeStmt(place.toString, List(DotAttr("shape", "circle")))))
+          case Right(transition) => Some((root, DotNodeStmt(transition.toString, List(DotAttr("shape", "square")))))
+        }
+
+      def myEdgeTransformer(innerEdge: BiPartiteGraph[P, T]#EdgeT): Option[(DotGraph, DotEdgeStmt)] =
+        innerEdge.edge match {
+          case WDiEdge(source, target, weight) =>
+            Some((root, DotEdgeStmt(nodeId(source), nodeId(target), List(DotAttr("weight", weight.toString)))))
+        }
+
+      graph2DotExport(process).toDot(
+        dotRoot = root,
+        edgeTransformer = myEdgeTransformer,
+        cNodeTransformer = Some(myNodeTransformer)
+      )
+    }
+  }
+}

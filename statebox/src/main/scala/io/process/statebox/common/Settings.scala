@@ -4,7 +4,7 @@ import com.typesafe.config.{ Config, ConfigFactory }
 
 class Settings(config: Config) {
 
-  val http = new {
+  object http {
     val interface = config.getString("http.interface")
     val port = config.getInt("http.port")
   }

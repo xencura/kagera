@@ -3,7 +3,7 @@ package io.process.statebox.actor
 import akka.actor._
 import io.process.statebox.actor.PetriNetActor.NoFireableTransitions
 import io.process.statebox.actor.PetriNetDebugging.Step
-import io.process.statebox.process.colored._
+import io.process.statebox.process.PetriNet
 import io.process.statebox.process.simple._
 
 // states
@@ -13,7 +13,7 @@ case object Active extends ExecutionState
 
 object PetriNetActor {
 
-  def props(process: ColoredPetriNet) = Props(new PetriNetActor(process))
+  def props[P, T](process: PetriNet[P, T]) = Props(new PetriNetActor(process))
 
   sealed trait Command
 
@@ -24,31 +24,26 @@ object PetriNetActor {
 
   sealed trait Event
 
-  case class TransitionFired(
-    transition: Long,
-    consumed: Marking[ColoredPlace],
-    produced: Marking[ColoredPlace],
-    meta: Any
-  ) extends Event
+  case class TransitionFired[P](transition: Long, consumed: Marking[P], produced: Marking[P], meta: Any) extends Event
 
   case object NoFireableTransitions extends IllegalStateException
-
 }
 
-class PetriNetActor[T, P](process: ColoredPetriNet) extends Actor with ActorLogging {
+class PetriNetActor[T, P](process: PetriNet[P, T]) extends Actor with ActorLogging {
 
   def receive = active(Map.empty)
 
-  def active(marking: Marking[ColoredPlace]): Receive = { case Step =>
+  def active(marking: Marking[P]): Receive = { case Step =>
     process.enabledTransitions(marking).headOption match {
       case None => sender() ! Status.Failure(NoFireableTransitions)
       case Some(t) =>
         val newMarking = fireTransition(marking, t)
         context become active(newMarking)
+        sender() ! "done"
     }
   }
 
-  def fireTransition(marking: Marking[ColoredPlace], t: Transition): Marking[ColoredPlace] = {
+  def fireTransition(marking: Marking[P], t: T): Marking[P] = {
 
     log.debug("Firing transition {}", t)
 
