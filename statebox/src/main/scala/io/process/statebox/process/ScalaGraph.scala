@@ -1,7 +1,5 @@
 package io.process.statebox.process
 
-import io.process.statebox.process.simple.Marking
-
 import scala.PartialFunction._
 import scalax.collection.Graph
 import scalax.collection.edge.WDiEdge
@@ -10,40 +8,21 @@ object ScalaGraph {
 
   type BiPartiteGraph[P, T] = Graph[Either[P, T], WDiEdge]
 
-  class ScalaGraphWrapper[P, T](val graph: BiPartiteGraph[P, T]) extends PetriNet[P, T] {
+  class ScalaGraphWrapper[P, T](val innerGraph: BiPartiteGraph[P, T]) extends PetriNet[P, T] {
 
-    override def enabledTransitions(marking: Marking[P]): Set[T] = {
+    override def inMarking(t: T): Marking[P] = innerGraph.get(t).incoming.map(e => e.source.valueA -> e.weight).toMap
+    override def outMarking(t: T): Marking[P] = innerGraph.get(t).outgoing.map(e => e.target.valueA -> e.weight).toMap
 
-      marking
-        .map { case (place, count) =>
-          graph.get(place).outgoing.collect {
-            case edge if (edge.weight <= count) => edge.target
-          }
-        }
-        .reduceOption(_ ++ _)
-        .getOrElse(Set.empty)
-        .collect {
-          case node if node.incomingA.subsetOf(marking.keySet) => node.valueB
-        } ++ constructors
-    }
+    override lazy val places = innerGraph.nodesA().toSet
+    override lazy val transitions = innerGraph.nodesB().toSet
 
-    lazy val constructors = graph.nodes.collect {
-      case node if node.isNodeB && node.incoming.isEmpty => node.valueB
-    }
-
-    override def inMarking(t: T): Map[P, Int] = graph.get(t).incoming.map(e => e.source.valueA -> e.weight.toInt).toMap
-    override def outMarking(t: T): Map[P, Int] = graph.get(t).outgoing.map(e => e.target.valueA -> e.weight.toInt).toMap
-
-    override lazy val places = graph.nodesA().toSet
-    override lazy val transitions = graph.nodesB().toSet
-
-    override def nodes() = graph.nodes.map(_.value)
+    override def nodes() = innerGraph.nodes.map(_.value)
   }
 
   implicit def placeToNode[P, T](p: P): Either[P, T] = Left(p)
   implicit def transitionToNode[P, T](t: T): Either[P, T] = Right(t)
 
-  implicit class NodeTAdditions[P, T](val node: BiPartiteGraph[P, T]#NodeT) {
+  implicit class BiPartiteNodeTAdditions[P, T](val node: BiPartiteGraph[P, T]#NodeT) {
 
     def valueA: P = node.value match {
       case Left(p) => p

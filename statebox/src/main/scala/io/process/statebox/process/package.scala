@@ -1,27 +1,31 @@
 package io.process.statebox
 
-import akka.stream.scaladsl.Flow
-import io.process.statebox.actor.PetriNetActor.TransitionFired
-import io.process.statebox.actor.StateBox.Command
-import io.process.statebox.process.simple.Marking
+import io.process.statebox.process.ScalaGraph.BiPartiteGraph
+
+import scalaz.@@
 
 package object process {
 
-  type Id = Long
+  type Marking[P] = Map[P, Long]
 
-  //  type ManagedProcess[M] = Flow[Command, TransitionFired, M]
-
-  trait Identifiable {
-    def id: Long
+  object tags {
+    trait Id
+    trait Weight
+    trait Label
   }
 
-  trait HasLabel {
-    def label: String
-  }
+  type Identifiable[T] = T => Long @@ tags.Id
+  type Labeled[T] = T => String @@ tags.Label
+
+  type PTProcess[P, T, M] = PetriNet[P, T] with TokenGame[P, T, M] with TransitionExecutor[P, T, M]
 
   trait MarkingLike[M, P] {
 
-    def tokens(marking: M): Map[P, Int]
+    def emptyMarking: M
+
+    def tokenCount(marking: M): Marking[P]
+
+    def isSubMarking(m: M, other: M): Boolean
 
     def consume(from: M, other: M): M
 
@@ -32,16 +36,15 @@ package object process {
 
     type Node = Either[P, T]
 
+    def innerGraph: BiPartiteGraph[P, T]
+
     def places: Set[P]
     def transitions: Set[T]
 
-    def inMarking(t: T): Map[P, Int]
-    def outMarking(t: T): Map[P, Int]
+    def inMarking(t: T): Marking[P]
+    def outMarking(t: T): Marking[P]
 
     def nodes: scala.collection.Set[Node]
-
-    // TODO this belongs in TokenGame
-    def enabledTransitions(m: Marking[P]): Iterable[T]
   }
 
   trait TransitionExecutor[P, T, M] {
@@ -51,15 +54,20 @@ package object process {
     def fireTransition(marking: M)(transition: T, consume: M): M
   }
 
-  trait TokenGame[M, P, T] {
+  trait TokenGame[P, T, M] {
 
     this: PetriNet[P, T] =>
 
-    type Marking
-    implicit def m: MarkingLike[Marking, P]
+    def enabledParameters(m: M): Map[T, Iterable[M]] = {
+      // inefficient, fix
+      enabledTransitions(m).view.map(t => t -> consumableMarkings(m)(t)).toMap
+    }
 
-    def consumableMarkings(m: Marking)(t: T): Iterable[Marking]
-    def enabledTransitions(m: Marking): Iterable[T]
-    def isEnabled(m: Marking)(t: T) = consumableMarkings(m)(t).nonEmpty
+    def consumableMarkings(m: M)(t: T): Iterable[M]
+
+    // horribly inefficient, fix
+    def isEnabled(marking: M)(t: T): Boolean = enabledTransitions(marking).contains(t)
+
+    def enabledTransitions(marking: M): Set[T]
   }
 }

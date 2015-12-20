@@ -3,8 +3,7 @@ package io.process.statebox.actor
 import akka.actor._
 import io.process.statebox.actor.PetriNetActor.NoFireableTransitions
 import io.process.statebox.actor.PetriNetDebugging.Step
-import io.process.statebox.process.PetriNet
-import io.process.statebox.process.simple._
+import io.process.statebox.process.{ PTProcess, PetriNet }
 
 // states
 sealed trait ExecutionState
@@ -13,7 +12,7 @@ case object Active extends ExecutionState
 
 object PetriNetActor {
 
-  def props[P, T](process: PetriNet[P, T]) = Props(new PetriNetActor(process))
+  def props[P, T, M](process: PTProcess[P, T, M], marking: M) = Props(new PetriNetActor(process, marking))
 
   sealed trait Command
 
@@ -24,39 +23,22 @@ object PetriNetActor {
 
   sealed trait Event
 
-  case class TransitionFired[P](transition: Long, consumed: Marking[P], produced: Marking[P], meta: Any) extends Event
+  case class TransitionFired[T, P, M](transition: T, consumed: M, produced: M, meta: Any) extends Event
 
   case object NoFireableTransitions extends IllegalStateException
 }
 
-class PetriNetActor[T, P](process: PetriNet[P, T]) extends Actor with ActorLogging {
+class PetriNetActor[T, P, M](process: PTProcess[P, T, M], marking: M) extends Actor with ActorLogging {
 
-  def receive = active(Map.empty)
+  def receive = active(marking)
 
-  def active(marking: Marking[P]): Receive = { case Step =>
-    process.enabledTransitions(marking).headOption match {
+  def active(currentMarking: M): Receive = { case Step =>
+    process.enabledParameters(currentMarking).headOption match {
       case None => sender() ! Status.Failure(NoFireableTransitions)
-      case Some(t) =>
-        val newMarking = fireTransition(marking, t)
+      case Some((t, markings)) =>
+        val newMarking = process.fireTransition(currentMarking)(t, markings.head)
         context become active(newMarking)
         sender() ! "done"
     }
-  }
-
-  def fireTransition(marking: Marking[P], t: T): Marking[P] = {
-
-    log.debug("Firing transition {}", t)
-
-    val in = process.inMarking(t)
-    log.debug("inMarking: {}", in)
-
-    val out = process.outMarking(t)
-    log.debug("outMarking: {}", out)
-
-    val newMarking = marking.consume(in).produce(out)
-
-    log.info("fired transition {}, result: {}", t, newMarking)
-
-    newMarking
   }
 }

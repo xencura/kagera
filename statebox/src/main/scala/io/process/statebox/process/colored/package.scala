@@ -1,6 +1,7 @@
 package io.process.statebox.process
 
 import io.process.statebox.process.ScalaGraph._
+import io.process.statebox.process.simple.{ SimpleExecutor, SimpleTokenGame }
 
 import scalax.collection.Graph
 import scalax.collection.edge.WDiEdge
@@ -14,34 +15,36 @@ package object colored {
     }
   }
 
-  trait Place extends HasLabel with Identifiable {
+  trait Place {
     type Color
     def id: Long = label.hashCode
+    def label: String
     override def toString = label
   }
 
-  trait Transition extends HasLabel with Identifiable {
+  trait Transition {
     type Input
     type Output
+    def label: String
     override def toString = label
     def id: Long = label.hashCode
   }
 
-  def toTransition2[A, B, OUT](name: String, fn: (A, B) => OUT) = new Transition {
-    type Input = (A, B)
-    type Output = OUT
-    override def label: String = name
-  }
-
-  def toTransition0[OUT](name: String, fn: () => OUT) = new Transition {
-    type Input = Unit
-    type Output = OUT
-    override def label: String = name
+  case class TFn(id: Long, l: String) {
+    def apply[O](fn: () => O) = new Transition {
+      type Input = Unit
+      type Output = O
+      override def label = l
+    }
+    def apply[A, B, O](fn: (A, B) => O) = new Transition {
+      type Input = (A, B)
+      type Output = O
+      override def label = l
+    }
   }
 
   type Node = Either[Place, Transition]
   type Arc = WDiEdge[Node]
-  type ColoredPetriNet = BiPartiteGraph[Place, Transition]
 
   def arc(t: Transition, p: Place, weight: Long): Arc = WDiEdge[Node](Right(t), Left(p))(weight)
   def arc(p: Place, t: Transition, weight: Long): Arc = WDiEdge[Node](Left(p), Right(t))(weight)
@@ -69,5 +72,9 @@ package object colored {
     def ~>[B](t: Transition { type Input = A }) = m.marking.map { case (p, weight) => arc(p, t, weight) }.toSeq
   }
 
-  def process(params: Seq[Arc]*): PetriNet[Place, Transition] = new ScalaGraphWrapper(Graph(params.reduce(_ ++ _): _*))
+  def process(params: Seq[Arc]*): PTProcess[Place, Transition, Marking[Place]] =
+    new ScalaGraphWrapper(Graph(params.reduce(_ ++ _): _*))
+      with SimpleExecutor[Place, Transition]
+      with SimpleTokenGame[Place, Transition]
+
 }
