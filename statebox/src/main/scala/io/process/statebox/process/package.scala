@@ -32,6 +32,13 @@ package object process {
     def produce(into: M, other: M): M
   }
 
+  implicit class MarkingLikeApi[M, P](val m: M)(implicit val markingLike: MarkingLike[M, P]) {
+    def consume(other: M) = markingLike.consume(m, other)
+    def produce(other: M) = markingLike.produce(m, other)
+    def isEmpty() = markingLike.tokenCount(m).isEmpty
+    def isSubMarking(other: M) = markingLike.isSubMarking(m, other)
+  }
+
   trait PetriNet[P, T] {
 
     type Node = Either[P, T]
@@ -51,7 +58,7 @@ package object process {
 
     this: PetriNet[P, T] =>
 
-    def fireTransition(marking: M)(transition: T, consume: M): M
+    def fireTransition(consume: M)(transition: T): M
   }
 
   trait TokenGame[P, T, M] {

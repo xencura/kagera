@@ -2,6 +2,7 @@ package io.process.statebox.process
 
 import io.process.statebox.process.ScalaGraph._
 import io.process.statebox.process.simple.{ SimpleExecutor, SimpleTokenGame }
+import org.slf4j.LoggerFactory
 
 import scalax.collection.Graph
 import scalax.collection.edge.WDiEdge
@@ -9,10 +10,7 @@ import scalax.collection.edge.WDiEdge
 package object colored {
 
   object Place {
-    def apply[A](l: String) = new Place {
-      type Color = A
-      override val label = l
-    }
+    def apply[A](id: Long, label: String) = PlaceImpl[A](id, label)
   }
 
   trait Place {
@@ -30,17 +28,20 @@ package object colored {
     def id: Long = label.hashCode
   }
 
-  case class TFn(id: Long, l: String) {
-    def apply[O](fn: () => O) = new Transition {
-      type Input = Unit
-      type Output = O
-      override def label = l
-    }
-    def apply[A, B, O](fn: (A, B) => O) = new Transition {
-      type Input = (A, B)
-      type Output = O
-      override def label = l
-    }
+  case class PlaceImpl[C](override val id: Long, override val label: String) extends Place {
+    type Color = C
+  }
+
+  case class TransitionImpl[I, O](override val id: Long, override val label: String) extends Transition {
+    type Input = I
+    type Output = O
+  }
+
+  case class TFn(id: Long, label: String) {
+    def apply[O](fn: () => O) = new TransitionImpl[Unit, O](id, label)
+    def apply[A, O](fn: (A) => O) = new TransitionImpl[A, O](id, label)
+    def apply[A, B, O](fn: (A, B) => O) = new TransitionImpl[(A, B), O](id, label)
+    def apply[A, B, C, O](fn: (A, B, C) => O) = new TransitionImpl[(A, B, C), O](id, label)
   }
 
   type Node = Either[Place, Transition]
@@ -49,26 +50,24 @@ package object colored {
   def arc(t: Transition, p: Place, weight: Long): Arc = WDiEdge[Node](Right(t), Left(p))(weight)
   def arc(p: Place, t: Transition, weight: Long): Arc = WDiEdge[Node](Left(p), Right(t))(weight)
 
-  type Token[T] = (Place { type Color = T }, T)
-
-  sealed trait MarkingHolder[T] {
+  sealed trait MarkingSpec[T] {
     def marking: Map[Place, Long]
   }
 
-  implicit def %[A](p: Place { type Color = A }): MarkingHolder[A] = new MarkingHolder[A] {
+  implicit def %[A](p: Place { type Color = A }): MarkingSpec[A] = new MarkingSpec[A] {
     override val marking = Map[Place, Long](p -> 1)
   }
 
-  implicit def %[A, B](places: (Place { type Color = A }, Place { type Color = B })): MarkingHolder[(A, B)] =
-    new MarkingHolder[(A, B)] {
+  implicit def %[A, B](places: (Place { type Color = A }, Place { type Color = B })): MarkingSpec[(A, B)] =
+    new MarkingSpec[(A, B)] {
       override val marking = Map[Place, Long](places._1 -> 1, places._2 -> 1)
     }
 
   implicit class TF[B](t: Transition { type Output = B }) {
-    def ~>(m: MarkingHolder[B]) = m.marking.map { case (p, weight) => arc(t, p, weight) }.toSeq
+    def ~>(m: MarkingSpec[B]) = m.marking.map { case (p, weight) => arc(t, p, weight) }.toSeq
   }
 
-  implicit class M[A](m: MarkingHolder[A]) {
+  implicit class M[A](m: MarkingSpec[A]) {
     def ~>[B](t: Transition { type Input = A }) = m.marking.map { case (p, weight) => arc(p, t, weight) }.toSeq
   }
 
@@ -76,5 +75,4 @@ package object colored {
     new ScalaGraphWrapper(Graph(params.reduce(_ ++ _): _*))
       with SimpleExecutor[Place, Transition]
       with SimpleTokenGame[Place, Transition]
-
 }

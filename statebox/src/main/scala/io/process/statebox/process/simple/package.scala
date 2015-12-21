@@ -1,13 +1,12 @@
 package io.process.statebox.process
 
-import org.slf4j.LoggerFactory
-
 package object simple {
 
-  implicit class MarkingFunctions[P](marking: Marking[P]) {
-    def consume(other: Marking[P]): Marking[P] = {
+  implicit def MarkingLike[P]: MarkingLike[Marking[P], P] = new MarkingLike[Marking[P], P] {
+    override def emptyMarking: Marking[P] = Map.empty
 
-      other.foldLeft(marking) { case (m, (p, amount)) =>
+    override def consume(from: Marking[P], other: Marking[P]): Marking[P] =
+      other.foldLeft(from) { case (m, (p, amount)) =>
         m.get(p) match {
           case None => throw new IllegalStateException(s"No such place in marking: $p")
           case Some(n) if n < amount => throw new IllegalStateException(s"Too few tokens in place: $p")
@@ -15,18 +14,18 @@ package object simple {
           case Some(n) => m + (p -> (n - amount))
         }
       }
-    }
 
-    def produce(other: Marking[P]): Marking[P] = {
-      other.foldLeft(marking) { case (m, (p, amount)) =>
+    override def produce(into: Marking[P], other: Marking[P]): Marking[P] =
+      other.foldLeft(into) { case (m, (p, amount)) =>
         m.get(p) match {
           case None => m + (p -> amount)
           case Some(count) => m + (p -> (count + amount))
         }
       }
-    }
 
-    def isSubMarking(other: Marking[P]): Boolean = {
+    override def tokenCount(marking: Marking[P]): Marking[P] = marking
+
+    override def isSubMarking(marking: Marking[P], other: Marking[P]): Boolean =
       !other.exists { case (place, count) =>
         marking.get(place) match {
           case None => true
@@ -34,7 +33,6 @@ package object simple {
           case _ => false
         }
       }
-    }
   }
 
   trait SimpleTokenGame[P, T] extends TokenGame[P, T, Marking[P]] {
@@ -76,19 +74,6 @@ package object simple {
 
     this: PetriNet[P, T] =>
 
-    val log = LoggerFactory.getLogger(classOf[SimpleExecutor[_, _]])
-
-    override def fireTransition(marking: Marking[P])(transition: T, consume: Marking[P]): Marking[P] = {
-      log.debug("Firing transition {}", transition)
-
-      val out = outMarking(transition)
-      log.debug("outMarking: {}", out)
-
-      val newMarking = marking.consume(consume).produce(out)
-
-      log.info("fired transition {}, result: {}", transition, newMarking)
-
-      newMarking
-    }
+    override def fireTransition(consume: Marking[P])(transition: T): Marking[P] = outMarking(transition)
   }
 }
