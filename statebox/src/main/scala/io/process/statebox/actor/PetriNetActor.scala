@@ -1,7 +1,7 @@
 package io.process.statebox.actor
 
 import akka.actor._
-import io.process.statebox.actor.PetriNetActor.{ NoFireableTransitions, TransitionFired }
+import io.process.statebox.actor.PetriNetActor.{ GetState, NoFireableTransitions, TransitionFired }
 import io.process.statebox.actor.PetriNetDebugging.Step
 import io.process.statebox.process._
 
@@ -36,16 +36,18 @@ class PetriNetActor[T, P, M](process: PTProcess[P, T, M], initialMarking: M)(imp
 
   def receive = active(initialMarking)
 
-  def active(marking: M): Receive = { case Step =>
-    process.enabledParameters(marking).headOption match {
-      case None => sender() ! Status.Failure(NoFireableTransitions)
-      case Some((t, enabledMarkings)) =>
-        val consume = enabledMarkings.head
-        val produce = process.fireTransition(consume)(t)
-        val newMarking = marking.consume(consume).produce(produce)
-        sender() ! TransitionFired(t, consume, produce, None)
-        log.info("Fired transition {} resulting in marking {}", t, newMarking)
-        context become active(newMarking)
-    }
+  def active(marking: M): Receive = {
+    case GetState => sender() ! marking
+    case Step =>
+      process.enabledParameters(marking).headOption match {
+        case None => sender() ! Status.Failure(NoFireableTransitions)
+        case Some((t, enabledMarkings)) =>
+          val consume = enabledMarkings.head
+          val produce = process.fireTransition(consume)(t)
+          val newMarking = marking.consume(consume).produce(produce)
+          sender() ! TransitionFired(t, consume, produce, None)
+          log.info("Fired transition {} resulting in marking {}", t, newMarking)
+          context become active(newMarking)
+      }
   }
 }
