@@ -3,14 +3,6 @@ import sbt._
 
 object Dependencies {
 
-  lazy val dependencySettings = Seq(
-    resolvers := Seq(
-      "Sonatype Releases" at "http://oss.sonatype.org/content/repositories/releases",
-      "Spray Repository" at "http://repo.spray.io/",
-      "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/"
-    )
-  )
-
   val akkaVersion = "2.4.2"
   val sprayVersion = "1.3.2"
 
@@ -20,9 +12,8 @@ object Dependencies {
   val akkaSlf4j = "com.typesafe.akka" %% "akka-slf4j" % akkaVersion
   val akkaHttp = "com.typesafe.akka" %% "akka-http-experimental" % "2.0.1"
 
-  val graphConstrained = "com.assembla.scala-incubator" %% "graph-core" % "1.9.0"
-  val graph = "com.assembla.scala-incubator" %% "graph-core" % "1.9.4"
-  val graphDot = "com.assembla.scala-incubator" %% "graph-dot" % "1.10.0"
+  val graph = "com.assembla.scala-incubator" %% "graph-core" % "1.10.1"
+  val graphDot = "com.assembla.scala-incubator" %% "graph-dot" % "1.10.1"
 
   val logback = "ch.qos.logback" % "logback-classic" % "1.1.2"
   val ficus = "net.ceedubs" %% "ficus" % "1.1.2"

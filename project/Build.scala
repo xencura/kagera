@@ -33,7 +33,7 @@ object Build extends Build {
     incOptions := incOptions.value.withNameHashing(true)
   )
 
-  lazy val basicProjectSettings = basicSettings ++ dependencySettings ++ formattingSettings ++ Revolver.settings
+  lazy val basicProjectSettings = basicSettings ++ formattingSettings ++ Revolver.settings
 
   lazy val common = (crossProject.crossType(CrossType.Pure) in file("common"))
     .settings(basicProjectSettings: _*)
@@ -55,7 +55,6 @@ object Build extends Build {
         akkaHttp,
         ficus,
         graph,
-        graphConstrained,
         graphDot,
         logback,
         scalaTime,
