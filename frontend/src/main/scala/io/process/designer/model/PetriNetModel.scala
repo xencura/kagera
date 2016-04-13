@@ -16,12 +16,15 @@ object PetriNetModel extends GraphVisuals {
   case class PetriNet(places: Set[Place], transitions: Set[Transition], edges: Set[Arc])
 
   val r = 10.0
-  //  gc.arc(-r, -r, r, 0.0, Math.PI * 2, false)
+
   val placeShape = Circle(r)
-  val placeDrawable: Drawing = Seq(Fill("white", placeShape), Stroke("#7777ff", placeShape))
+
+  val placeDrawable: Drawing =
+    placeShape.decorate(fill = Some("white"), stroke = Some("#7777ff"))
 
   val transitionShape = Rect((-r, -r), 2 * r, 2 * r)
-  val transitionDrawable: Drawing = Seq(Fill("white", transitionShape), Stroke("#7777ee", transitionShape))
+  val transitionDrawable: Drawing =
+    transitionShape.decorate(fill = Some("white"), stroke = Some("#7777ee"))
 
   def transitions(n: Int, bounds: Rectangle) = PointCloud
     .pointCloud(n, bounds)

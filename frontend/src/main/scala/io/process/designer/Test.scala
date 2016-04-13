@@ -1,19 +1,14 @@
 package io.process.designer
 
-import io.process.designer.model.Graph.VisualNode
-import io.process.designer.model.{ Foo, Node, PetriNetModel }
-import io.process.designer.model.PointCloud._
-import io.process.designer.model.PetriNetModel._
-import io.process.common.draw.ui.MouseTools.SimpleMoveTool
-import io.process.designer.views.Grid
-import io.process.designer.views.Grid.GridProperties
 import io.process.common.draw._
+import io.process.common.draw.ui._
 import io.process.common.geometry._
+import io.process.designer.model.{ Layer, PointCloud }
 import io.process.designer.scalajs.DomEditor
+import org.scalajs.dom
 
 import scala.scalajs.js
-import js.Dynamic.{ global => g }
-import org.scalajs.dom
+import scala.scalajs.js.Dynamic.{ global => g }
 
 object Test extends js.JSApp {
 
@@ -22,23 +17,24 @@ object Test extends js.JSApp {
     val bounds = Rectangle((0, 0), 800, 600)
 
     val background: BoundedDrawable[FillStyle] = d => fillStyle => Fill(fillStyle, Rect(Point.origin, d.width, d.height))
-    val drawGrid: BoundedDrawable[GridProperties] = Grid.drawGrid
 
-    val editor = new DomEditor(dom.document.getElementById("viewport"), bounds.width.toInt, bounds.height.toInt)
+    val viewPort = dom.document.getElementById("viewport")
+    val editor = new DomEditor(viewPort, bounds.width.toInt, bounds.height.toInt)
 
-    val bgNode = Node.noui[FillStyle]("#efefef")(background)
+    val bgLayer: Layer[FillStyle] = Layer(background) % (s => { case MouseEvent(MouseDown, button, _, _) =>
+      println(button); s
+    })
 
-    val transitions =
-      Node.set(PetriNetModel.transitions(10, bounds)).withTool(None, new SimpleMoveTool[VisualNode[Transition]](0))
-    val places = Node.set(PetriNetModel.places(10, bounds)).withTool(None, new SimpleMoveTool[VisualNode[Place]](1))
-    val grid = Grid(20, 20, "#ababab")
+    import PointCloud._
+    val pointCloud = PointCloud.pointCloud(10, bounds)
+    val pointCloudDrawable = implicitly[Drawable[Set[Point]]]
+    val pointCloudLayer = Layer[Set[Point]](d => pointCloudDrawable)
 
-    val scene = bgNode ~> (grid ~> (places ~> transitions))
+    editor.addLayer("grey", bgLayer)
+    editor.addLayer(
+      pointCloud,
+      Layer[Set[Point]](d => pointCloudDrawable, MouseTools.insertTool[Point, Set[Point]](0)(p => p))
+    )
 
-    /**
-     * (pointCloud & selection) % { (p, s) => { case KeyEvent(Down, 'DELETE') => (p - s, Set.empty) } } * }
-     */
-
-    editor.setScene(scene)
   }
 }

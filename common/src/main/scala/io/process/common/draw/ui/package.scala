@@ -7,9 +7,10 @@ import scalaz._
 
 package object ui {
 
+  // user interface event
   sealed trait UIEvent
 
-  trait CursorEvent {
+  trait CursorEvent extends UIEvent {
     def location: Point
   }
 
@@ -21,15 +22,13 @@ package object ui {
   case object MouseMove extends MouseEventType
 
   case class MouseEvent(eventType: MouseEventType, button: Int, location: Point, keyModifiers: Int)
-      extends UIEvent
+      extends CursorEvent
       with Transformable[MouseEvent] {
     override def transform(t: AffineTransform): MouseEvent =
       MouseEvent(eventType, button, t.apply(location), keyModifiers)
   }
 
-  case class WheelEvent(deltaX: Double, deltaY: Double, deltaZ: Double, location: Point)
-      extends UIEvent
-      with CursorEvent
+  case class WheelEvent(deltaX: Double, deltaY: Double, deltaZ: Double, location: Point) extends CursorEvent
 
   sealed trait KeyEventType
   case object KeyDown extends KeyEventType
@@ -37,20 +36,11 @@ package object ui {
 
   case class KeyboardEvent(eventType: KeyEventType, key: Int, keyModifiers: Int) extends UIEvent
 
-  def actionFn[M, S](pf: PartialFunction[UIEvent, M => (M, S)]): Action[M, S] = pf.andThen(fn => State { s: M => fn(s) })
-
-  // bridge
-  type UIHandler = UIEvent ?=> Drawing
-
   // stateless ui action
   type Action[M, S] = UIEvent ?=> State[M, S]
-  type MouseAction[M, S] = MouseEvent ?=> State[M, S]
+
+  type UIHandler[S] = S => (UIEvent ?=> S)
 
   // a tool that requires some input state
   type UITool[M, S] = S => Action[M, S]
-
-  implicit class ActionFunctions[M, S](action: Action[M, S]) {
-
-    def |(other: Action[M, S]) = action.orElse(other)
-  }
 }

@@ -13,7 +13,7 @@ object Graph extends GraphVisuals {
 
   case class VisualGraph[N, E](nodes: Set[VisualNode[N]], edges: Set[VisualEdge[E]])
 
-  case class Label(text: String, font: String, offset: Point)
+  case class Label(text: String, font: TextStyle, offset: Point)
 }
 
 trait GraphVisuals {

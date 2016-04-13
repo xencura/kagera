@@ -11,14 +11,14 @@ object Dependencies {
     )
   )
 
-  val akkaVersion = "2.4.0"
+  val akkaVersion = "2.4.2"
   val sprayVersion = "1.3.2"
 
   val akkaActor = "com.typesafe.akka" %% "akka-actor" % akkaVersion
   val akkaPersistence = "com.typesafe.akka" %% "akka-persistence" % akkaVersion
   val akkaTestkit = "com.typesafe.akka" %% "akka-testkit" % akkaVersion
   val akkaSlf4j = "com.typesafe.akka" %% "akka-slf4j" % akkaVersion
-  val akkaHttp = "com.typesafe.akka" %% "akka-http-experimental" % "1.0"
+  val akkaHttp = "com.typesafe.akka" %% "akka-http-experimental" % "2.0.1"
 
   val graphConstrained = "com.assembla.scala-incubator" %% "graph-core" % "1.9.0"
   val graph = "com.assembla.scala-incubator" %% "graph-core" % "1.9.4"

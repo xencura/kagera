@@ -1,15 +1,17 @@
 package io.process.designer.scalajs
 
-import io.process.designer.model.Node
 import io.process.common.draw.ui._
 import io.process.common.geometry.Dimensions
-
+import io.process.designer.model.Layer
 import org.scalajs.dom
+
 import scala.scalajs.js.Dynamic.{ global => g }
 
 class DomEditor(parent: dom.Element, val width: Int, val height: Int) extends Dimensions {
 
-  var layers: List[(Node[_, _], dom.html.Canvas)] = List.empty
+  case class DomLayer[S](state: S, layer: Layer[S], canvas: dom.html.Canvas)
+
+  var layers: List[DomLayer[_]] = List.empty
   val toolLayer = addCanvas(20)
 
   Seq("mousemove" -> MouseMove, "mouseup" -> MouseUp, "mousedown" -> MouseDown).foreach { case (name, event) =>
@@ -23,19 +25,26 @@ class DomEditor(parent: dom.Element, val width: Int, val height: Int) extends Di
   }
 
   def mouseListener(t: MouseEventType) = (e: dom.MouseEvent) => {
-    layers = layers.map { case (node, canvas) =>
-      (node.onEvent(MouseEvent(t, e.button, canvas.toCanvasPoint(e), 0)), canvas)
-    }
-    layers.foreach { case (node, canvas) =>
-      canvas.clear()
-      node.seq.foreach(n => canvas.context.draw(n.draw(this)))
+    layers = layers.map { case DomLayer(state, layer, canvas) =>
+      val event = MouseEvent(t, e.button, canvas.toCanvasPoint(e), 0)
+      val newState = layer
+        .ui(state)
+        .lift(event)
+        .map { updatedState =>
+          canvas.clear()
+          canvas.context.draw(layer.draw(this)(updatedState))
+          updatedState
+        }
+        .getOrElse(state)
+
+      DomLayer(newState, layer, canvas)
     }
   }
 
-  def setScene[M, S](node: Node[M, S]) = {
+  def addLayer[S](model: S, layer: Layer[S]) = {
     val canvas = addCanvas(parent.childElementCount + 1)
-    canvas.clearAndDraw(node.draw(this))
-    layers = (node, canvas) :: layers
+    canvas.clearAndDraw(layer.draw(this)(model))
+    layers = DomLayer(model, layer, canvas) :: layers
   }
 
   private def addCanvas(zindex: Int) = {
@@ -44,6 +53,7 @@ class DomEditor(parent: dom.Element, val width: Int, val height: Int) extends Di
     canvas.width = width
     canvas.height = height
     canvas.setAttribute("style", s"position: absolute; left: 0; top: 0; z-index: $zindex")
+    canvas.setAttribute("tabindex", "0")
     canvas
   }
 }

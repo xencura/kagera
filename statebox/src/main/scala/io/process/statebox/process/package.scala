@@ -22,8 +22,6 @@ package object process {
   // given a process and current marking picks the next transition and marking to fire
   type Step[P, T, M] = (PTProcess[P, T, M], M) => Option[(T, M)]
 
-  //   type Executor[P, T, M] = PTProcess[P, T, M] => Flow[Int]
-
   /**
    * Type class for marking 'like' semantics.
    */

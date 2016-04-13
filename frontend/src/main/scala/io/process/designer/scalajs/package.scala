@@ -2,6 +2,9 @@ package io.process.designer
 
 import io.process.common.draw._
 import org.scalajs.dom
+import org.w3c.dom.events.UIEvent
+
+import scalaz.Functor
 
 package object scalajs {
 
@@ -55,12 +58,10 @@ package object scalajs {
     override def draw[T : Drawable](drawable: T): Unit = canvas.context.draw(drawable)
     override def height: Int = canvas.height
     override def width: Int = canvas.width
-
-    override def addLayer(d: Drawing, handler: io.process.common.draw.ui.UIHandler): Unit = ???
   }
 
-  implicit class CanvasWithAdditions(canvas: GraphicsCanvas) {
-    lazy val context = canvas.getContext("2d").asInstanceOf[dom.CanvasRenderingContext2D]
+  implicit class CanvasWithAdditions(val canvas: GraphicsCanvas) extends AnyVal {
+    def context = canvas.getContext("2d").asInstanceOf[dom.CanvasRenderingContext2D]
     def clear() = context.clearRect(0, 0, canvas.width, canvas.height)
     def clearAndDraw(d: Drawing) = {
       clear()

@@ -20,9 +20,7 @@ object PetriNetActor {
   sealed trait Command
 
   case object GetState extends Command
-  case object Start extends Command
-  //  case class FireTransition(fn: MarkingHolder => (Transition, MarkingHolder, Any)) extends Command
-  case object Stop extends Command
+  case class FireTransition[T](transition: T)
 
   sealed trait Event
 
@@ -37,7 +35,10 @@ class PetriNetActor[T, P, M](process: PTProcess[P, T, M], initialMarking: M)(imp
   def receive = active(initialMarking)
 
   def active(marking: M): Receive = {
-    case GetState => sender() ! marking
+    case GetState =>
+      sender() ! marking
+    case FireTransition(t) =>
+    // TODO implement
     case Step =>
       stepRandom[P, T, M](process, marking) match {
         case None => sender() ! Status.Failure(NoFireableTransitions)

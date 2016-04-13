@@ -1,5 +1,7 @@
 package io.process.statebox.process
 
+import scalaz.syntax.std.boolean._
+
 package object simple {
 
   implicit def MarkingLike[P]: MarkingLike[Marking[P], P] = new MarkingLike[Marking[P], P] {
@@ -44,10 +46,7 @@ package object simple {
       // for uncolored markings there is only 1 consumable marking per transition
       val in = inMarking(t)
 
-      if (m.isSubMarking(in))
-        List(in)
-      else
-        List.empty
+      m.isSubMarking(in).option(in)
     }
 
     lazy val constructors = innerGraph.nodes.collect({

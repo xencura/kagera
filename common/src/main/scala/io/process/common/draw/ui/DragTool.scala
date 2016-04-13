@@ -6,8 +6,6 @@ import scalaz._
 
 abstract class DragTool[S, T](button: Int) extends UITool[S, Option[(Point, T)]] {
 
-  type Drag = LineSegment
-
   override def apply(s: Option[(Point, T)]): Action[S, Option[(Point, T)]] = s match {
     case None => { case MouseEvent(MouseDown, `button`, p, _) =>
       State { m => (m, pick(m)(p).map(e => (p, e))) }

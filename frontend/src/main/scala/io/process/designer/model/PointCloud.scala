@@ -8,7 +8,7 @@ import scala.util.Random
 
 object PointCloud {
 
-  implicit def drawPoint(p: Point): Drawing = Fill("blue", Circle(5.0, p))
+  implicit val drawPoint: Drawable[Point] = (p: Point) => Fill("blue", Circle(5.0, p))
 
   implicit val pickPoint = Pickable.proximityPick(8.0)
 
