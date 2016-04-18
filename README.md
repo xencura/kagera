@@ -28,7 +28,7 @@ val sum = {
 
 ```
 
-Current execution model is 1 process per io.kagera.akka.actor (in Akka).
+Current execution model is 1 process per io.akka.Actor (in Akka).
 
 Short term plans:
 

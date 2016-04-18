@@ -46,7 +46,10 @@ object Build extends Build {
 
   lazy val api = Project("api", file("api"))
     .settings(basicProjectSettings: _*)
-    .settings(libraryDependencies ++= Seq(akkaSlf4j, ficus, graph, graphDot, scalaz, scalaTime, scalatest % "test"))
+    .settings(
+      name := "kagera-api",
+      libraryDependencies ++= Seq(akkaSlf4j, graph, graphDot, scalaz, scalaTime, scalatest % "test")
+    )
     .dependsOn(commonJvm)
 
   lazy val frontend = Project("frontend", file("frontend"))
@@ -64,7 +67,7 @@ object Build extends Build {
 
   lazy val akkaImplementation = Project("akka", file("akka"))
     .settings(basicProjectSettings: _*)
-    .settings(mainClass := Some("io.kagera.akka.Main"))
+    .settings(name := "kagera-akka", mainClass := Some("io.kagera.akka.Main"))
     .settings(
       libraryDependencies ++= Seq(
         akkaActor,

@@ -1,6 +1,6 @@
 package io.kagera.api
 
-import io.process.statebox.process.colored._
+import io.kagera.api.colored._
 
 object Test extends App {
 
