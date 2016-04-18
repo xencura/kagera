@@ -1,15 +1,7 @@
-package io.process.statebox.actor
+package io.kagera.akka.actor
 
 import akka.actor._
-import io.process.statebox.actor.PetriNetActor._
-import io.process.statebox.actor.PetriNetDebugging.Step
 import io.process.statebox.process._
-import io.process.statebox.process.simple._
-
-// states
-sealed trait ExecutionState
-case object Halted extends ExecutionState
-case object Active extends ExecutionState
 
 object PetriNetActor {
 
@@ -37,8 +29,6 @@ class PetriNetActor[T, P, M](process: PTProcess[P, T, M], initialMarking: M)(imp
   def active(marking: M): Receive = {
     case GetState =>
       sender() ! marking
-    case FireTransition(t) =>
-    // TODO implement
     case Step =>
       stepRandom[P, T, M](process, marking) match {
         case None => sender() ! Status.Failure(NoFireableTransitions)

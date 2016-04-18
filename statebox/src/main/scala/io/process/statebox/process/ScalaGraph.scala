@@ -3,6 +3,7 @@ package io.process.statebox.process
 import scala.PartialFunction._
 import scalax.collection.Graph
 import scalax.collection.edge.WDiEdge
+import scalax.collection.io.dot.DotAttr
 
 object ScalaGraph {
 
@@ -46,6 +47,9 @@ object ScalaGraph {
 
   implicit class BiPartiteGraphAdditions[P, T](val process: BiPartiteGraph[P, T]) {
 
+    import scalax.collection.io.dot._
+    import scalax.collection.io.dot.implicits._
+
     def incomingA(t: T): Set[P] = process.get(t).incomingA
     def outgoingA(t: T): Set[P] = process.get(t).outgoingA
     def incomingB(p: P): Set[T] = process.get(p).incomingB
@@ -54,10 +58,18 @@ object ScalaGraph {
     def nodesA() = process.nodes.collect { case n if n.isNodeA => n.valueA }
     def nodesB() = process.nodes.collect { case n if n.isNodeB => n.valueB }
 
-    def toDot() = {
+    type ShapeFn = Either[P, T] => scala.Seq[scalax.collection.io.dot.DotAttr]
+    type LabelFn = Either[P, T] => String
 
-      import scalax.collection.io.dot._
-      import scalax.collection.io.dot.implicits._
+    def defaultShapFn: ShapeFn = node =>
+      node match {
+        case Left(nodeA) =>
+          List(DotAttr("shape", "circle")) //, DotAttr("label", " "), DotAttr("xlabel", nodeA.toString))
+        case Right(nodeB) =>
+          List(DotAttr("shape", "square")) //, DotAttr("label", " "), DotAttr("xlabel", nodeB.toString))
+      }
+
+    def toDot() = {
 
       val root = DotRootGraph(
         directed = true,
@@ -75,8 +87,9 @@ object ScalaGraph {
 
       def myNodeTransformer(innerNode: BiPartiteGraph[P, T]#NodeT): Option[(DotGraph, DotNodeStmt)] =
         innerNode.value match {
-          case Left(place) => Some((root, DotNodeStmt(place.toString, List(DotAttr("shape", "circle")))))
-          case Right(transition) => Some((root, DotNodeStmt(transition.toString, List(DotAttr("shape", "square")))))
+
+          case Left(nodeA) => Some((root, DotNodeStmt(nodeA.toString, defaultShapFn(nodeA))))
+          case Right(nodeB) => Some((root, DotNodeStmt(nodeB.toString, defaultShapFn(nodeB))))
         }
 
       def myEdgeTransformer(innerEdge: BiPartiteGraph[P, T]#EdgeT): Option[(DotGraph, DotEdgeStmt)] =

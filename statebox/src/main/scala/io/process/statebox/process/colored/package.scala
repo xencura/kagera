@@ -36,7 +36,7 @@ package object colored {
     type Output = O
   }
 
-  case class TFn(id: Long, label: String) {
+  case class TransitionFn(id: Long, label: String) {
     def apply[O](fn: () => O) = new TransitionImpl[Unit, O](id, label)
     def apply[A, O](fn: (A) => O) = new TransitionImpl[A, O](id, label)
     def apply[A, B, O](fn: (A, B) => O) = new TransitionImpl[(A, B), O](id, label)

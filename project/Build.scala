@@ -26,7 +26,7 @@ object Build extends Build {
   )
 
   lazy val basicSettings = Seq(
-    organization := "io.process",
+    organization := "io.kagera",
     version := "0.1.0-SNAPSHOT",
     scalaVersion := targetScalaVersion,
     scalacOptions := basicScalacOptions,
@@ -37,34 +37,19 @@ object Build extends Build {
 
   lazy val common = (crossProject.crossType(CrossType.Pure) in file("common"))
     .settings(basicProjectSettings: _*)
-    .settings(name := "statebox-common")
-    .jvmSettings(libraryDependencies += "org.scalaz" %% "scalaz-core" % "7.1.3")
+    .settings(name := "kagera-common")
+    .jvmSettings(libraryDependencies += scalaz)
     .jsSettings(libraryDependencies += "com.github.japgolly.fork.scalaz" %%% "scalaz-core" % "7.1.3")
 
   lazy val commonJs = common.js
   lazy val commonJvm = common.jvm
 
-  lazy val stateboxApi = Project("statebox-api", file("statebox"))
+  lazy val api = Project("api", file("statebox"))
     .settings(basicProjectSettings: _*)
-    .settings(mainClass := Some("io.statebox.Main"))
-    .settings(
-      libraryDependencies ++= Seq(
-        akkaActor,
-        akkaPersistence,
-        akkaSlf4j,
-        akkaHttp,
-        ficus,
-        graph,
-        graphDot,
-        logback,
-        scalaTime,
-        akkaTestkit % "test",
-        scalatest % "test"
-      )
-    )
+    .settings(libraryDependencies ++= Seq(akkaSlf4j, ficus, graph, graphDot, scalaz, scalaTime, scalatest % "test"))
     .dependsOn(commonJvm)
 
-  lazy val frontend = Project("statebox-frontend", file("frontend"))
+  lazy val frontend = Project("frontend", file("frontend"))
     .enablePlugins(ScalaJSPlugin)
     .settings(persistLauncher in Compile := true)
     .settings(basicProjectSettings: _*)
@@ -77,5 +62,23 @@ object Build extends Build {
     )
     .dependsOn(commonJs)
 
-  lazy val root = Project("statebox", file(".")).aggregate(stateboxApi, frontend)
+  lazy val akkaImplementation = Project("akka", file("akka"))
+    .settings(basicProjectSettings: _*)
+    .settings(mainClass := Some("io.kagera.akka.Main"))
+    .settings(
+      libraryDependencies ++= Seq(
+        akkaActor,
+        akkaPersistence,
+        akkaSlf4j,
+        akkaHttp,
+        ficus,
+        graph,
+        logback,
+        akkaTestkit % "test",
+        scalatest % "test"
+      )
+    )
+    .dependsOn(commonJvm, api)
+
+  lazy val root = Project("kagera", file(".")).aggregate(commonJvm, commonJs, api)
 }

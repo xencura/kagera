@@ -1,13 +1,14 @@
-package io.process.statebox.http
+package io.kagera.akka.http
 
 import akka.actor.ActorRef
 import akka.http.scaladsl.server.Directives
 import akka.util.Timeout
-import io.process.statebox.actor.PetriNetActor.GetState
+import io.kagera.akka.actor.PetriNetActor.GetState
 
 trait Routes extends Directives {
 
   import akka.pattern.ask
+
   import scala.concurrent.duration._
 
   implicit val timeout = Timeout(2 seconds)

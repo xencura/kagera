@@ -1,4 +1,4 @@
-package io.process.statebox.common
+package io.kagera.akka.common
 
 import com.typesafe.config.{ Config, ConfigFactory }
 

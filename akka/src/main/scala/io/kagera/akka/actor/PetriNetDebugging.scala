@@ -1,7 +1,6 @@
-package io.process.statebox.actor
+package io.kagera.akka.actor
 
 import akka.actor.ActorRef
-import io.process.statebox.process.colored.Transition
 
 object PetriNetDebugging {
 
