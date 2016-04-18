@@ -2,9 +2,11 @@ package io.kagera.api
 
 import io.kagera.api.ScalaGraph._
 import io.kagera.api.simple.{ SimpleExecutor, SimpleTokenGame }
+import io.kagera.api.tags.Label
 
 import scalax.collection.Graph
 import scalax.collection.edge.WDiEdge
+import scalaz.{ @@, Tag }
 
 package object colored {
 
@@ -14,9 +16,9 @@ package object colored {
 
   trait Place {
     type Color
+    override def toString = label
     def id: Long = label.hashCode
     def label: String
-    override def toString = label
   }
 
   trait Transition {
@@ -25,6 +27,14 @@ package object colored {
     def label: String
     override def toString = label
     def id: Long = label.hashCode
+  }
+
+  implicit object PlaceLabeler extends Labeled[Place] {
+    override def apply(p: Place): @@[String, Label] = Tag[String, Label](p.label)
+  }
+
+  implicit object TransitionLabeler extends Labeled[Transition] {
+    override def apply(t: Transition): @@[String, Label] = Tag[String, Label](t.label)
   }
 
   case class PlaceImpl[C](override val id: Long, override val label: String) extends Place {
@@ -77,7 +87,7 @@ package object colored {
   def coulouredMarkingLike[P]: MarkingLike[ColouredMarking[P], P] = new MarkingLike[ColouredMarking[P], P] {
     override def emptyMarking: ColouredMarking[P] = Map.empty
 
-    override def tokenCount(marking: ColouredMarking[P]): Marking[P] = marking.map { case (p, tokens) =>
+    override def multiplicity(marking: ColouredMarking[P]): Marking[P] = marking.map { case (p, tokens) =>
       (p, tokens.size.toLong)
     }.toMap
 

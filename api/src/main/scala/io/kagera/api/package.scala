@@ -22,25 +22,6 @@ package object api {
   // given a process and current marking picks the next transition and marking to fire
   type Step[P, T, M] = (PTProcess[P, T, M], M) => Option[(T, M)]
 
-  // TODO move these stepping algorithms
-
-  def stepFirst[P, T, M]: Step[P, T, M] = (process, marking) => {
-    process.enabledParameters(marking).headOption.map { case (t, enabledMarkings) => (t, enabledMarkings.head) }
-  }
-
-  def stepRandom[P, T, M]: Step[P, T, M] = (process, marking) => {
-    import scalaz.syntax.std.boolean._
-    import scala.util.Random
-
-    val params = process.enabledParameters(marking)
-
-    params.nonEmpty.option {
-      val n = Random.nextInt(Math.min(10, params.size))
-      val (t, enabledMarkings) = Stream.continually(params.toStream).flatten.apply(n)
-      (t, enabledMarkings.head)
-    }
-  }
-
   /**
    * Type class for marking 'like' semantics.
    */
@@ -48,7 +29,7 @@ package object api {
 
     def emptyMarking: M
 
-    def tokenCount(marking: M): Marking[P]
+    def multiplicity(marking: M): Marking[P]
 
     def isSubMarking(m: M, other: M): Boolean
 
@@ -60,7 +41,7 @@ package object api {
   implicit class MarkingLikeApi[M, P](val m: M)(implicit val markingLike: MarkingLike[M, P]) {
     def consume(other: M) = markingLike.consume(m, other)
     def produce(other: M) = markingLike.produce(m, other)
-    def isEmpty() = markingLike.tokenCount(m).isEmpty
+    def isEmpty() = markingLike.multiplicity(m).isEmpty
     def isSubMarking(other: M) = markingLike.isSubMarking(m, other)
   }
 
@@ -75,6 +56,10 @@ package object api {
 
     def inMarking(t: T): Marking[P]
     def outMarking(t: T): Marking[P]
+
+    def getTransitionByLabel(label: String)(implicit labeler: Labeled[T]): Option[T] =
+      transitions.find(labeler(_) == label)
+    def getPlaceByLabel(label: String)(implicit labeler: Labeled[P]): Option[P] = places.find(labeler(_) == label)
 
     def nodes: scala.collection.Set[Node]
   }

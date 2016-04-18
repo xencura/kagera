@@ -25,7 +25,7 @@ package object simple {
         }
       }
 
-    override def tokenCount(marking: Marking[P]): Marking[P] = marking
+    override def multiplicity(marking: Marking[P]): Marking[P] = marking
 
     override def isSubMarking(marking: Marking[P], other: Marking[P]): Boolean =
       !other.exists { case (place, count) =>

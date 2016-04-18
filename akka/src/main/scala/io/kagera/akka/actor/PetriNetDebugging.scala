@@ -1,6 +1,7 @@
 package io.kagera.akka.actor
 
 import akka.actor.ActorRef
+import io.kagera.api.colored.Transition
 
 object PetriNetDebugging {
 
