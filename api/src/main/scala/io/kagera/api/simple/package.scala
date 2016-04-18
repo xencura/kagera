@@ -71,8 +71,12 @@ package object simple {
 
   trait SimpleExecutor[P, T] extends TransitionExecutor[P, T, Marking[P]] {
 
-    this: PetriNet[P, T] =>
+    this: PetriNet[P, T] with TokenGame[P, T, Marking[P]] =>
 
-    override def fireTransition(consume: Marking[P])(transition: T): Marking[P] = outMarking(transition)
+    override def fireTransition(m: Marking[P])(t: T): Marking[P] =
+      if (isEnabled(m)(t))
+        m.consume(inMarking(t)).produce(outMarking(t))
+      else
+        throw new IllegalStateException(s"transition: $t is not enabled")
   }
 }

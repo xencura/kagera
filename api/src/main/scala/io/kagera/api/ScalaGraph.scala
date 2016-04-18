@@ -70,10 +70,10 @@ object ScalaGraph {
     def markingShapeFn[M](marking: M)(implicit markingLike: MarkingLike[M, P]): ShapeFn = node =>
       node match {
         case Left(nodeA) =>
-          if (markingLike.multiplicity(marking)(nodeA) > 0)
-            List(DotAttr("shape", "doublecircle"))
-          else
-            List(DotAttr("shape", "circle"))
+          markingLike.multiplicity(marking).get(nodeA) match {
+            case Some(n) if n > 0 => List(DotAttr("shape", "doublecircle"))
+            case _ => List(DotAttr("shape", "circle"))
+          }
 
         case Right(nodeB) => List(DotAttr("shape", "square"))
       }
@@ -102,8 +102,8 @@ object ScalaGraph {
 
       def myNodeTransformer(innerNode: BiPartiteGraph[P, T]#NodeT): Option[(DotGraph, DotNodeStmt)] =
         innerNode.value match {
-          case Left(nodeA) => Some((root, DotNodeStmt(nodeA.toString, defaultShapFn(nodeA))))
-          case Right(nodeB) => Some((root, DotNodeStmt(nodeB.toString, defaultShapFn(nodeB))))
+          case Left(nodeA) => Some((root, DotNodeStmt(nodeA.toString, shapeFn(nodeA))))
+          case Right(nodeB) => Some((root, DotNodeStmt(nodeB.toString, shapeFn(nodeB))))
         }
 
       def myEdgeTransformer(innerEdge: BiPartiteGraph[P, T]#EdgeT): Option[(DotGraph, DotEdgeStmt)] =
