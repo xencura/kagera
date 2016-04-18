@@ -61,22 +61,37 @@ object ScalaGraph {
     type ShapeFn = Either[P, T] => scala.Seq[scalax.collection.io.dot.DotAttr]
     type LabelFn = Either[P, T] => String
 
-    def defaultShapFn: ShapeFn = node =>
+    val defaultShapFn: ShapeFn = node =>
       node match {
-        case Left(nodeA) =>
-          List(DotAttr("shape", "circle")) //, DotAttr("label", " "), DotAttr("xlabel", nodeA.toString))
-        case Right(nodeB) =>
-          List(DotAttr("shape", "square")) //, DotAttr("label", " "), DotAttr("xlabel", nodeB.toString))
+        case Left(nodeA) => List(DotAttr("shape", "circle"))
+        case Right(nodeB) => List(DotAttr("shape", "square"))
       }
 
-    def toDot() = {
+    def markingShapeFn[M](marking: M)(implicit markingLike: MarkingLike[M, P]): ShapeFn = node =>
+      node match {
+        case Left(nodeA) =>
+          if (markingLike.multiplicity(marking)(nodeA) > 0)
+            List(DotAttr("shape", "doublecircle"))
+          else
+            List(DotAttr("shape", "circle"))
+
+        case Right(nodeB) => List(DotAttr("shape", "square"))
+      }
+
+    def toDot(): String = toDotWithShapeFn(defaultShapFn)
+
+    def toDot[M](marking: M)(implicit markingLike: MarkingLike[M, P]): String = toDotWithShapeFn(
+      markingShapeFn(marking)
+    )
+
+    private def toDotWithShapeFn(shapeFn: ShapeFn): String = {
 
       val root = DotRootGraph(
         directed = true,
         id = Some("Process"),
         attrStmts = List(DotAttrStmt(Elem.node, List(DotAttr("shape", "record")))),
-        attrList = List(DotAttr("attr_1", """"one""""), DotAttr("attr_2", "<two>"))
-      )
+        attrList = List.empty
+      ) //List(DotAttr("attr_1", """"one""""), DotAttr("attr_2", "<two>")))
 
       def nodeId(node: BiPartiteGraph[P, T]#NodeT): String = {
         node.value match {
@@ -87,7 +102,6 @@ object ScalaGraph {
 
       def myNodeTransformer(innerNode: BiPartiteGraph[P, T]#NodeT): Option[(DotGraph, DotNodeStmt)] =
         innerNode.value match {
-
           case Left(nodeA) => Some((root, DotNodeStmt(nodeA.toString, defaultShapFn(nodeA))))
           case Right(nodeB) => Some((root, DotNodeStmt(nodeB.toString, defaultShapFn(nodeB))))
         }

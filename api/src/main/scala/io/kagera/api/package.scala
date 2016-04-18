@@ -17,6 +17,14 @@ package object api {
   type Identifiable[T] = T => Long @@ tags.Id
   type Labeled[T] = T => String @@ tags.Label
 
+  implicit class LabeledFn[T : Labeled](seq: Iterable[T]) {
+    def findByLabel(label: String) = seq.find(e => implicitly[Labeled[T]].apply(e) == label)
+  }
+
+  implicit class IdFn[T : Identifiable](seq: Iterable[T]) {
+    def findById(id: String) = seq.find(e => implicitly[Identifiable[T]].apply(e) == id)
+  }
+
   type PTProcess[P, T, M] = PetriNet[P, T] with TokenGame[P, T, M] with TransitionExecutor[P, T, M]
 
   // given a process and current marking picks the next transition and marking to fire
@@ -43,10 +51,6 @@ package object api {
     def produce(other: M) = markingLike.produce(m, other)
     def isEmpty() = markingLike.multiplicity(m).isEmpty
     def isSubMarking(other: M) = markingLike.isSubMarking(m, other)
-  }
-
-  implicit class LabeledFn[T : Labeled](seq: Iterable[T]) {
-    def findByLabel(label: String) = seq.find(e => implicitly[Labeled[T]].apply(e) == label)
   }
 
   trait PetriNet[P, T] {

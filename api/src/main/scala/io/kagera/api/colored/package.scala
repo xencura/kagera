@@ -53,6 +53,10 @@ package object colored {
     def apply[A, B, C, O](fn: (A, B, C) => O) = new TransitionImpl[(A, B, C), O](id, label)
   }
 
+  //  case class TransitionTask(id: Long, label: String) {
+  //    def apply[O](fn: () => scalaz.concurrent.Task[O])
+  //  }
+
   type Node = Either[Place, Transition]
   type Arc = WDiEdge[Node]
 
