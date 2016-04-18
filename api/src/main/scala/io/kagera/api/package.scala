@@ -45,6 +45,10 @@ package object api {
     def isSubMarking(other: M) = markingLike.isSubMarking(m, other)
   }
 
+  implicit class LabeledFn[T : Labeled](seq: Iterable[T]) {
+    def findByLabel(label: String) = seq.find(e => implicitly[Labeled[T]].apply(e) == label)
+  }
+
   trait PetriNet[P, T] {
 
     type Node = Either[P, T]
@@ -56,10 +60,6 @@ package object api {
 
     def inMarking(t: T): Marking[P]
     def outMarking(t: T): Marking[P]
-
-    def getTransitionByLabel(label: String)(implicit labeler: Labeled[T]): Option[T] =
-      transitions.find(labeler(_) == label)
-    def getPlaceByLabel(label: String)(implicit labeler: Labeled[P]): Option[P] = places.find(labeler(_) == label)
 
     def nodes: scala.collection.Set[Node]
   }
