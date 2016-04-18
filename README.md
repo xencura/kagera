@@ -1,4 +1,4 @@
-# Experimental petri net process dsl & executor
+# Kagera Petri net process DSL & executor
 
 Petri net specification example:
 
@@ -27,8 +27,6 @@ val sum = {
   }
 
 ```
-
-Current execution model is 1 process per io.akka.Actor (in Akka).
 
 Short term plans:
 
