@@ -1,4 +1,4 @@
-package io.process.statebox.process
+package io.kagera.api
 
 import scala.PartialFunction._
 import scalax.collection.Graph

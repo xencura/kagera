@@ -1,7 +1,7 @@
-package io.process.statebox.process
+package io.kagera.api
 
-import io.process.statebox.process.ScalaGraph._
-import io.process.statebox.process.simple.{ SimpleExecutor, SimpleTokenGame }
+import io.kagera.api.ScalaGraph._
+import io.kagera.api.simple.{ SimpleExecutor, SimpleTokenGame }
 
 import scalax.collection.Graph
 import scalax.collection.edge.WDiEdge

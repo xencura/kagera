@@ -1,4 +1,4 @@
-package io.process.statebox.process.colored
+package io.kagera.api.colored
 
 object TestProcesses {
 

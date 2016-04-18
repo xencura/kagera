@@ -44,7 +44,7 @@ object Build extends Build {
   lazy val commonJs = common.js
   lazy val commonJvm = common.jvm
 
-  lazy val api = Project("api", file("statebox"))
+  lazy val api = Project("api", file("api"))
     .settings(basicProjectSettings: _*)
     .settings(libraryDependencies ++= Seq(akkaSlf4j, ficus, graph, graphDot, scalaz, scalaTime, scalatest % "test"))
     .dependsOn(commonJvm)

@@ -1,4 +1,4 @@
-package io.process.statebox.process
+package io.kagera.api
 
 import io.process.statebox.process.colored._
 

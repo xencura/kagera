@@ -1,10 +1,10 @@
-package io.process.statebox
+package io.kagera
 
-import io.process.statebox.process.ScalaGraph.BiPartiteGraph
+import io.kagera.api.ScalaGraph.BiPartiteGraph
 
 import scalaz.@@
 
-package object process {
+package object api {
 
   type Marking[P] = Map[P, Long]
 
