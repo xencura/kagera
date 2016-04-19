@@ -72,7 +72,13 @@ object ScalaGraph {
         case Left(nodeA) =>
           markingLike.multiplicity(marking).get(nodeA) match {
             case Some(n) if n > 0 =>
-              List(DotAttr("shape", "doublecircle"), DotAttr("color", "darkorange"), DotAttr("penwidth", 2))
+              List(
+                DotAttr("shape", "doublecircle"),
+                DotAttr("color", "darkorange"),
+                DotAttr("style", "filled"),
+                DotAttr("fillcolor", "darkorange"),
+                DotAttr("penwidth", 2)
+              )
             case _ => List(DotAttr("shape", "circle"), DotAttr("color", "darkorange"), DotAttr("penwidth", 2))
           }
 
