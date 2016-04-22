@@ -5,6 +5,7 @@ object Dependencies {
 
   val akkaVersion = "2.4.2"
   val sprayVersion = "1.3.2"
+  val scalazVersion = "7.1.3"
 
   val akkaActor = "com.typesafe.akka" %% "akka-actor" % akkaVersion
   val akkaPersistence = "com.typesafe.akka" %% "akka-persistence" % akkaVersion
@@ -19,5 +20,7 @@ object Dependencies {
   val ficus = "net.ceedubs" %% "ficus" % "1.1.2"
   val scalatest = "org.scalatest" %% "scalatest" % "2.2.1"
   val scalaTime = "com.github.nscala-time" %% "nscala-time" % "1.6.0"
-  val scalaz = "org.scalaz" %% "scalaz-core" % "7.1.3"
+  val scalazCore = "org.scalaz" %% "scalaz-core" % scalazVersion
+  val scalazConcurrent = "org.scalaz" %% "scalaz-concurrent" % scalazVersion
+  val shapeless = "com.chuusai" %% "shapeless" % "2.3.0"
 }

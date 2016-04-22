@@ -1,4 +1,6 @@
-package io.kagera.api.colored
+package io.kagera.api
+
+import io.kagera.api.colored._
 
 object TestProcesses {
 
@@ -19,6 +21,6 @@ object TestProcesses {
     }
 
     // process topology
-    process(init ~> %(a, b), %(a, b) ~> sum, sum ~> c)
+    colored.process(init ~> %(a, b), %(a, b) ~> sum, sum ~> c)
   }
 }

@@ -24,6 +24,7 @@ package object colored {
   trait Transition {
     type Input
     type Output
+    // type TriggerData
     def label: String
     override def toString = label
     def id: Long = label.hashCode
@@ -52,10 +53,6 @@ package object colored {
     def apply[A, B, O](fn: (A, B) => O) = new TransitionImpl[(A, B), O](id, label)
     def apply[A, B, C, O](fn: (A, B, C) => O) = new TransitionImpl[(A, B, C), O](id, label)
   }
-
-  //  case class TransitionTask(id: Long, label: String) {
-  //    def apply[O](fn: () => scalaz.concurrent.Task[O])
-  //  }
 
   type Node = Either[Place, Transition]
   type Arc = WDiEdge[Node]
@@ -102,8 +99,7 @@ package object colored {
     override def isSubMarking(m: ColouredMarking[P], other: ColouredMarking[P]): Boolean = ???
   }
 
-  def process(params: Seq[Arc]*): PTProcess[Place, Transition, Marking[Place]] =
-    new ScalaGraphWrapper(Graph(params.reduce(_ ++ _): _*))
-      with SimpleExecutor[Place, Transition]
-      with SimpleTokenGame[Place, Transition]
+  def process(params: Seq[Arc]*): PTProcess[Place, Transition, Marking[Place]] = new ScalaGraphWrapper(
+    Graph(params.reduce(_ ++ _): _*)
+  ) with SimpleExecutor[Place, Transition]
 }
