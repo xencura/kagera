@@ -1,4 +1,4 @@
-package io.kagera.process.dot
+package io.kagera.dot
 
 import io.kagera.api.MarkingLike
 
