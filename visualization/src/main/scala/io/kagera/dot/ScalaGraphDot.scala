@@ -46,6 +46,8 @@ object ScalaGraphDot {
   // TODO Generalize this for all types of graphs
   implicit class PetriNetVisualization[P, T](graph: Graph[Either[P, T], WDiEdge]) {
 
+    def toDot(): String = toDot("Process", biPartiteNodeId, petriNetNodeShape)
+
     def toDot[M](marking: M)(implicit markingLike: MarkingLike[M, P]): String =
       toDot("Process", biPartiteNodeId, markingShapeFn(marking))
 
