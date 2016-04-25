@@ -19,7 +19,6 @@ object Dependencies {
   val logback = "ch.qos.logback" % "logback-classic" % "1.1.2"
   val ficus = "net.ceedubs" %% "ficus" % "1.1.2"
   val scalatest = "org.scalatest" %% "scalatest" % "2.2.1"
-  val scalaTime = "com.github.nscala-time" %% "nscala-time" % "1.6.0"
   val scalazCore = "org.scalaz" %% "scalaz-core" % scalazVersion
   val scalazConcurrent = "org.scalaz" %% "scalaz-concurrent" % scalazVersion
   val shapeless = "com.chuusai" %% "shapeless" % "2.3.0"
