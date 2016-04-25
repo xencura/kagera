@@ -4,8 +4,6 @@ import io.kagera.api.ScalaGraph._
 
 trait PetriNet[P, T] {
 
-  type Node = Either[P, T]
-
   def innerGraph: BiPartiteGraph[P, T]
 
   /**
@@ -40,5 +38,11 @@ trait PetriNet[P, T] {
    */
   def outMarking(t: T): Marking[P]
 
-  def nodes: scala.collection.Set[Node]
+  /**
+   * The set of nodes (places + transitions) in the petri net.
+   *
+   * @return
+   *   The set of nodes.
+   */
+  def nodes: scala.collection.Set[Either[P, T]]
 }

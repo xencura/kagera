@@ -46,18 +46,13 @@ object Build extends Build {
     .settings(defaultProjectSettings: _*)
     .settings(
       name := "kagera-api",
-      libraryDependencies ++= Seq(
-        akkaSlf4j,
-        graph,
-        graphDot,
-        scalazCore,
-        scalazConcurrent,
-        shapeless,
-        scalaTime,
-        scalatest % "test"
-      )
+      libraryDependencies ++= Seq(graph, scalazCore, scalazConcurrent, scalaTime, scalatest % "test")
     )
-    .dependsOn(commonJvm)
+
+  lazy val visualization = Project("visualization", file("visualization"))
+    .dependsOn(api)
+    .settings(defaultProjectSettings: _*)
+    .settings(name := "kagera-visualization", libraryDependencies ++= Seq(graph, graphDot))
 
   lazy val frontend = Project("frontend", file("frontend"))
     .dependsOn(commonJs)
@@ -93,5 +88,5 @@ object Build extends Build {
       )
     )
 
-  lazy val root = Project("kagera", file(".")).aggregate(commonJvm, commonJs, api)
+  lazy val root = Project("kagera", file(".")).aggregate(commonJvm, api, visualization)
 }

@@ -101,5 +101,5 @@ package object colored {
 
   def process(params: Seq[Arc]*): PTProcess[Place, Transition, Marking[Place]] = new ScalaGraphWrapper(
     Graph(params.reduce(_ ++ _): _*)
-  ) with SimpleExecutor[Place, Transition]
+  ) with SimpleTokenGame[Place, Transition] with SimpleExecutor[Place, Transition]
 }

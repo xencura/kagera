@@ -4,7 +4,7 @@ import scalaz.syntax.std.boolean._
 
 package object simple {
 
-  implicit def simpleMarkingLike[P]: MarkingLike[Marking[P], P] = new MarkingLike[Marking[P], P] {
+  implicit def MarkingLike[P]: MarkingLike[Marking[P], P] = new MarkingLike[Marking[P], P] {
     override def emptyMarking: Marking[P] = Map.empty
 
     override def consume(from: Marking[P], other: Marking[P]): Marking[P] =
@@ -42,12 +42,7 @@ package object simple {
 
     import ScalaGraph._
 
-    override def enabledParameters(m: Marking[P]): Map[T, Iterable[Marking[P]]] = {
-      // inefficient, fix
-      enabledTransitions(m).view.map(t => t -> consumableMarkings(m)(t)).toMap
-    }
-
-    def consumableMarkings(m: Marking[P])(t: T): Iterable[Marking[P]] = {
+    override def consumableMarkings(m: Marking[P])(t: T): Iterable[Marking[P]] = {
       // for uncolored markings there is only 1 consumable marking per transition
       val in = inMarking(t)
 
@@ -59,7 +54,7 @@ package object simple {
       }: PartialFunction[BiPartiteGraph[P, T]#NodeT, T]
     ) // TODO This should not be needed, why does the compiler complain?
 
-    def enabledTransitions(marking: Marking[P]): Set[T] = {
+    override def enabledTransitions(marking: Marking[P]): Set[T] = {
       marking
         .map { case (place, count) =>
           innerGraph.get(place).outgoing.collect {
@@ -74,10 +69,14 @@ package object simple {
     }
   }
 
-  trait SimpleExecutor[P, T] extends TransitionExecutor[P, T, Marking[P]] with SimpleTokenGame[P, T] {
+  trait SimpleExecutor[P, T] extends TransitionExecutor[P, T, Marking[P]] {
 
-    this: PetriNet[P, T] =>
+    this: PetriNet[P, T] with TokenGame[P, T, Marking[P]] =>
 
-    override def fireTransition(m: Marking[P])(t: T): Marking[P] = m.consume(inMarking(t)).produce(outMarking(t))
+    override def fireTransition(m: Marking[P])(t: T): Marking[P] =
+      if (isEnabled(m)(t))
+        m.consume(inMarking(t)).produce(outMarking(t))
+      else
+        throw new IllegalStateException(s"transition: $t is not enabled")
   }
 }
