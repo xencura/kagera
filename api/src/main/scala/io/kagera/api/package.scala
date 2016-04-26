@@ -12,6 +12,7 @@ package object api {
     trait Label
   }
 
+  // TODO decide, shapeless or scalaz tags?
   type Identifiable[T] = T => Long @@ tags.Id
   type Labeled[T] = T => String @@ tags.Label
 

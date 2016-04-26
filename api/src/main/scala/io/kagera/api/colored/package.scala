@@ -6,15 +6,17 @@ import io.kagera.api.tags.Label
 
 import scala.concurrent.Future
 import scalax.collection.Graph
-import scalax.collection.GraphEdge.{ DiEdgeLike, EdgeCopy }
-import scalax.collection.GraphPredef.OuterEdge
+import scalax.collection.GraphEdge._
+import scalax.collection.GraphPredef._
 import scalax.collection.edge.WBase.WEdgeCompanion
-import scalax.collection.edge.{ WDiEdge, WUnDiEdge }
+import scalax.collection.edge.{ WDiEdge, WLDiEdge, WUnDiEdge }
 import scalaz.{ @@, Tag }
 
 package object colored {
 
   type Node = Either[Place, Transition]
+
+  type Arc = WLDiEdge[Node]
 
   type Token[D] = (Long, D)
 
@@ -46,28 +48,32 @@ package object colored {
     def apply[A, B, C, O](fn: (A, B, C) => O) = new TransitionImpl[(A, B, C), O](id, label, fn.tupled)
   }
 
-  def arc(t: Transition, p: Place, weight: Long): WDiEdge[Node] = WDiEdge[Node](Right(t), Left(p))(weight)
-  def arc(p: Place, t: Transition, weight: Long): WDiEdge[Node] = WDiEdge[Node](Left(p), Right(t))(weight)
+  def arc(t: Transition, p: Place, weight: Long, order: Int): Arc =
+    WLDiEdge[Node, Int](Right(t), Left(p))(weight, order)
+  def arc(p: Place, t: Transition, weight: Long, order: Int): Arc =
+    WLDiEdge[Node, Int](Left(p), Right(t))(weight, order)
 
   sealed trait MarkingSpec[T] {
-    def marking: Map[Place, Long]
+    def marking: Seq[(Place, Long)]
   }
 
   implicit def %[A](p: Place { type Color = A }): MarkingSpec[A] = new MarkingSpec[A] {
-    override val marking = Map[Place, Long](p -> 1)
+    override val marking = Seq(p -> 1L)
   }
 
   implicit def %[A, B](places: (Place { type Color = A }, Place { type Color = B })): MarkingSpec[(A, B)] =
     new MarkingSpec[(A, B)] {
-      override val marking = Map[Place, Long](places._1 -> 1, places._2 -> 1)
+      override val marking = Seq(places._1 -> 1L, places._2 -> 1L)
     }
 
   implicit class TF[B](t: Transition { type Output = B }) {
-    def ~>(m: MarkingSpec[B]) = m.marking.map { case (p, weight) => arc(t, p, weight) }.toSeq
+    def ~>(m: MarkingSpec[B]) = m.marking.zipWithIndex.map { case ((p, weight), index) => arc(t, p, weight, index) }
   }
 
   implicit class M[A](m: MarkingSpec[A]) {
-    def ~>[B](t: Transition { type Input = A }) = m.marking.map { case (p, weight) => arc(p, t, weight) }.toSeq
+    def ~>[B](t: Transition { type Input = A }) = m.marking.zipWithIndex.map { case ((p, weight), index) =>
+      arc(p, t, weight, index)
+    }
   }
 
   implicit object CoulouredMarkingLike extends MarkingLike[ColouredMarking, Place] {
@@ -93,12 +99,13 @@ package object colored {
         // need to know the place order for the function
 
         innerGraph.get(Right(t)).incoming.map { edge =>
-          val v = edge.source
+          val place = edge.source.valueA
+          val weight = edge.weight
 
           ???
         }
 
-        // create transition input from input
+        // create transition input from tokens in places
 
         // execute the transition
       }
@@ -107,8 +114,8 @@ package object colored {
     }
   }
 
-  def process(params: Seq[WDiEdge[Node]]*): PTProcess[Place, Transition, Marking[Place]] =
-    new ScalaGraphWrapper(Graph(params.reduce(_ ++ _): _*))
+  def process(params: Seq[Arc]*): PTProcess[Place, Transition, Marking[Place]] =
+    new ScalaGraphPetriNet(Graph(params.reduce(_ ++ _): _*))
       with SimpleTokenGame[Place, Transition]
       with SimpleExecutor[Place, Transition]
 }
