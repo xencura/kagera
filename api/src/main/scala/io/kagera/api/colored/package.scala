@@ -3,13 +3,12 @@ package io.kagera.api
 import io.kagera.api.ScalaGraph._
 import io.kagera.api.simple.{ SimpleExecutor, SimpleTokenGame }
 import io.kagera.api.tags.Label
+import shapeless.{ HList, HNil }
+import shapeless.ops.hlist._
 
 import scala.concurrent.Future
 import scalax.collection.Graph
-import scalax.collection.GraphEdge._
-import scalax.collection.GraphPredef._
-import scalax.collection.edge.WBase.WEdgeCompanion
-import scalax.collection.edge.{ WDiEdge, WLDiEdge, WUnDiEdge }
+import scalax.collection.edge.WLDiEdge
 import scalaz.{ @@, Tag }
 
 package object colored {
@@ -91,23 +90,35 @@ package object colored {
 
     this: PetriNet[Place, Transition] with TokenGame[Place, Transition, ColouredMarking] =>
 
+    def createTransitionInput(marking: ColouredMarking, t: Transition) = {
+      //      if (marking.isEmpty) {
+      //        ()
+      //      } else {
+      //
+      //        // get in-adjacent arcs
+      //        // need to know the place order for the function
+      //        val mapped = innerGraph.get(Right(t)).incoming.map { edge =>
+      //          edge.source.valueA -> edge.label.asInstanceOf[Int]
+      //        }.toSeq.sortBy { case (place, index) => index }
+      //
+      //        mapped.foldLeft[HList](HNil) {
+      //          case (hlist, (place, index)) => marking.get(place) match {
+      //            case None         => throw new IllegalStateException("")
+      //            case Some(tokens) => tokens.head._2 :: hlist
+      //          }
+      //        }.tupled
+      //      }
+    }
+
     override def fireTransition(m: ColouredMarking)(t: Transition): ColouredMarking = {
 
       // pick the tokens
       enabledParameters(m)(t).headOption.foreach { marking =>
-        // get in-adjacent arcs
-        // need to know the place order for the function
+        val input = createTransitionInput(m, t)
+        val out = t.apply(input.asInstanceOf[t.Input])
 
-        innerGraph.get(Right(t)).incoming.map { edge =>
-          val place = edge.source.valueA
-          val weight = edge.weight
-
-          ???
-        }
-
-        // create transition input from tokens in places
-
-        // execute the transition
+      // create transition input from tokens in places
+      // execute the transition
       }
 
       ???

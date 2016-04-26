@@ -13,10 +13,12 @@ object TestProcesses {
 
     // transitions
     val init = TransitionFn(id = 1, label = "init") { () =>
+      println("firing transition init")
       (5, 5)
     }
 
     val sum = TransitionFn(id = 2, label = "sum") { (a: Int, b: Int) =>
+      println("firing transition sum")
       a + b
     }
 

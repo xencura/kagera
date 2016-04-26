@@ -1,10 +1,25 @@
 package io.kagera.api
 
 import io.kagera.api.colored._
+import shapeless.{ HList, HNil }
+import shapeless._
 
 object Test extends App {
 
   val initialMarking: Marking[Place] = Map.empty
+
+  type Foo = Int :: String :: HNil
+
+  def sumfn(a: Int, b: Int): Int = a + b
+
+  val inputA = 4 :: 2 :: HNil
+  val inputB = true :: "foo" :: HNil
+
+  val a = inputA ++ inputB
+
+  val out = (sumfn _).tupled.apply(inputA.tupled)
+
+  println(a)
 
   // This recursively executes the process until no transitions can be fired
 
