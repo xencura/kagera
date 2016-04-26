@@ -31,7 +31,7 @@ package object simple {
       !other.exists { case (place, count) =>
         marking.get(place) match {
           case None => true
-          case Some(n) if n < count => true
+          case Some(n) if n <= count => true
           case _ => false
         }
       }
@@ -73,10 +73,6 @@ package object simple {
 
     this: PetriNet[P, T] with TokenGame[P, T, Marking[P]] =>
 
-    override def fireTransition(m: Marking[P])(t: T): Marking[P] =
-      if (isEnabled(m)(t))
-        m.consume(inMarking(t)).produce(outMarking(t))
-      else
-        throw new IllegalStateException(s"transition: $t is not enabled")
+    override def fireTransition(m: Marking[P])(t: T): Marking[P] = m.consume(inMarking(t)).produce(outMarking(t))
   }
 }

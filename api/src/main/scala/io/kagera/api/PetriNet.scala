@@ -2,8 +2,18 @@ package io.kagera.api
 
 import io.kagera.api.ScalaGraph._
 
+/**
+ * Petri net interface.
+ *
+ * TODO enrich this interface with more convenient functions
+ */
 trait PetriNet[P, T] {
 
+  /**
+   * The scala-graph backing petri net.
+   *
+   * @return
+   */
   def innerGraph: BiPartiteGraph[P, T]
 
   /**

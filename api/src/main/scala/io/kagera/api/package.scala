@@ -25,9 +25,6 @@ package object api {
 
   type PTProcess[P, T, M] = PetriNet[P, T] with TokenGame[P, T, M] with TransitionExecutor[P, T, M]
 
-  // given a process and current marking picks the next transition and marking to fire
-  type Step[P, T, M] = (PTProcess[P, T, M], M) => Option[(M, T)]
-
   /**
    * Type class for marking 'like' semantics.
    */
@@ -45,9 +42,15 @@ package object api {
   }
 
   implicit class MarkingLikeApi[M, P](val m: M)(implicit val markingLike: MarkingLike[M, P]) {
+
+    def multiplicity = markingLike.multiplicity(m)
+
     def consume(other: M) = markingLike.consume(m, other)
+
     def produce(other: M) = markingLike.produce(m, other)
+
     def isEmpty() = markingLike.multiplicity(m).isEmpty
+
     def isSubMarking(other: M) = markingLike.isSubMarking(m, other)
   }
 

@@ -4,31 +4,21 @@ import io.kagera.api.ScalaGraph._
 import io.kagera.api.simple.{ SimpleExecutor, SimpleTokenGame }
 import io.kagera.api.tags.Label
 
+import scala.concurrent.Future
 import scalax.collection.Graph
-import scalax.collection.edge.WDiEdge
+import scalax.collection.GraphEdge.{ DiEdgeLike, EdgeCopy }
+import scalax.collection.GraphPredef.OuterEdge
+import scalax.collection.edge.WBase.WEdgeCompanion
+import scalax.collection.edge.{ WDiEdge, WUnDiEdge }
 import scalaz.{ @@, Tag }
 
 package object colored {
 
-  object Place {
-    def apply[A](id: Long, label: String) = PlaceImpl[A](id, label)
-  }
+  type Node = Either[Place, Transition]
 
-  trait Place {
-    type Color
-    override def toString = label
-    def id: Long = label.hashCode
-    def label: String
-  }
+  type Token[D] = (Long, D)
 
-  trait Transition {
-    type Input
-    type Output
-    // type TriggerData
-    def label: String
-    override def toString = label
-    def id: Long = label.hashCode
-  }
+  type ColouredMarking = Map[Place, Set[Token[_]]]
 
   implicit object PlaceLabeler extends Labeled[Place] {
     override def apply(p: Place): @@[String, Label] = Tag[String, Label](p.label)
@@ -42,23 +32,22 @@ package object colored {
     type Color = C
   }
 
-  case class TransitionImpl[I, O](override val id: Long, override val label: String) extends Transition {
+  case class TransitionImpl[I, O](override val id: Long, override val label: String, fn: I => O) extends Transition {
     type Input = I
     type Output = O
+
+    override def apply(input: Input): Future[Output] = Future.successful(fn(input))
   }
 
   case class TransitionFn(id: Long, label: String) {
-    def apply[O](fn: () => O) = new TransitionImpl[Unit, O](id, label)
-    def apply[A, O](fn: (A) => O) = new TransitionImpl[A, O](id, label)
-    def apply[A, B, O](fn: (A, B) => O) = new TransitionImpl[(A, B), O](id, label)
-    def apply[A, B, C, O](fn: (A, B, C) => O) = new TransitionImpl[(A, B, C), O](id, label)
+    def apply[O](fn: () => O) = new TransitionImpl[Unit, O](id, label, unit => fn())
+    def apply[A, O](fn: A => O) = new TransitionImpl[A, O](id, label, fn)
+    def apply[A, B, O](fn: (A, B) => O) = new TransitionImpl[(A, B), O](id, label, fn.tupled)
+    def apply[A, B, C, O](fn: (A, B, C) => O) = new TransitionImpl[(A, B, C), O](id, label, fn.tupled)
   }
 
-  type Node = Either[Place, Transition]
-  type Arc = WDiEdge[Node]
-
-  def arc(t: Transition, p: Place, weight: Long): Arc = WDiEdge[Node](Right(t), Left(p))(weight)
-  def arc(p: Place, t: Transition, weight: Long): Arc = WDiEdge[Node](Left(p), Right(t))(weight)
+  def arc(t: Transition, p: Place, weight: Long): WDiEdge[Node] = WDiEdge[Node](Right(t), Left(p))(weight)
+  def arc(p: Place, t: Transition, weight: Long): WDiEdge[Node] = WDiEdge[Node](Left(p), Right(t))(weight)
 
   sealed trait MarkingSpec[T] {
     def marking: Map[Place, Long]
@@ -81,25 +70,45 @@ package object colored {
     def ~>[B](t: Transition { type Input = A }) = m.marking.map { case (p, weight) => arc(p, t, weight) }.toSeq
   }
 
-  type Token[D] = (Long, D)
+  implicit object CoulouredMarkingLike extends MarkingLike[ColouredMarking, Place] {
 
-  type ColouredMarking[P] = Map[P, Set[Token[_]]]
-
-  def coulouredMarkingLike[P]: MarkingLike[ColouredMarking[P], P] = new MarkingLike[ColouredMarking[P], P] {
-    override def emptyMarking: ColouredMarking[P] = Map.empty
-
-    override def multiplicity(marking: ColouredMarking[P]): Marking[P] = marking.map { case (p, tokens) =>
+    override def emptyMarking: ColouredMarking = Map.empty
+    override def multiplicity(marking: ColouredMarking): Marking[Place] = marking.map { case (p, tokens) =>
       (p, tokens.size.toLong)
     }.toMap
-
-    override def consume(from: ColouredMarking[P], other: ColouredMarking[P]): ColouredMarking[P] = ???
-
-    override def produce(into: ColouredMarking[P], other: ColouredMarking[P]): ColouredMarking[P] = ???
-
-    override def isSubMarking(m: ColouredMarking[P], other: ColouredMarking[P]): Boolean = ???
+    override def consume(from: ColouredMarking, other: ColouredMarking): ColouredMarking = ???
+    override def produce(into: ColouredMarking, other: ColouredMarking): ColouredMarking = ???
+    override def isSubMarking(m: ColouredMarking, other: ColouredMarking): Boolean = ???
   }
 
-  def process(params: Seq[Arc]*): PTProcess[Place, Transition, Marking[Place]] = new ScalaGraphWrapper(
-    Graph(params.reduce(_ ++ _): _*)
-  ) with SimpleTokenGame[Place, Transition] with SimpleExecutor[Place, Transition]
+  trait ColouredExecutor extends TransitionExecutor[Place, Transition, ColouredMarking] {
+
+    this: PetriNet[Place, Transition] with TokenGame[Place, Transition, ColouredMarking] =>
+
+    override def fireTransition(m: ColouredMarking)(t: Transition): ColouredMarking = {
+
+      // pick the tokens
+      enabledParameters(m)(t).headOption.foreach { marking =>
+        // get in-adjacent arcs
+        // need to know the place order for the function
+
+        innerGraph.get(Right(t)).incoming.map { edge =>
+          val v = edge.source
+
+          ???
+        }
+
+        // create transition input from input
+
+        // execute the transition
+      }
+
+      ???
+    }
+  }
+
+  def process(params: Seq[WDiEdge[Node]]*): PTProcess[Place, Transition, Marking[Place]] =
+    new ScalaGraphWrapper(Graph(params.reduce(_ ++ _): _*))
+      with SimpleTokenGame[Place, Transition]
+      with SimpleExecutor[Place, Transition]
 }
