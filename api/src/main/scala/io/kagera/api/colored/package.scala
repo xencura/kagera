@@ -47,10 +47,11 @@ package object colored {
     def apply[A, B, C, O](fn: (A, B, C) => O) = new TransitionImpl[(A, B, C), O](id, label, fn.tupled)
   }
 
-  def arc(t: Transition, p: Place, weight: Long, order: Int): Arc =
-    WLDiEdge[Node, Int](Right(t), Left(p))(weight, order)
-  def arc(p: Place, t: Transition, weight: Long, order: Int): Arc =
-    WLDiEdge[Node, Int](Left(p), Right(t))(weight, order)
+  def arc(t: Transition, p: Place, weight: Long, fieldName: String): Arc =
+    WLDiEdge[Node, String](Right(t), Left(p))(weight, fieldName)
+
+  def arc(p: Place, t: Transition, weight: Long, fieldName: String): Arc =
+    WLDiEdge[Node, String](Left(p), Right(t))(weight, fieldName)
 
   sealed trait MarkingSpec[T] {
     def marking: Seq[(Place, Long)]
