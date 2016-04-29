@@ -1,6 +1,8 @@
 package io.kagera.api.colored
 
 import scala.concurrent.Future
+import scala.reflect.runtime.{ universe => ru }
+import scalax.collection.edge.WLDiEdge
 
 trait Transition {
 
@@ -11,6 +13,9 @@ trait Transition {
   def label: String
 
   override def toString = label
+
+  def createInput(input: Seq[(Place, WLDiEdge[Node], Seq[Any])]): Input
+  def createOutput(output: Output, places: Seq[(WLDiEdge[Node], Place)]): ColoredMarking
 
   def apply(input: Input): Future[Output]
 }

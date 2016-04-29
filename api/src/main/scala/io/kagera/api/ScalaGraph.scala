@@ -37,6 +37,12 @@ object ScalaGraph {
       case _ => throw new IllegalStateException(s"node $node is not a transition!")
     }
 
+    def incomingEdgeB(b: B) = node.incoming.find(_.source.value == Right(b)).map(_.toOuter)
+    def outgoingEdgeB(b: B) = node.outgoing.find(_.target.value == Right(b)).map(_.toOuter)
+
+    def incomingEdgeA(a: A) = node.incoming.find(_.source.value == Left(a)).map(_.toOuter)
+    def outgoingEdgeA(a: A) = node.outgoing.find(_.target.value == Left(a)).map(_.toOuter)
+
     def incomingA = node.incoming.map(_.source.valueA)
     def incomingB = node.incoming.map(_.source.valueB)
 
@@ -47,18 +53,24 @@ object ScalaGraph {
     def isNodeB = cond(node.value) { case Right(n) => true }
   }
 
-  implicit class DirectedBiPartiteGraphAdditions[A, B](val process: BiPartiteGraph[A, B, WLDiEdge]) {
+  implicit class DirectedBiPartiteGraphAdditions[A, B](val graph: BiPartiteGraph[A, B, WLDiEdge]) {
 
-    def incomingA(b: B): Set[A] = process.get(b).incomingA
+    def connectingEdgeAB(from: A, to: B): WLDiEdge[Either[A, B]] =
+      graph.get(Left(from)).outgoing.find(_.target.value == Right(to)).get.toOuter
 
-    def outgoingA(b: B): Set[A] = process.get(b).outgoingA
+    def connectingEdgeBA(from: B, to: A): WLDiEdge[Either[A, B]] =
+      graph.get(Right(from)).outgoing.find(_.target.value == Left(to)).get.toOuter
 
-    def incomingB(a: A): Set[B] = process.get(a).incomingB
+    def incomingA(b: B): Set[A] = graph.get(b).incomingA
 
-    def outgoingB(b: A): Set[B] = process.get(b).outgoingB
+    def outgoingA(b: B): Set[A] = graph.get(b).outgoingA
 
-    def nodesA() = process.nodes.collect { case n if n.isNodeA => n.valueA }
+    def incomingB(a: A): Set[B] = graph.get(a).incomingB
 
-    def nodesB() = process.nodes.collect { case n if n.isNodeB => n.valueB }
+    def outgoingB(b: A): Set[B] = graph.get(b).outgoingB
+
+    def nodesA() = graph.nodes.collect { case n if n.isNodeA => n.valueA }
+
+    def nodesB() = graph.nodes.collect { case n if n.isNodeB => n.valueB }
   }
 }

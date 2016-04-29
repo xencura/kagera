@@ -24,6 +24,16 @@ package object api {
     def findById(id: String) = seq.find(e => implicitly[Identifiable[T]].apply(e) == id)
   }
 
+  /**
+   * Type alias for a petri net with token game and executor. This makes an executable process.
+   *
+   * @tparam P
+   *   The place type
+   * @tparam T
+   *   The transition type
+   * @tparam M
+   *   The marking type
+   */
   type PTProcess[P, T, M] = PetriNet[P, T] with TokenGame[P, T, M] with TransitionExecutor[P, T, M]
 
   /**
@@ -31,8 +41,22 @@ package object api {
    */
   trait MarkingLike[M, P] {
 
+    /**
+     * Returns an empty instance of this marking type.
+     *
+     * @return
+     *   The empty marking.
+     */
     def emptyMarking: M
 
+    /**
+     * Returns the multiplicity of the marking, that is: A map from place to the nr of tokens in that place
+     *
+     * @param marking
+     *
+     * @return
+     *   The empty marking.
+     */
     def multiplicity(marking: M): Marking[P]
 
     def isSubMarking(m: M, other: M): Boolean
