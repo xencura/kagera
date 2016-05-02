@@ -35,7 +35,7 @@ package object api {
    * @tparam M
    *   The marking type
    */
-  trait PTProcess[P, T, M] extends PetriNet[P, T] with TokenGame[P, T, M] with TransitionExecutor[P, T, M]
+  trait PetriNetProcess[P, T, M] extends PetriNet[P, T] with TokenGame[P, T, M] with TransitionExecutor[P, T, M]
 
   /**
    * Type class for marking 'like' semantics.

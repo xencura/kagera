@@ -3,7 +3,7 @@ package io.kagera.api
 package object engine {
 
   // given a process and current marking picks the next transition and marking to fire
-  type Step[P, T, M] = (PTProcess[P, T, M], M) => Option[(M, T)]
+  type Step[P, T, M] = (PetriNetProcess[P, T, M], M) => Option[(M, T)]
 
   def stepFirst[P, T, M]: Step[P, T, M] = (process, marking) => {
     process.enabledParameters(marking).headOption.map { case (t, enabledMarkings) => (enabledMarkings.head, t) }
