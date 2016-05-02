@@ -1,5 +1,6 @@
 package io.kagera
 
+import scala.concurrent.Future
 import scalaz.@@
 
 package object api {
@@ -83,7 +84,7 @@ package object api {
 
     this: PetriNet[P, T] =>
 
-    def fireTransition(marking: M)(transition: T): M
+    def fireTransition(marking: M)(transition: T): Future[M]
   }
 
   trait TokenGame[P, T, M] {

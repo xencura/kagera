@@ -3,7 +3,7 @@ package io.kagera.api
 import io.kagera.api.ScalaGraph._
 import io.kagera.api.simple.{ SimpleExecutor, SimpleTokenGame }
 import io.kagera.api.tags.Label
-import scala.concurrent.Await
+import scala.concurrent.{ Await, ExecutionContext, Future }
 import scalax.collection.Graph
 import scalax.collection.edge.WLDiEdge
 import scalaz.{ @@, Tag }
@@ -63,13 +63,13 @@ package object colored {
 
     this: PetriNet[Place, Transition] with TokenGame[Place, Transition, ColoredMarking] =>
 
-    override def fireTransition(marking: ColoredMarking)(t: Transition): ColoredMarking = {
+    implicit val ec: ExecutionContext = ExecutionContext.global
+
+    override def fireTransition(marking: ColoredMarking)(t: Transition): Future[ColoredMarking] = {
 
       // pick the tokens
       enabledParameters(marking)(t).headOption
         .map { consume =>
-          import scala.concurrent.duration._
-
           val input = consume.map { case (place, data) =>
             (place, innerGraph.connectingEdgeAB(place, t), data)
           }.toSeq
@@ -83,12 +83,10 @@ package object colored {
 
           val transitionInput = t.createInput(input)
 
-          // TODO this should not block the thread
-          val transitionOutput = Await.result(t.apply(transitionInput), 2 seconds)
-          val produce = t.createOutput(transitionOutput, output)
-
-          marking.consume(consume).produce(produce)
-
+          t.apply(transitionInput).map { transitionOutput =>
+            val produce = t.createOutput(transitionOutput, output)
+            marking.consume(consume).produce(produce)
+          }
         }
         .getOrElse {
           throw new IllegalStateException("Transition not enabled")

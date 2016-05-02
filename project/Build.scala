@@ -88,10 +88,6 @@ object Build extends Build {
       )
     )
 
-  <<<<<<< Updated upstream
-  lazy val root = Project("kagera", file(".")).aggregate(commonJvm, api, visualization)
-  =======
   lazy val root =
     Project("kagera", file(".")).aggregate(api, visualization).settings(defaultProjectSettings).settings(publish := {})
-  >>>>>>> Stashed changes
 }
