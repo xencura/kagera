@@ -1,5 +1,6 @@
 package io.kagera.api
 
+import io.kagera.api.ScalaGraph._
 import io.kagera.api.colored.{ Place, Transition }
 
 import scala.concurrent.Future
@@ -41,6 +42,26 @@ package object simple {
       }
   }
 
+  def findEnabledTransitions[P, T](pn: PetriNet[P, T])(marking: Marking[P]): Set[T] = {
+
+    val constructors = pn.innerGraph.nodes.collect({
+        case node if node.isNodeB && node.incoming.isEmpty => node.valueB
+      }: PartialFunction[BiPartiteGraph[P, T, WLDiEdge]#NodeT, T]
+    ) // TODO This should not be needed, why does the compiler complain?
+
+    marking
+      .map { case (place, count) =>
+        pn.innerGraph.get(place).outgoing.collect {
+          case edge if (edge.weight <= count) => edge.target
+        }
+      }
+      .reduceOption(_ ++ _)
+      .getOrElse(Set.empty)
+      .collect {
+        case node if node.incomingA.subsetOf(marking.keySet) => node.valueB
+      } ++ constructors
+  }
+
   trait SimpleTokenGame[P, T] extends TokenGame[P, T, Marking[P]] {
     this: PetriNet[P, T] =>
 
@@ -49,7 +70,6 @@ package object simple {
     override def consumableMarkings(m: Marking[P])(t: T): Iterable[Marking[P]] = {
       // for uncolored markings there is only 1 consumable marking per transition
       val in = inMarking(t)
-
       m.isSubMarking(in).option(in)
     }
 
@@ -59,17 +79,7 @@ package object simple {
     ) // TODO This should not be needed, why does the compiler complain?
 
     override def enabledTransitions(marking: Marking[P]): Set[T] = {
-      marking
-        .map { case (place, count) =>
-          innerGraph.get(place).outgoing.collect {
-            case edge if (edge.weight <= count) => edge.target
-          }
-        }
-        .reduceOption(_ ++ _)
-        .getOrElse(Set.empty)
-        .collect {
-          case node if node.incomingA.subsetOf(marking.keySet) => node.valueB
-        } ++ constructors
+      findEnabledTransitions[P, T](this)(marking)
     }
   }
 

@@ -62,17 +62,20 @@ package object colored {
   trait ColoredTokenGame extends TokenGame[Place, Transition, ColoredMarking] {
     this: PetriNet[Place, Transition] =>
 
-    override def enabledParameters(m: ColoredMarking): Map[Transition, Iterable[ColoredMarking]] = {
-      // inefficient, fix
+    override def enabledParameters(m: ColoredMarking): Map[Transition, Iterable[ColoredMarking]] =
       enabledTransitions(m).view.map(t => t -> consumableMarkings(m)(t)).toMap
-    }
 
-    def consumableMarkings(m: ColoredMarking)(t: Transition): Iterable[ColoredMarking]
+    def consumableMarkings(marking: ColoredMarking)(t: Transition): Iterable[ColoredMarking] = {
+      val firstEnabled = inMarking(t).map { case (place, count) =>
+        place -> marking(place).take(count.toInt)
+      }
+      Seq(firstEnabled)
+    }
 
     // horribly inefficient, fix
     override def isEnabled(marking: ColoredMarking)(t: Transition): Boolean = enabledTransitions(marking).contains(t)
-
-    override def enabledTransitions(marking: ColoredMarking): Set[Transition]
+    override def enabledTransitions(marking: ColoredMarking): Set[Transition] =
+      simple.findEnabledTransitions(this)(marking.multiplicity)
   }
 
   trait ColoredExecutor extends TransitionExecutor[Place, Transition, ColoredMarking] {
@@ -115,6 +118,6 @@ package object colored {
       with ColoredTokenGame
       with ColoredExecutor
 
-  def process(params: Seq[Arc]*): PetriNetProcess[Place, Transition, Marking[Place]] =
-    new ScalaGraphPetriNet(Graph(params.reduce(_ ++ _): _*)) with SimplePetriNetProcess
+  def process(params: Seq[Arc]*): PetriNetProcess[Place, Transition, ColoredMarking] =
+    new ScalaGraphPetriNet(Graph(params.reduce(_ ++ _): _*)) with ColoredPetriNetProcess
 }
