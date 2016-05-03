@@ -23,7 +23,7 @@ case class ReflectedTransition[I : TypeTag, O : TypeTag](override val id: Long, 
     .paramLists(0)
     .map(_.name.decodedName.toString)
 
-  def createInput(input: Seq[(Place, WLDiEdge[Node], Seq[Any])]): Input = {
+  def createInput(input: Seq[(Place, WLDiEdge[Node], Seq[Any])], data: Option[Any]): Input = {
 
     val constructorInput = input
       .map { case (place, arc, data) => (names.indexWhere(_ == place.label), data.head) }

@@ -84,6 +84,6 @@ package object api {
 
     this: PetriNet[P, T] =>
 
-    def fireTransition(marking: M)(transition: T): Future[M]
+    def fireTransition(marking: M)(transition: T, data: Option[Any] = None): Future[M]
   }
 }

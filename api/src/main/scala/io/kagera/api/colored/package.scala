@@ -59,13 +59,29 @@ package object colored {
     }
   }
 
-  trait ColouredExecutor extends TransitionExecutor[Place, Transition, ColoredMarking] {
+  trait ColoredTokenGame extends TokenGame[Place, Transition, ColoredMarking] {
+    this: PetriNet[Place, Transition] =>
+
+    override def enabledParameters(m: ColoredMarking): Map[Transition, Iterable[ColoredMarking]] = {
+      // inefficient, fix
+      enabledTransitions(m).view.map(t => t -> consumableMarkings(m)(t)).toMap
+    }
+
+    def consumableMarkings(m: ColoredMarking)(t: Transition): Iterable[ColoredMarking]
+
+    // horribly inefficient, fix
+    override def isEnabled(marking: ColoredMarking)(t: Transition): Boolean = enabledTransitions(marking).contains(t)
+
+    override def enabledTransitions(marking: ColoredMarking): Set[Transition]
+  }
+
+  trait ColoredExecutor extends TransitionExecutor[Place, Transition, ColoredMarking] {
 
     this: PetriNet[Place, Transition] with TokenGame[Place, Transition, ColoredMarking] =>
 
     implicit val ec: ExecutionContext = ExecutionContext.global
 
-    override def fireTransition(marking: ColoredMarking)(t: Transition): Future[ColoredMarking] = {
+    override def fireTransition(marking: ColoredMarking)(t: Transition, data: Option[Any]): Future[ColoredMarking] = {
 
       // pick the tokens
       enabledParameters(marking)(t).headOption
@@ -81,7 +97,7 @@ package object colored {
             }
             .toSeq
 
-          val transitionInput = t.createInput(input)
+          val transitionInput = t.createInput(input, data)
 
           t.apply(transitionInput).map { transitionOutput =>
             val produce = t.createOutput(transitionOutput, output)
@@ -93,6 +109,11 @@ package object colored {
         }
     }
   }
+
+  trait ColoredPetriNetProcess
+      extends PetriNetProcess[Place, Transition, ColoredMarking]
+      with ColoredTokenGame
+      with ColoredExecutor
 
   def process(params: Seq[Arc]*): PetriNetProcess[Place, Transition, Marking[Place]] =
     new ScalaGraphPetriNet(Graph(params.reduce(_ ++ _): _*)) with SimplePetriNetProcess
