@@ -8,7 +8,6 @@ import scala.language.higherKinds
 
 object ScalaGraph {
 
-  // TODO a bi partite graph is not necessarily directed & weighted
   type BiPartiteGraph[P, T, E[X] <: EdgeLikeIn[X]] = Graph[Either[P, T], E]
 
   class ScalaGraphPetriNet[P, T](val innerGraph: BiPartiteGraph[P, T, WLDiEdge]) extends PetriNet[P, T] {

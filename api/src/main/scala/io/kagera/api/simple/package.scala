@@ -1,10 +1,6 @@
 package io.kagera.api
 
-import io.kagera.api.ScalaGraph._
-import io.kagera.api.colored.{ Place, Transition }
-
-import scala.concurrent.Future
-import scalax.collection.edge.WLDiEdge
+import scala.concurrent.{ ExecutionContext, Future }
 import scalaz.syntax.std.boolean._
 
 package object simple {
@@ -36,7 +32,7 @@ package object simple {
       !other.exists { case (place, count) =>
         marking.get(place) match {
           case None => true
-          case Some(n) if n <= count => true
+          case Some(n) if n < count => true
           case _ => false
         }
       }
@@ -44,28 +40,14 @@ package object simple {
 
   def findEnabledTransitions[P, T](pn: PetriNet[P, T])(marking: Marking[P]): Set[T] = {
 
-    val constructors = pn.innerGraph.nodes.collect({
-        case node if node.isNodeB && node.incoming.isEmpty => node.valueB
-      }: PartialFunction[BiPartiteGraph[P, T, WLDiEdge]#NodeT, T]
-    ) // TODO This should not be needed, why does the compiler complain?
-
-    marking
-      .map { case (place, count) =>
-        pn.innerGraph.get(place).outgoing.collect {
-          case edge if (edge.weight <= count) => edge.target
-        }
-      }
-      .reduceOption(_ ++ _)
-      .getOrElse(Set.empty)
-      .collect {
-        case node if node.incomingA.subsetOf(marking.keySet) => node.valueB
-      } ++ constructors
+    /**
+     * Inefficient way of doing this, we don't need to check every transition in the petri net.
+     */
+    pn.transitions.filter(t => marking.isSubMarking(pn.inMarking(t)))
   }
 
   trait SimpleTokenGame[P, T] extends TokenGame[P, T, Marking[P]] {
     this: PetriNet[P, T] =>
-
-    import ScalaGraph._
 
     override def consumableMarkings(m: Marking[P])(t: T): Iterable[Marking[P]] = {
       // for uncolored markings there is only 1 consumable marking per transition
@@ -73,26 +55,16 @@ package object simple {
       m.isSubMarking(in).option(in)
     }
 
-    lazy val constructors = innerGraph.nodes.collect({
-        case node if node.isNodeB && node.incoming.isEmpty => node.valueB
-      }: PartialFunction[BiPartiteGraph[P, T, WLDiEdge]#NodeT, T]
-    ) // TODO This should not be needed, why does the compiler complain?
-
-    override def enabledTransitions(marking: Marking[P]): Set[T] = {
-      findEnabledTransitions[P, T](this)(marking)
-    }
+    override def enabledTransitions(marking: Marking[P]): Set[T] = findEnabledTransitions[P, T](this)(marking)
   }
 
   trait SimpleExecutor[P, T] extends TransitionExecutor[P, T, Marking[P]] {
 
     this: PetriNet[P, T] with TokenGame[P, T, Marking[P]] =>
 
-    override def fireTransition(m: Marking[P])(transition: T, data: Option[Any]): Future[Marking[P]] =
+    override def fireTransition(m: Marking[P])(transition: T, data: Option[Any])(implicit
+      ec: ExecutionContext
+    ): Future[Marking[P]] =
       Future.successful(m.consume(inMarking(transition)).produce(outMarking(transition)))
   }
-
-  trait SimplePetriNetProcess
-      extends PetriNetProcess[Place, Transition, Marking[Place]]
-      with SimpleTokenGame[Place, Transition]
-      with SimpleExecutor[Place, Transition]
 }

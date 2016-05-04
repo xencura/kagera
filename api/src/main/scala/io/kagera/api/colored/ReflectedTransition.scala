@@ -5,8 +5,12 @@ import scala.reflect.runtime.{ universe => ru }
 import scala.reflect.runtime.universe.TypeTag
 import scalax.collection.edge.WLDiEdge
 
-case class ReflectedTransition[I : TypeTag, O : TypeTag](override val id: Long, override val label: String, fn: I => O)
-    extends Transition {
+case class ReflectedTransition[I : TypeTag, O : TypeTag](
+  override val id: Long,
+  override val label: String,
+  override val isManaged: Boolean,
+  fn: I => O
+) extends Transition {
 
   private lazy val universeMirror = ru.runtimeMirror(getClass.getClassLoader)
 
