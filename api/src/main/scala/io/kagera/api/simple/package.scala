@@ -1,6 +1,6 @@
 package io.kagera.api
 
-import scala.concurrent.Future
+import scala.concurrent.{ ExecutionContext, Future }
 import scalaz.syntax.std.boolean._
 
 package object simple {
@@ -62,7 +62,9 @@ package object simple {
 
     this: PetriNet[P, T] with TokenGame[P, T, Marking[P]] =>
 
-    override def fireTransition(m: Marking[P])(transition: T, data: Option[Any]): Future[Marking[P]] =
+    override def fireTransition(m: Marking[P])(transition: T, data: Option[Any])(implicit
+      ec: ExecutionContext
+    ): Future[Marking[P]] =
       Future.successful(m.consume(inMarking(transition)).produce(outMarking(transition)))
   }
 }

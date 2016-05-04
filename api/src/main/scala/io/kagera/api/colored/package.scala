@@ -99,9 +99,9 @@ package object colored {
 
     this: PetriNet[Place, Transition] with TokenGame[Place, Transition, ColoredMarking] =>
 
-    implicit val ec: ExecutionContext = ExecutionContext.global
-
-    override def fireTransition(marking: ColoredMarking)(t: Transition, data: Option[Any]): Future[ColoredMarking] = {
+    override def fireTransition(
+      marking: ColoredMarking
+    )(t: Transition, data: Option[Any])(implicit ec: ExecutionContext) = {
 
       // pick the tokens
       enabledParameters(marking)
