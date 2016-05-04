@@ -35,6 +35,11 @@ trait Transition {
   val label: String
 
   /**
+   * Flag indicating whether this transition is managed or manually triggered from outside.
+   */
+  val isManaged: Boolean
+
+  /**
    * Creates a valid input type for the transition using the in-adjacent (place, arc, tokens) tuples and optional
    * trigger data.
    *
