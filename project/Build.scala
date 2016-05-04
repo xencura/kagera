@@ -12,7 +12,7 @@ object Build extends Build {
   val commonScalacOptions = Seq(
     "-encoding",
     "utf8",
-    "-target:jvm-1.8",
+    "-target:jvm-1.7",
     "-feature",
     "-language:implicitConversions",
     "-language:postfixOps",
