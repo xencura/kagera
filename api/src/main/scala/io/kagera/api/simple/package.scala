@@ -1,8 +1,6 @@
 package io.kagera.api
 
-import io.kagera.api.ScalaGraph._
 import scala.concurrent.Future
-import scalax.collection.edge.WLDiEdge
 import scalaz.syntax.std.boolean._
 
 package object simple {
@@ -42,22 +40,10 @@ package object simple {
 
   def findEnabledTransitions[P, T](pn: PetriNet[P, T])(marking: Marking[P]): Set[T] = {
 
-    val constructors = pn.innerGraph.nodes.collect({
-        case node if node.isNodeB && node.incoming.isEmpty => node.valueB
-      }: PartialFunction[BiPartiteGraph[P, T, WLDiEdge]#NodeT, T]
-    ) // TODO This should not be needed, why does the compiler complain?
-
-    marking
-      .map { case (place, count) =>
-        pn.innerGraph.get(place).outgoing.collect {
-          case edge if (edge.weight <= count) => edge.target
-        }
-      }
-      .reduceOption(_ ++ _)
-      .getOrElse(Set.empty)
-      .collect {
-        case node if node.incomingA.subsetOf(marking.keySet) => node.valueB
-      } ++ constructors
+    /**
+     * Inefficient way of doing this, we don't need to check every transition in the petri net.
+     */
+    pn.transitions.filter(t => marking.isSubMarking(pn.inMarking(t)))
   }
 
   trait SimpleTokenGame[P, T] extends TokenGame[P, T, Marking[P]] {
@@ -79,9 +65,4 @@ package object simple {
     override def fireTransition(m: Marking[P])(transition: T, data: Option[Any]): Future[Marking[P]] =
       Future.successful(m.consume(inMarking(transition)).produce(outMarking(transition)))
   }
-
-  trait SimplePetriNetProcess[P, T]
-      extends PetriNetProcess[P, T, Marking[P]]
-      with SimpleTokenGame[P, T]
-      with SimpleExecutor[P, T]
 }
