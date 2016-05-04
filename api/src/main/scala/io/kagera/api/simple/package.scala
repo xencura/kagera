@@ -1,8 +1,6 @@
 package io.kagera.api
 
 import io.kagera.api.ScalaGraph._
-import io.kagera.api.colored.{ Place, Transition }
-
 import scala.concurrent.Future
 import scalax.collection.edge.WLDiEdge
 import scalaz.syntax.std.boolean._
@@ -65,22 +63,13 @@ package object simple {
   trait SimpleTokenGame[P, T] extends TokenGame[P, T, Marking[P]] {
     this: PetriNet[P, T] =>
 
-    import ScalaGraph._
-
     override def consumableMarkings(m: Marking[P])(t: T): Iterable[Marking[P]] = {
       // for uncolored markings there is only 1 consumable marking per transition
       val in = inMarking(t)
       m.isSubMarking(in).option(in)
     }
 
-    lazy val constructors = innerGraph.nodes.collect({
-        case node if node.isNodeB && node.incoming.isEmpty => node.valueB
-      }: PartialFunction[BiPartiteGraph[P, T, WLDiEdge]#NodeT, T]
-    ) // TODO This should not be needed, why does the compiler complain?
-
-    override def enabledTransitions(marking: Marking[P]): Set[T] = {
-      findEnabledTransitions[P, T](this)(marking)
-    }
+    override def enabledTransitions(marking: Marking[P]): Set[T] = findEnabledTransitions[P, T](this)(marking)
   }
 
   trait SimpleExecutor[P, T] extends TransitionExecutor[P, T, Marking[P]] {
@@ -91,8 +80,8 @@ package object simple {
       Future.successful(m.consume(inMarking(transition)).produce(outMarking(transition)))
   }
 
-  trait SimplePetriNetProcess
-      extends PetriNetProcess[Place, Transition, Marking[Place]]
-      with SimpleTokenGame[Place, Transition]
-      with SimpleExecutor[Place, Transition]
+  trait SimplePetriNetProcess[P, T]
+      extends PetriNetProcess[P, T, Marking[P]]
+      with SimpleTokenGame[P, T]
+      with SimpleExecutor[P, T]
 }
