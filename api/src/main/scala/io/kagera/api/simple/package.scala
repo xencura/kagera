@@ -32,7 +32,7 @@ package object simple {
       !other.exists { case (place, count) =>
         marking.get(place) match {
           case None => true
-          case Some(n) if n <= count => true
+          case Some(n) if n < count => true
           case _ => false
         }
       }
