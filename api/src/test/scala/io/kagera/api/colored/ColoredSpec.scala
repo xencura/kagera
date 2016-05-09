@@ -1,15 +1,14 @@
 package io.kagera.api.colored
 
-import org.scalatest.WordSpec
-import org.scalatest.Matchers._
 import io.kagera.api._
-import io.kagera.api.colored._
+import org.scalatest.Matchers._
+import org.scalatest.WordSpec
 
 class ColoredSpec extends WordSpec {
 
-  val p1 = PlaceImpl[Int](id = 1, label = "p1")
-  val p2 = PlaceImpl[String](id = 2, label = "p2")
-  val p3 = PlaceImpl[Double](id = 3, label = "p3")
+  val p1 = Place[Int](id = 1, label = "p1")
+  val p2 = Place[String](id = 2, label = "p2")
+  val p3 = Place[Double](id = 3, label = "p3")
 
   "A Colored Marking" should {
 
@@ -25,9 +24,9 @@ class ColoredSpec extends WordSpec {
 
       m1.produce(Map.empty) shouldBe (m1)
 
-      val m2: ColoredMarking = Map(p1 -> Seq(3), p2 -> Seq("baz"))
+      val m2: ColoredMarking = Map(p1 -> Seq(3), p2 -> Seq("baz"), p3 -> Seq(1d))
 
-      m1.produce(m2) shouldBe (Map(p1 -> Seq(3, 1, 2), p2 -> Seq("baz", "foo", "bar")))
+      m1.produce(m2) shouldBe (Map(p1 -> Seq(3, 1, 2), p2 -> Seq("baz", "foo", "bar"), p3 -> Seq(1d)))
     }
 
     "have correct consume semantics" in {

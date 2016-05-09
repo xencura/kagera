@@ -11,27 +11,62 @@ package object dsl {
 
   implicit val ec: ExecutionContext = ExecutionContext.global
 
+  implicit class TransitionDSL(t: Transition) {
+    def ~>(p: Place, weight: Long = 1, label: String = ""): Arc =
+      WLDiEdge[Node, String](Right(t), Left(p))(weight, label)
+  }
+
+  implicit class PlaceDSL(p: Place) {
+    def ~>(t: Transition, weight: Long = 1, label: String = ""): Arc =
+      WLDiEdge[Node, String](Left(p), Right(t))(weight, label)
+  }
+
   def arc(t: Transition, p: Place, weight: Long, fieldName: String): Arc =
-    WLDiEdge[Node, String](Right(t), Left(p))(weight, fieldName)
+    WLDiEdge[Node, String](Right(t), Left(p))(weight, "")
 
   def arc(p: Place, t: Transition, weight: Long, fieldName: String): Arc =
-    WLDiEdge[Node, String](Left(p), Right(t))(weight, fieldName)
+    WLDiEdge[Node, String](Left(p), Right(t))(weight, "")
+
+  def nullTransition(_id: Long, _label: String, _isManaged: Boolean = false) = new Transition {
+
+    override val isManaged: Boolean = _isManaged
+    override val label: String = _label
+    override val id: Long = _id
+
+    override type Output = Null
+    override type Input = Null
+
+    override def createOutput(output: Output, outAdjacent: Seq[(WLDiEdge[Node], Place)]): ColoredMarking =
+      outAdjacent.map { case (arc, place) =>
+        place -> Seq(null)
+      }.toMap
+
+    override def createInput(inAdjacent: Seq[(Place, WLDiEdge[Node], Seq[Any])], data: Option[Any]): Input = null
+    override def apply(input: Input): Future[Output] = {
+      println(s"firing transition $label")
+      Future.successful(null)
+    }
+  }
 
   def process(params: Seq[Arc]*): PetriNetProcess[Place, Transition, ColoredMarking] =
     new ScalaGraphPetriNet(Graph(params.reduce(_ ++ _): _*)) with ColoredPetriNetProcess
 
   def processInstance(
-    process: PetriNetProcess[Place, Transition, ColoredMarking]
+    process: PetriNetProcess[Place, Transition, ColoredMarking],
+    initialMarking: ColoredMarking = Map.empty
   ): PetriNetInstance[Place, Transition, ColoredMarking] = {
 
     new PetriNetInstance[Place, Transition, ColoredMarking] {
 
-      var currentMarking: ColoredMarking = Map.empty
+      var currentMarking: ColoredMarking = initialMarking
 
       override def marking: ColoredMarking = currentMarking
 
       override def fireTransition(t: Transition, data: Option[Any]): Future[ColoredMarking] = {
-        process.fireTransition(currentMarking)(t, data).flatMap(stepManagedRecursive)
+        process.fireTransition(currentMarking)(t, data).flatMap(stepManagedRecursive).map { marking =>
+          currentMarking = marking
+          marking
+        }
       }
 
       // this is very dangerous hack, could go into an infinite recursive loop
