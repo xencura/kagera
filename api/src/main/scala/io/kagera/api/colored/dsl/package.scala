@@ -38,14 +38,11 @@ package object dsl {
 
     override def createOutput(output: Output, outAdjacent: Seq[(WLDiEdge[Node], Place)]): ColoredMarking =
       outAdjacent.map { case (arc, place) =>
-        place -> Seq(null)
+        place -> List.fill(arc.weight.toInt)(null)
       }.toMap
 
     override def createInput(inAdjacent: Seq[(Place, WLDiEdge[Node], Seq[Any])], data: Option[Any]): Input = null
-    override def apply(input: Input): Future[Output] = {
-      println(s"firing transition $label")
-      Future.successful(null)
-    }
+    override def apply(input: Input): Future[Output] = Future.successful(null)
   }
 
   def process(params: Seq[Arc]*): PetriNetProcess[Place, Transition, ColoredMarking] =
