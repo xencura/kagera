@@ -49,7 +49,7 @@ package object colored {
           marking + (place -> newTokens)
     }
     override def produce(into: ColoredMarking, other: ColoredMarking): ColoredMarking = other.foldLeft(into) {
-      case (marking, (place, tokens)) => marking + (place -> tokens.++(marking(place)))
+      case (marking, (place, tokens)) => marking + (place -> tokens.++(marking.getOrElse(place, Seq.empty)))
     }
 
     override def isSubMarking(marking: ColoredMarking, other: ColoredMarking): Boolean = other.forall {
