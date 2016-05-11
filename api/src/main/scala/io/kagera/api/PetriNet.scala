@@ -35,7 +35,39 @@ trait PetriNet[P, T] {
   def transitions: Set[T]
 
   /**
-   * The in marking of a transition.
+   * The out-adjecent places of a transition.
+   *
+   * @param t
+   * @return
+   */
+  def outAdjacentPlaces(t: T): Set[P]
+
+  /**
+   * The out-adjacent transitions of a place.
+   *
+   * @param p
+   * @return
+   */
+  def outAdjacentTransitions(p: P): Set[T]
+
+  /**
+   * The in-adjacent places of a transition.
+   *
+   * @param t
+   * @return
+   */
+  def inAdjacentPlaces(t: T): Set[P]
+
+  /**
+   * The in-adjacent transitions of a place.
+   *
+   * @param p
+   * @return
+   */
+  def inAdjacentTransitions(p: P): Set[T]
+
+  /**
+   * Returns the in-marking of a transition. That is; a map of place -> arc weight
    *
    * @param t
    * @return
@@ -43,7 +75,7 @@ trait PetriNet[P, T] {
   def inMarking(t: T): Marking[P]
 
   /**
-   * The out marking of a transition.
+   * The out marking of a transition. That is; a map of place -> arc weight
    *
    * @param t
    * @return

@@ -14,6 +14,10 @@ object ScalaGraph {
 
     override def inMarking(t: T): Marking[P] = innerGraph.get(t).incoming.map(e => e.source.valueA -> e.weight).toMap
     override def outMarking(t: T): Marking[P] = innerGraph.get(t).outgoing.map(e => e.target.valueA -> e.weight).toMap
+    override def outAdjacentPlaces(t: T): Set[P] = innerGraph.outgoingA(t)
+    override def outAdjacentTransitions(p: P): Set[T] = innerGraph.outgoingB(p)
+    override def inAdjacentPlaces(t: T): Set[P] = innerGraph.incomingA(t)
+    override def inAdjacentTransitions(p: P): Set[T] = innerGraph.incomingB(p)
 
     override lazy val places = innerGraph.nodesA().toSet
     override lazy val transitions = innerGraph.nodesB().toSet

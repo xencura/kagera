@@ -85,8 +85,8 @@ package object colored {
       (place, pn.innerGraph.connectingEdgeAB(place, t), data)
     }.toSeq
 
-    val outAdjacent = pn.innerGraph
-      .outgoingA(t)
+    val outAdjacent = pn
+      .outAdjacentPlaces(t)
       .map { case place =>
         (pn.innerGraph.connectingEdgeBA(t, place), place)
       }
