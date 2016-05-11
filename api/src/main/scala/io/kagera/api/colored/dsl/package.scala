@@ -27,23 +27,19 @@ package object dsl {
   def arc(p: Place, t: Transition, weight: Long, fieldName: String): Arc =
     WLDiEdge[Node, String](Left(p), Right(t))(weight, "")
 
-  def nullTransition(_id: Long, _label: String, _isManaged: Boolean = false) = new Transition {
+  def nullPlace(id: Long, label: String) = Place[Null](id, label)
 
-    override val isManaged: Boolean = _isManaged
-    override val label: String = _label
-    override val id: Long = _id
+  def nullTransition(id: Long, label: String, isManaged: Boolean = false) =
+    new TransitionImpl[Null, Null](id, label, isManaged) {
 
-    override type Output = Null
-    override type Input = Null
+      override def createOutput(output: Output, outAdjacent: Seq[(WLDiEdge[Node], Place)]): ColoredMarking =
+        outAdjacent.map { case (arc, place) =>
+          place -> List.fill(arc.weight.toInt)(null)
+        }.toMap
 
-    override def createOutput(output: Output, outAdjacent: Seq[(WLDiEdge[Node], Place)]): ColoredMarking =
-      outAdjacent.map { case (arc, place) =>
-        place -> List.fill(arc.weight.toInt)(null)
-      }.toMap
-
-    override def createInput(inAdjacent: Seq[(Place, WLDiEdge[Node], Seq[Any])], data: Option[Any]): Input = null
-    override def apply(input: Input): Future[Output] = Future.successful(null)
-  }
+      override def createInput(inAdjacent: Seq[(Place, WLDiEdge[Node], Seq[Any])], data: Option[Any]): Input = null
+      override def apply(input: Input): Future[Output] = Future.successful(null)
+    }
 
   def process(params: Seq[Arc]*): PetriNetProcess[Place, Transition, ColoredMarking] =
     new ScalaGraphPetriNet(Graph(params.reduce(_ ++ _): _*)) with ColoredPetriNetProcess
