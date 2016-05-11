@@ -41,12 +41,9 @@ package object simple {
   def findEnabledTransitions[P, T](pn: PetriNet[P, T])(marking: Marking[P]): Set[T] = {
 
     /**
-     * Slightly inefficient way of doing this, we don't need to check every out-adjacent transition. Only those whose
-     * edge weight is smaller or equal to the token count
+     * Inefficient way of doing this, we don't need to check every transition.
      */
-    val outAdjacent = marking.keySet.flatMap(pn.outAdjacentTransitions(_))
-
-    outAdjacent.filter(t => marking.isSubMarking(pn.inMarking(t)))
+    pn.transitions.filter(t => marking.isSubMarking(pn.inMarking(t)))
   }
 
   trait SimpleTokenGame[P, T] extends TokenGame[P, T, Marking[P]] {

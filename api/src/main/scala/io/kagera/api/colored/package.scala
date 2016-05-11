@@ -110,9 +110,7 @@ package object colored {
         .map { consume =>
           executeTransition(this)(consume, t, data).map(produce => marking.consume(consume).produce(produce))
         }
-        .getOrElse {
-          throw new IllegalStateException(s"Transition $t is not enabled")
-        }
+        .getOrElse { throw new IllegalStateException(s"Transition $t is not enabled") }
     }
   }
 
