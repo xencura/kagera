@@ -81,18 +81,27 @@ package object colored {
   def executeTransition(pn: PetriNet[Place, Transition])(consume: ColoredMarking, t: Transition, data: Option[Any])(
     implicit ec: ExecutionContext
   ): Future[ColoredMarking] = {
-    val inAdjacent = consume.map { case (place, data) =>
-      (place, pn.innerGraph.connectingEdgeAB(place, t), data)
-    }.toSeq
 
-    val outAdjacent = pn
-      .outAdjacentPlaces(t)
-      .map { case place =>
-        (pn.innerGraph.connectingEdgeBA(t, place), place)
-      }
-      .toSeq
+    try {
 
-    t.apply(t.createInput(inAdjacent, data)).map(t.createOutput(_, outAdjacent))
+      val inAdjacent = consume.map { case (place, data) =>
+        (place, pn.innerGraph.connectingEdgeAB(place, t), data)
+      }.toSeq
+
+      val outAdjacent = pn
+        .outAdjacentPlaces(t)
+        .map { case place =>
+          (pn.innerGraph.connectingEdgeBA(t, place), place)
+        }
+        .toSeq
+
+      val input = t.createInput(inAdjacent, data)
+
+      t.apply(input).map(t.createOutput(_, outAdjacent))
+
+    } catch {
+      case e: Exception => Future.failed(e)
+    }
   }
 
   trait ColoredExecutor extends TransitionExecutor[Place, Transition, ColoredMarking] {
@@ -108,7 +117,12 @@ package object colored {
         .get(t)
         .flatMap(_.headOption)
         .map { consume =>
-          executeTransition(this)(consume, t, data).map(produce => marking.consume(consume).produce(produce))
+          executeTransition(this)(consume, t, data)
+            .recoverWith { case e: Exception =>
+              Future.failed(new RuntimeException(s"Transition '$t' failed to fire!", e))
+            }
+            .map(produce => marking.consume(consume).produce(produce))
+
         }
         .getOrElse { throw new IllegalStateException(s"Transition $t is not enabled") }
     }
