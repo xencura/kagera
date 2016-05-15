@@ -1,8 +1,9 @@
 package io.kagera.api.colored
 
-import io.kagera.api.{ PetriNetInstance, PetriNetProcess, TokenGame }
+import io.kagera.api.PetriNetProcess
 import io.kagera.api.ScalaGraph.ScalaGraphPetriNet
 
+import scala.concurrent.duration.Duration
 import scala.concurrent.{ ExecutionContext, Future }
 import scalax.collection.Graph
 import scalax.collection.edge.WLDiEdge
@@ -30,7 +31,7 @@ package object dsl {
   def nullPlace(id: Long, label: String) = Place[Null](id, label)
 
   def nullTransition(id: Long, label: String, isManaged: Boolean = false) =
-    new TransitionImpl[Null, Null](id, label, isManaged) {
+    new TransitionImpl[Null, Null](id, label, isManaged, Duration.Undefined) {
 
       override def createOutput(output: Output, outAdjacent: Seq[(WLDiEdge[Node], Place)]): ColoredMarking =
         outAdjacent.map { case (arc, place) =>
@@ -47,34 +48,6 @@ package object dsl {
   def processInstance(
     process: PetriNetProcess[Place, Transition, ColoredMarking],
     initialMarking: ColoredMarking = Map.empty
-  ): PetriNetInstance[Place, Transition, ColoredMarking] = {
-
-    new PetriNetInstance[Place, Transition, ColoredMarking] {
-
-      override def topology = process
-
-      var currentMarking: ColoredMarking = initialMarking
-
-      override def marking: ColoredMarking = currentMarking
-
-      override def fireTransition(t: Transition, data: Option[Any]): Future[ColoredMarking] = {
-        process.fireTransition(currentMarking)(t, data).flatMap(stepManagedRecursive).map { marking =>
-          currentMarking = marking
-          marking
-        }
-      }
-
-      // this is very dangerous hack, could go into an infinite recursive loop
-      def stepManagedRecursive(marking: ColoredMarking): Future[ColoredMarking] = {
-        process
-          .enabledTransitions(marking)
-          .filter(_.isManaged)
-          .headOption
-          .map(t => process.fireTransition(marking)(t, None).flatMap(stepManagedRecursive))
-          .getOrElse(Future.successful(marking))
-      }
-
-      override def step(): Future[ColoredMarking] = ???
-    }
-  }
+  ) =
+    new ColoredPetriNetInstance(process, initialMarking)
 }
