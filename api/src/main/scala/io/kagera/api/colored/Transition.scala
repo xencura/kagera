@@ -78,5 +78,5 @@ trait Transition {
    *
    * @return
    */
-  def apply(input: Input): Future[Output]
+  def apply(input: Input)(implicit executor: scala.concurrent.ExecutionContext): Future[Output]
 }

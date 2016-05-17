@@ -7,7 +7,8 @@ import scala.concurrent.Future
 class ColoredPetriNetInstance(
   process: PetriNetProcess[Place, Transition, ColoredMarking],
   initialMarking: ColoredMarking
-) extends PetriNetInstance[Place, Transition, ColoredMarking] {
+)(implicit executor: scala.concurrent.ExecutionContext)
+    extends PetriNetInstance[Place, Transition, ColoredMarking] {
 
   override def topology = process
 
