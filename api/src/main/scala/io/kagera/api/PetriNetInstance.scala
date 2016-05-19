@@ -19,6 +19,13 @@ trait PetriNetInstance[P, T, M] {
   def marking: M
 
   /**
+   * The historic marking which contains all tokens (consumed or not)
+   *
+   * @return
+   */
+  def accumulatedMarking: M
+
+  /**
    * Will attempt to execute the next enabled transition.
    *
    * @return

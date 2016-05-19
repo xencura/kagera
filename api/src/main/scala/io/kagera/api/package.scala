@@ -43,9 +43,11 @@ package object api {
 
     def consume(other: M) = markingLike.consume(m, other)
 
+    def remove(other: M) = markingLike.remove(m, other)
+
     def produce(other: M) = markingLike.produce(m, other)
 
-    def isEmpty() = markingLike.multiplicity(m).isEmpty
+    def isEmpty = markingLike.multiplicity(m).isEmpty
 
     def isSubMarking(other: M) = markingLike.isSubMarking(m, other)
   }

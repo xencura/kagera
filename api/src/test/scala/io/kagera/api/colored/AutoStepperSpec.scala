@@ -13,8 +13,8 @@ class AutoStepperSpec extends WordSpec {
   val p2 = Place[Null](id = 2, label = "p2")
   val p3 = Place[Null](id = 3, label = "p3")
 
-  val t1 = nullTransition(1, "t1", false)
-  val t2 = nullTransition(2, "t2", true)
+  val t1 = nullTransition(1, "t1", isManaged = false)
+  val t2 = nullTransition(2, "t2", isManaged = true)
 
   "The automatic stepper" should {
 
@@ -26,10 +26,9 @@ class AutoStepperSpec extends WordSpec {
 
       val instance = processInstance(petriNet, initialMarking)
 
-      instance.marking shouldBe (initialMarking)
+      instance.marking shouldBe initialMarking
 
-      Await.result(instance.fireTransition(t1), 2 seconds) shouldBe (Map(p3 -> Seq(null)))
+      Await.result(instance.fireTransition(t1), 2 seconds) shouldBe Map(p3 -> Seq(null))
     }
   }
-
 }

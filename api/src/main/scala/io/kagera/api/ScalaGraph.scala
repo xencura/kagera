@@ -22,7 +22,7 @@ object ScalaGraph {
     override lazy val places = innerGraph.nodesA().toSet
     override lazy val transitions = innerGraph.nodesB().toSet
 
-    override def nodes() = innerGraph.nodes.map(_.value)
+    override def nodes = innerGraph.nodes.map(_.value)
   }
 
   implicit def placeToNode[P, T](p: P): Either[P, T] = Left(p)

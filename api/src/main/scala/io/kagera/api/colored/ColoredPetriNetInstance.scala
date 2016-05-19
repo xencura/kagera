@@ -14,12 +14,18 @@ class ColoredPetriNetInstance(
 
   var currentMarking: ColoredMarking = initialMarking
 
+  var accumulated: ColoredMarking = initialMarking
+
   override def marking: ColoredMarking = currentMarking
 
+  override def accumulatedMarking: ColoredMarking = accumulated
+
   override def fireTransition(t: Transition, data: Option[Any]): Future[ColoredMarking] = {
-    process.fireTransition(currentMarking)(t, data).flatMap(stepManagedRecursive).map { marking =>
-      currentMarking = marking
-      marking
+    process.fireTransition(currentMarking)(t, data).flatMap(stepManagedRecursive).map { newMarking =>
+      val newTokens = newMarking remove currentMarking
+      accumulated = accumulatedMarking produce newTokens
+      currentMarking = newMarking
+      newMarking
     }
   }
 
@@ -27,8 +33,7 @@ class ColoredPetriNetInstance(
   def stepManagedRecursive(marking: ColoredMarking): Future[ColoredMarking] = {
     process
       .enabledTransitions(marking)
-      .filter(_.isManaged)
-      .headOption
+      .find(_.isManaged)
       .map(t => process.fireTransition(marking)(t, None).flatMap(stepManagedRecursive))
       .getOrElse(Future.successful(marking))
   }

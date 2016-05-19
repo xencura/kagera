@@ -27,8 +27,11 @@ object TokenGame {
  * Interface for deciding which (transition, marking) parameters are 'enabled'
  *
  * @tparam P
+ *   Place
  * @tparam T
+ *   Transition
  * @tparam M
+ *   Marking
  */
 trait TokenGame[P, T, M] {
 
@@ -56,6 +59,7 @@ trait TokenGame[P, T, M] {
    * Returns all enabled transitions for a marking.
    *
    * @param marking
+   *   marking
    * @return
    */
   def enabledTransitions(marking: M): Set[T]

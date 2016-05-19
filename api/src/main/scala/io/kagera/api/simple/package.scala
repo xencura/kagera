@@ -18,6 +18,15 @@ package object simple {
         }
       }
 
+    override def remove(from: Marking[P], other: Marking[P]): Marking[P] =
+      other.foldLeft(from) { case (m, (p, amount)) =>
+        m.get(p) match {
+          case None => m
+          case Some(n) if n <= amount => m - p
+          case Some(n) => m + (p -> (n - amount))
+        }
+      }
+
     override def produce(into: Marking[P], other: Marking[P]): Marking[P] =
       other.foldLeft(into) { case (m, (p, amount)) =>
         m.get(p) match {

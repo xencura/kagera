@@ -28,12 +28,47 @@ trait MarkingLike[M, P] {
    * Checks if one marking is a sub marking of another
    *
    * @param m
+   *   marking
    * @param other
+   *   other
    * @return
+   *   Whether other is a submarking of m or not
    */
   def isSubMarking(m: M, other: M): Boolean
 
+  /**
+   * Consume all tokens in other in from
+   *
+   * @param from
+   *   Tokens
+   * @param other
+   *   The tokens to consume in from
+   * @return
+   *   Marking
+   */
   def consume(from: M, other: M): M
 
+  /**
+   * Removes all tokens in other from from
+   *
+   * @param from
+   *   Tokens
+   * @param other
+   *   Tokens to remove from from if they exist in from
+   * @return
+   *   Marking
+   */
+  def remove(from: M, other: M): M
+
+  /**
+   * Produce all tokens in other in from
+   *
+   * @param into
+   *   The marking in which to produce the other tokens
+   * @param other
+   *   Tokens
+   * @return
+   *   Marking
+   */
   def produce(into: M, other: M): M
 }

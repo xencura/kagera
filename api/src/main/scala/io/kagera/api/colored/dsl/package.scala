@@ -31,7 +31,7 @@ package object dsl {
   def nullPlace(id: Long, label: String) = Place[Null](id, label)
 
   def nullTransition(id: Long, label: String, isManaged: Boolean = false) =
-    new TransitionImpl[Null, Null](id, label, isManaged, Duration.Undefined) {
+    new AbstractTransition[Null, Null](id, label, isManaged, Duration.Undefined) {
 
       override def createOutput(output: Output, outAdjacent: Seq[(WLDiEdge[Node], Place)]): ColoredMarking =
         outAdjacent.map { case (arc, place) =>
@@ -39,6 +39,7 @@ package object dsl {
         }.toMap
 
       override def createInput(inAdjacent: Seq[(Place, WLDiEdge[Node], Seq[Any])], data: Option[Any]): Input = null
+
       override def apply(input: Input)(implicit executor: scala.concurrent.ExecutionContext): Future[Output] =
         Future.successful(null)
     }
@@ -49,6 +50,6 @@ package object dsl {
   def processInstance(
     process: PetriNetProcess[Place, Transition, ColoredMarking],
     initialMarking: ColoredMarking = Map.empty
-  ) =
+  ): ColoredPetriNetInstance =
     new ColoredPetriNetInstance(process, initialMarking)
 }
