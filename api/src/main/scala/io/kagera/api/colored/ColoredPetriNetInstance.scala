@@ -21,12 +21,16 @@ class ColoredPetriNetInstance(
   override def accumulatedMarking: ColoredMarking = accumulated
 
   override def fireTransition(t: Transition, data: Option[Any]): Future[ColoredMarking] = {
-    process.fireTransition(currentMarking)(t, data).flatMap(stepManagedRecursive).map { newMarking =>
-      val newTokens = newMarking remove currentMarking
-      accumulated = accumulatedMarking produce newTokens
-      currentMarking = newMarking
-      newMarking
-    }
+    process.fireTransition(currentMarking)(t, data).map(applyChange(t)).flatMap(stepManagedRecursive)
+  }
+
+  def applyChange(t: Transition)(newMarking: ColoredMarking): ColoredMarking = {
+    val newTokens = newMarking remove currentMarking
+    println(s"$t fired, produced: $newTokens")
+    accumulated = accumulated produce newTokens
+    println(s"accumulated marking: $accumulated")
+    currentMarking = newMarking
+    newMarking
   }
 
   // this is very dangerous hack, could go into an infinite recursive loop
@@ -34,7 +38,9 @@ class ColoredPetriNetInstance(
     process
       .enabledTransitions(marking)
       .find(_.isManaged)
-      .map(t => process.fireTransition(marking)(t, None).flatMap(stepManagedRecursive))
+      .map { t =>
+        process.fireTransition(marking)(t, None).map(applyChange(t)).flatMap(stepManagedRecursive)
+      }
       .getOrElse(Future.successful(marking))
   }
 
