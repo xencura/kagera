@@ -11,3 +11,5 @@ addSbtPlugin("com.typesafe.sbt" % "sbt-scalariform" % "1.3.0")
 addSbtPlugin("org.scala-js" % "sbt-scalajs" % "0.6.8")
 
 addSbtPlugin("io.spray" % "sbt-revolver" % "0.7.1")
+
+addSbtPlugin("net.virtual-void" % "sbt-dependency-graph" % "0.8.2")
