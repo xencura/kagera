@@ -26,9 +26,7 @@ class ColoredPetriNetInstance(
 
   def applyChange(t: Transition)(newMarking: ColoredMarking): ColoredMarking = {
     val newTokens = newMarking remove currentMarking
-    println(s"$t fired, produced: $newTokens")
     accumulated = accumulated produce newTokens
-    println(s"accumulated marking: $accumulated")
     currentMarking = newMarking
     newMarking
   }
