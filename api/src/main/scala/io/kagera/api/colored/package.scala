@@ -24,6 +24,26 @@ package object colored {
    */
   type ColoredMarking = Map[Place, Seq[Any]]
 
+  /**
+   * Very inefficient multi set operations on Seq, TODO perhaps use https://github.com/nicolasstucki/multisets ? There
+   * are some problems with the library though: https://github.com/nicolasstucki/multisets/issues
+   */
+  implicit class MultiSetSeqOperations[T](seq: Seq[T]) {
+    def multiSetRemove(other: Seq[T]) = {
+      other.foldLeft(seq) { case (result, element) =>
+        result.indexOf(element) match {
+          case -1 => result
+          case n =>
+            result.splitAt(n) match {
+              case (first, second) => first ++ second.tail
+            }
+        }
+      }
+    }
+
+    def multiSetAdd(other: Seq[T]) = seq ++ other
+  }
+
   implicit object PlaceLabeler extends Labeled[Place] {
     override def apply(p: Place): @@[String, Label] = Tag[String, Label](p.label)
   }
@@ -57,12 +77,9 @@ package object colored {
     }
 
     private def removeTokens(marking: ColoredMarking, place: Place, tokensToRemove: Seq[Any]): ColoredMarking = {
-      val newTokens =
-        marking(place).filterNot(tokensToRemove.contains) // TODO BUG: Will consume all duplicate tokens (not subset)
-      if (newTokens.isEmpty)
-        marking - place
-      else
-        marking + (place -> newTokens)
+      val newTokens = marking(place).multiSetRemove(tokensToRemove)
+      if (newTokens.isEmpty) marking - place
+      else marking + (place -> newTokens)
     }
 
     override def produce(into: ColoredMarking, other: ColoredMarking): ColoredMarking = other.foldLeft(into) {
