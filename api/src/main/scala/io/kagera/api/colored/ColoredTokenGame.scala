@@ -9,12 +9,29 @@ trait ColoredTokenGame extends TokenGame[Place, Transition, ColoredMarking] {
     enabledTransitions(m).view.map(t => t -> consumableMarkings(m)(t)).toMap
 
   def consumableMarkings(marking: ColoredMarking)(t: Transition): Iterable[ColoredMarking] = {
-    val firstEnabled = inMarking(t).map { case (place, count) =>
-      place -> marking(place).take(count.toInt)
+
+    // TODO this is not the most efficient, should break early when consumable tokens < edge weight
+    val consumable = inMarking(t).map { case (place, count) =>
+      (place, count, consumeableTokens(marking, place, t))
     }
-    Seq(firstEnabled)
+
+    // check if any
+    if (consumable.exists { case (place, count, tokens) => tokens.size < count })
+      Seq.empty
+    else
+      Seq(consumable.map { case (place, count, tokens) => place -> tokens.take(count.toInt) }.toMap)
+  }
+
+  def consumeableTokens(marking: ColoredMarking, p: Place, t: Transition) = {
+    val edge = innerGraph.findPTEdge(p, t).get.label.asInstanceOf[PTEdge[Any]]
+    marking.get(p) match {
+      case None => Seq.empty
+      case Some(tokens) =>
+        tokens.filter(edge.filter)
+    }
   }
 
   override def enabledTransitions(marking: ColoredMarking): Set[Transition] =
-    simple.findEnabledTransitions(this)(marking.multiplicity)
+    // TODO optimize, no need to process all transitions
+    transitions.filter(t => consumableMarkings(marking)(t).nonEmpty)
 }

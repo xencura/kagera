@@ -9,7 +9,7 @@ import scala.concurrent.duration._
 import scala.concurrent.{ Await, Future }
 import scalax.collection.edge.WLDiEdge
 
-class ColoredSpec extends WordSpec {
+class ColoredMarkingSpec extends WordSpec {
 
   val p1 = Place[Int](id = 1, label = "p1")
   val p2 = Place[String](id = 2, label = "p2")
@@ -64,7 +64,7 @@ class ColoredSpec extends WordSpec {
 
       val initialMarking: ColoredMarking = Map(p1 -> Seq(null))
 
-      val petriNet = process(Seq(p1 ~> t1, t1 ~> p2))
+      val petriNet = process(p1 ~> t1, t1 ~> p2)
       val instance = processInstance(petriNet, initialMarking)
 
       instance.marking shouldBe initialMarking
@@ -76,7 +76,7 @@ class ColoredSpec extends WordSpec {
 
       val initialMarking: ColoredMarking = Map(p1 -> Seq(null))
 
-      val petriNet = process(Seq(p1 ~> t1, t1 ~> p2))
+      val petriNet = process(p1 ~> t1, t1 ~> p2)
       val instance = processInstance(petriNet, initialMarking)
 
       instance.marking shouldBe initialMarking
@@ -89,7 +89,8 @@ class ColoredSpec extends WordSpec {
       val initialMarking: ColoredMarking = Map(p1 -> Seq(1, 2))
       val extraData = 3
 
-      val petriNet = process(Seq(p1 ~> t1, t1 ~> p2))
+      val petriNet = process(p1 ~> t1, t1 ~> p2)
+
       val instance = processInstance(petriNet, initialMarking)
 
       instance.marking shouldBe initialMarking
