@@ -1,7 +1,5 @@
 package io.kagera.api
 
-import io.kagera.api.ScalaGraph._
-
 import scalax.collection.edge.WLDiEdge
 
 /**

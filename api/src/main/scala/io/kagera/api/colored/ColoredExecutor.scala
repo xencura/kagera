@@ -1,7 +1,6 @@
 package io.kagera.api.colored
 
 import io.kagera.api._
-import io.kagera.api.ScalaGraph._
 
 import scala.concurrent.{ ExecutionContext, Future }
 
@@ -18,13 +17,13 @@ trait ColoredExecutor extends TransitionExecutor[Place, Transition, ColoredMarki
     try {
 
       val inAdjacent = consume.map { case (place, data) =>
-        (place, pn.innerGraph.connectingEdgeAB(place, t), data)
+        (place, pn.innerGraph.findPTEdge(place, t).get, data)
       }.toSeq
 
       val outAdjacent = pn
         .outAdjacentPlaces(t)
         .map { case place =>
-          (pn.innerGraph.connectingEdgeBA(t, place), place)
+          (pn.innerGraph.findTPEdge(t, place).get, place)
         }
         .toSeq
 
