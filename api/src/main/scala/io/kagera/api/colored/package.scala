@@ -1,9 +1,7 @@
 package io.kagera.api
 
-import io.kagera.api._
 import io.kagera.api.tags.Label
 
-import scala.concurrent.{ ExecutionContext, Future }
 import scalax.collection.edge.WLDiEdge
 import scalaz.{ @@, Tag }
 

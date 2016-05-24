@@ -11,9 +11,20 @@ trait PTEdge[T] {
   val weight: Long
 
   /**
-   * Filter function, if true to out-adjacent transition may not consume the token.
-   * @param token
+   * Filter predicate function, if false the out-adjacent transition may not consume the token.
+   *
+   * TODO
+   *
+   * A predicate can not communicate a reason for failure.
+   *
+   * Perhaps better would be:
+   *
+   * T => Option(String)
+   *
+   * in which case you can provide a reason message for not being able to consume a token.
+   *
    * @return
+   *   A predicate function from token -> boolean, indicating whether the token may be consumed (true) or not (false)
    */
   val filter: T => Boolean
 }

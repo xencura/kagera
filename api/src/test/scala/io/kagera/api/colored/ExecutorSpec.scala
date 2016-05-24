@@ -24,10 +24,6 @@ class ExecutorSpec extends WordSpec {
       val p = process(p1 ~> mockedTransition, mockedTransition ~> p2)
 
       val m: ColoredMarking = Map(p1 -> Seq(null))
-
-      println(m.multiplicity)
-      println(simple.findEnabledTransitions(p)(m.multiplicity))
-      println(p.enabledParameters(m))
     }
   }
 

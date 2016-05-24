@@ -49,6 +49,13 @@ trait Transition {
    * Creates a valid input type for the transition using the in-adjacent (place, arc, tokens) tuples and optional
    * trigger data.
    *
+   * TODO !! This should return a curried function of type:
+   *
+   * Seq[(Place, WLDiEdge[Node])] => (Seq[Seq[Any]], Option[Any]) => Input
+   *
+   * This would add a validation phase (calling the first step of the curried function) that can be called during
+   * creating the petri net topology.
+   *
    * @param inAdjacent
    *   The in-adjacent (place, arc, tokens) tuples.
    * @param data
