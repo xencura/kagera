@@ -71,7 +71,7 @@ package object simple {
 
     this: PetriNet[P, T] with TokenGame[P, T, Marking[P]] =>
 
-    override def fireTransition(m: Marking[P])(transition: T, data: Option[Any])(implicit
+    override def fireTransition(m: Marking[P], id: java.util.UUID)(transition: T, data: Option[Any])(implicit
       ec: ExecutionContext
     ): Future[Marking[P]] =
       Future.successful(m.consume(inMarking(transition)).produce(outMarking(transition)))

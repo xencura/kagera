@@ -10,7 +10,7 @@ trait ColoredExecutor extends TransitionExecutor[Place, Transition, ColoredMarki
 
   def executeTransition(
     pn: PetriNet[Place, Transition]
-  )(consume: ColoredMarking, t: Transition, extraData: Option[Any])(implicit
+  )(consume: ColoredMarking, t: Transition, extraData: Option[Any], id: java.util.UUID)(implicit
     ec: ExecutionContext
   ): Future[ColoredMarking] = {
 
@@ -27,7 +27,7 @@ trait ColoredExecutor extends TransitionExecutor[Place, Transition, ColoredMarki
         }
         .toSeq
 
-      val input = t.createInput(inAdjacent, extraData)
+      val input = t.createInput(inAdjacent, extraData, TransitionContext(id))
 
       t.apply(input).map(t.createOutput(_, outAdjacent))
 
@@ -36,16 +36,16 @@ trait ColoredExecutor extends TransitionExecutor[Place, Transition, ColoredMarki
     }
   }
 
-  override def fireTransition(
-    marking: ColoredMarking
-  )(t: Transition, data: Option[Any])(implicit ec: ExecutionContext) = {
+  override def fireTransition(marking: ColoredMarking, id: java.util.UUID)(t: Transition, data: Option[Any])(implicit
+    ec: ExecutionContext
+  ) = {
 
     // pick the tokens
     enabledParameters(marking)
       .get(t)
       .flatMap(_.headOption)
       .map { consume =>
-        executeTransition(this)(consume, t, data)
+        executeTransition(this)(consume, t, data, id)
           .recoverWith { case e: Exception =>
             Future.failed(new RuntimeException(s"Transition '$t' failed to fire!", e))
           }

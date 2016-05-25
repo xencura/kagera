@@ -6,7 +6,8 @@ import scala.concurrent.Future
 
 class ColoredPetriNetInstance(
   process: PetriNetProcess[Place, Transition, ColoredMarking],
-  initialMarking: ColoredMarking
+  initialMarking: ColoredMarking,
+  override val id: java.util.UUID
 )(implicit executor: scala.concurrent.ExecutionContext)
     extends PetriNetInstance[Place, Transition, ColoredMarking] {
 
@@ -21,7 +22,7 @@ class ColoredPetriNetInstance(
   override def accumulatedMarking: ColoredMarking = accumulated
 
   override def fireTransition(t: Transition, data: Option[Any]): Future[ColoredMarking] = {
-    process.fireTransition(currentMarking)(t, data).map(applyChange(t)).flatMap(stepManagedRecursive)
+    process.fireTransition(currentMarking, id)(t, data).map(applyChange(t)).flatMap(stepManagedRecursive)
   }
 
   def applyChange(t: Transition)(newMarking: ColoredMarking): ColoredMarking = {
@@ -37,7 +38,7 @@ class ColoredPetriNetInstance(
       .enabledTransitions(marking)
       .find(_.isManaged)
       .map { t =>
-        process.fireTransition(marking)(t, None).map(applyChange(t)).flatMap(stepManagedRecursive)
+        process.fireTransition(marking, id)(t, None).map(applyChange(t)).flatMap(stepManagedRecursive)
       }
       .getOrElse(Future.successful(marking))
   }

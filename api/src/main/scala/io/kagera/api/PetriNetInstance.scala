@@ -5,6 +5,13 @@ import scala.concurrent.Future
 trait PetriNetInstance[P, T, M] {
 
   /**
+   * The identifier of the petri net instance.
+   *
+   * @return
+   */
+  def id: java.util.UUID
+
+  /**
    * The topology of the instance.
    *
    * @return

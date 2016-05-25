@@ -63,7 +63,11 @@ trait Transition {
    * @return
    *   A valid instance of type Input.
    */
-  def createInput(inAdjacent: Seq[(Place, WLDiEdge[Node], Seq[Any])], data: Option[Any]): Input
+  def createInput(
+    inAdjacent: Seq[(Place, WLDiEdge[Node], Seq[Any])],
+    data: Option[Any],
+    context: TransitionContext
+  ): Input
 
   /**
    * Creates a ColoredMarking from the transition output.

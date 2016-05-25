@@ -22,7 +22,11 @@ class ColoredMarkingSpec extends WordSpec {
         place -> Seq(output)
       }.toMap
 
-    override def createInput(inAdjacent: Seq[(Place, WLDiEdge[Node], Seq[Any])], data: Option[Any]): Input = data.orNull
+    override def createInput(
+      inAdjacent: Seq[(Place, WLDiEdge[Node], Seq[Any])],
+      data: Option[Any],
+      context: TransitionContext
+    ): Input = data.orNull
 
     override def apply(input: Input)(implicit executor: scala.concurrent.ExecutionContext): Future[Output] =
       Future.successful(input)
@@ -65,7 +69,7 @@ class ColoredMarkingSpec extends WordSpec {
       val initialMarking: ColoredMarking = Map(p1 -> Seq(null))
 
       val petriNet = process(p1 ~> t1, t1 ~> p2)
-      val instance = processInstance(petriNet, initialMarking)
+      val instance = processInstance(petriNet, initialMarking, java.util.UUID.randomUUID())
 
       instance.marking shouldBe initialMarking
 
@@ -77,7 +81,7 @@ class ColoredMarkingSpec extends WordSpec {
       val initialMarking: ColoredMarking = Map(p1 -> Seq(null))
 
       val petriNet = process(p1 ~> t1, t1 ~> p2)
-      val instance = processInstance(petriNet, initialMarking)
+      val instance = processInstance(petriNet, initialMarking, java.util.UUID.randomUUID())
 
       instance.marking shouldBe initialMarking
       Await.result(instance.fireTransition(t1), 2 seconds)
@@ -91,7 +95,7 @@ class ColoredMarkingSpec extends WordSpec {
 
       val petriNet = process(p1 ~> t1, t1 ~> p2)
 
-      val instance = processInstance(petriNet, initialMarking)
+      val instance = processInstance(petriNet, initialMarking, java.util.UUID.randomUUID())
 
       instance.marking shouldBe initialMarking
       Await.result(instance.fireTransition(t1, Some(extraData)), 2 seconds)
