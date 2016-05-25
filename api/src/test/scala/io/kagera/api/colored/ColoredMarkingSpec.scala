@@ -62,7 +62,14 @@ class ColoredMarkingSpec extends WordSpec {
       m1.consume(m2) shouldBe Map(p1 -> Seq(1, 3), p2 -> Seq("foo", "bar"))
     }
 
-    "have correct sub marking semantics" in {}
+    "in case of token value equality only consume tokens equal to the multiplicity" in {
+
+      val m1: ColoredMarking = Map(p1 -> Seq(1, 1, 1, 1, 1))
+
+      val m2: ColoredMarking = Map(p1 -> Seq(1, 1))
+
+      m1.consume(m2) shouldBe Map(p1 -> Seq(1, 1, 1))
+    }
 
     "should only contain the last state" in {
 

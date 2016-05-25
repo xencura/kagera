@@ -2,6 +2,8 @@ package io.kagera.api.colored
 
 import org.scalatest.WordSpec
 import org.scalatest.Matchers._
+import io.kagera.api._
+import io.kagera.api.colored._
 import io.kagera.api.colored.dsl._
 
 class TokenGameSpec extends WordSpec {
@@ -20,7 +22,10 @@ class TokenGameSpec extends WordSpec {
 
       val marking: ColoredMarking = Map(p1 -> Seq(10, 10))
 
-      // t2 requires at least 3 tokens in p1
+      // the multiplicity of p1 is 2
+      marking.multiplicity(p1) should be(2)
+
+      // t2 requires at least 3 tokens in p1 and is therefor not enabled
       testProcess.isEnabled(marking)(t2) should be(false)
     }
 
