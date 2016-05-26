@@ -33,9 +33,7 @@ object TokenGame {
  * @tparam M
  *   Marking
  */
-trait TokenGame[P, T, M] {
-
-  this: PetriNet[P, T] =>
+trait TokenGame[P, T, M] extends PetriNet[P, T] {
 
   def enabledParameters(marking: M): Map[T, Iterable[M]] = {
     // inefficient, fix

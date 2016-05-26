@@ -22,6 +22,8 @@ package object colored {
    */
   type ColoredMarking = Map[Place, Seq[Any]]
 
+  type ColoredPetriNet = PetriNet[Place, Transition]
+
   /**
    * Very inefficient multi set operations on Seq, TODO perhaps use https://github.com/nicolasstucki/multisets ? There
    * are some problems with the library though: https://github.com/nicolasstucki/multisets/issues

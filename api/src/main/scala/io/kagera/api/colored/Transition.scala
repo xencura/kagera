@@ -1,7 +1,7 @@
 package io.kagera.api.colored
 
 import scala.concurrent.Future
-import scala.concurrent.duration.{ Duration, FiniteDuration }
+import scala.concurrent.duration.Duration
 import scalax.collection.edge.WLDiEdge
 
 /**
