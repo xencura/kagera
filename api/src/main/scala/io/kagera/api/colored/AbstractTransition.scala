@@ -9,8 +9,7 @@ abstract class AbstractTransition[I, O](
   override val maximumOperationTime: Duration = Duration.Undefined
 ) extends Transition {
 
-  override def toString =
-    label + "-" + id // Append ID to differentiate places/transition with the same name in visualization
+  override def toString = label
 
   type Input = I
   type Output = O
