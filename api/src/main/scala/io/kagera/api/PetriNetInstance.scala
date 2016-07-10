@@ -2,6 +2,13 @@ package io.kagera.api
 
 import scala.concurrent.Future
 
+/**
+ * TODO this abstraction is questionable
+ *
+ * @tparam P
+ * @tparam T
+ * @tparam M
+ */
 trait PetriNetInstance[P, T, M] {
 
   /**

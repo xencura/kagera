@@ -45,6 +45,8 @@ trait Transition {
    */
   val maximumOperationTime: Duration
 
+  //  val failureStrategy: TransitionFailureHandler
+
   /**
    * Creates a valid input type for the transition using the in-adjacent (place, arc, tokens) tuples and optional
    * trigger data.
@@ -63,11 +65,7 @@ trait Transition {
    * @return
    *   A valid instance of type Input.
    */
-  def createInput(
-    inAdjacent: Seq[(Place, WLDiEdge[Node], Seq[Any])],
-    data: Option[Any],
-    context: TransitionContext
-  ): Input
+  def createInput(inAdjacent: Seq[(Place, PTEdge[Any], Seq[Any])], data: Option[Any], context: TransitionContext): Input
 
   /**
    * Creates a ColoredMarking from the transition output.

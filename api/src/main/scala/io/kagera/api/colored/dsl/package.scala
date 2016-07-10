@@ -38,7 +38,7 @@ package object dsl {
         }.toMap
 
       override def createInput(
-        inAdjacent: Seq[(Place, WLDiEdge[Node], Seq[Any])],
+        inAdjacent: Seq[(Place, PTEdge[Any], Seq[Any])],
         data: Option[Any],
         context: TransitionContext
       ): Input = null

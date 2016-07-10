@@ -17,7 +17,7 @@ trait ColoredExecutor extends TransitionExecutor[Place, Transition, ColoredMarki
     try {
 
       val inAdjacent = consume.map { case (place, data) =>
-        (place, pn.innerGraph.findPTEdge(place, t).get, data)
+        (place, pn.innerGraph.findPTEdge(place, t).get.label.asInstanceOf[PTEdge[Any]], data)
       }.toSeq
 
       val outAdjacent = pn
