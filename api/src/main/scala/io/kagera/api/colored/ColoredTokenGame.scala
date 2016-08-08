@@ -1,32 +1,38 @@
 package io.kagera.api.colored
 
 import io.kagera.api._
+import io.kagera.api.multiset._
 
-trait ColoredTokenGame extends TokenGame[Place, Transition, ColoredMarking] with PetriNet[Place, Transition] {
+trait ColoredTokenGame extends TokenGame[Place[_], Transition, ColoredMarking] {
+  this: PetriNet[Place[_], Transition] =>
 
   override def enabledParameters(m: ColoredMarking): Map[Transition, Iterable[ColoredMarking]] =
     enabledTransitions(m).view.map(t => t -> consumableMarkings(m)(t)).toMap
 
   def consumableMarkings(marking: ColoredMarking)(t: Transition): Iterable[ColoredMarking] = {
-
     // TODO this is not the most efficient, should break early when consumable tokens < edge weight
     val consumable = inMarking(t).map { case (place, count) =>
       (place, count, consumeableTokens(marking, place, t))
     }
 
     // check if any
-    if (consumable.exists { case (place, count, tokens) => tokens.size < count })
+    if (consumable.exists { case (place, count, tokens) => tokens.multisetSize < count })
       Seq.empty
-    else
-      Seq(consumable.map { case (place, count, tokens) => place -> tokens.take(count.toInt) }.toMap)
+    else {
+      val map: Map[Place[_], MultiSet[_]] = consumable.map { case (place, count, tokens) =>
+        place -> MultiSet(tokens.allElements.take(count.toInt))
+      }.toMap
+
+      Seq(ColoredMarking(map))
+    }
   }
 
-  def consumeableTokens(marking: ColoredMarking, p: Place, t: Transition) = {
+  def consumeableTokens[C](marking: ColoredMarking, p: Place[C], t: Transition): MultiSet[C] = {
+
     val edge = innerGraph.findPTEdge(p, t).get.label.asInstanceOf[PTEdge[Any]]
     marking.get(p) match {
-      case None => Seq.empty
-      case Some(tokens) =>
-        tokens.filter(edge.filter)
+      case None => MultiSet.empty
+      case Some(tokens) => tokens.filter { case (e, count) => edge.filter(e) }
     }
   }
 

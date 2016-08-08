@@ -2,11 +2,11 @@ package io.kagera.api.colored
 
 import org.scalatest.WordSpec
 import org.scalatest.Matchers._
-import io.kagera.api._
-import io.kagera.api.colored._
 import io.kagera.api.colored.dsl._
 
 class TokenGameSpec extends WordSpec {
+
+  import scala.concurrent.ExecutionContext.Implicits.global
 
   val p1 = Place[Int](id = 1, label = "p1")
   val p2 = Place[Int](id = 2, label = "p2")
@@ -20,10 +20,10 @@ class TokenGameSpec extends WordSpec {
 
     "not mark a transition enabled if there are not enough tokens in in-adjacent places" in {
 
-      val marking: ColoredMarking = Map(p1 -> Seq(10, 10))
+      val marking = ColoredMarking(p1(10, 10))
 
       // the multiplicity of p1 is 2
-      marking.multiplicity(p1) should be(2)
+      marking.multiplicities(p1) should be(2)
 
       // t2 requires at least 3 tokens in p1 and is therefor not enabled
       testProcess.isEnabled(marking)(t2) should be(false)
@@ -31,7 +31,7 @@ class TokenGameSpec extends WordSpec {
 
     "not mark a transition enabled if an in-adjacent edge filters the token" in {
 
-      val marking: ColoredMarking = Map(p1 -> Seq(10))
+      val marking = ColoredMarking(p1(10))
 
       testProcess.isEnabled(marking)(t1) should be(false)
     }

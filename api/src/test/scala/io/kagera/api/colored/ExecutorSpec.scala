@@ -19,12 +19,11 @@ class ExecutorSpec extends WordSpec {
   "A colored executor" should {
     "Call the transition with the appropriate parameters" in {
 
-      implicit val ec: ExecutionContext = ExecutionContext.global
+      import scala.concurrent.ExecutionContext.Implicits.global
 
       val p = process(p1 ~> mockedTransition, mockedTransition ~> p2)
 
-      val m: ColoredMarking = Map(p1 -> Seq(null))
+      val m = ColoredMarking(p1(null))
     }
   }
-
 }

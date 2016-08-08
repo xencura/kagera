@@ -8,8 +8,8 @@ import io.kagera.api.colored._
 
 object PetriNetActor {
 
-  def props(id: java.util.UUID, process: ColoredTokenGame, initialMarking: ColoredMarking) =
-    Props(new PetriNetActor(id, process, initialMarking))
+  def props[S](id: java.util.UUID, process: TransitionExecutor[S], initialMarking: ColoredMarking, initialState: S) =
+    Props(new PetriNetActor(id, process, initialMarking, initialState))
 
   sealed trait Command
 
@@ -19,32 +19,34 @@ object PetriNetActor {
   sealed trait Event
 
   case class TransitionFailed(t: Transition, reason: Exception) extends RuntimeException
-  case class TransitionFired(t: Transition, consumed: ColoredMarking, produced: ColoredMarking, meta: Any) extends Event
+  case class TransitionFired(t: Transition, consumed: ColoredMarking, produced: ColoredMarking, out: Any) extends Event
+
   case object NoFireableTransitions extends IllegalStateException
 }
 
-class PetriNetActor(id: java.util.UUID, process: ColoredTokenGame, initialMarking: ColoredMarking)
-    extends Actor
+class PetriNetActor[S](
+  id: java.util.UUID,
+  process: TransitionExecutor[S],
+  initialMarking: ColoredMarking,
+  initialState: S
+) extends Actor
     with ActorLogging {
 
   import context.dispatcher
 
-  def receive = active(initialMarking)
+  def receive = active(initialMarking, initialState)
 
-  def active(marking: ColoredMarking): Receive = {
+  def active(marking: ColoredMarking, state: S): Receive = {
     case GetState =>
       sender() ! marking
     case Step =>
-      TokenGame.stepRandom[Place, Transition, ColoredMarking](process, marking) match {
+      TokenGame.stepRandom[Place[_], Transition, ColoredMarking](process, marking) match {
         case None => sender() ! Status.Failure(NoFireableTransitions)
         case Some((consume, t)) =>
           val produce =
-            ColoredExecutor
+            process
               .executeTransition(process)(consume, t, None, id)
               .map(produce => marking.consume(consume).produce(produce))
-
-        //          log.info("Fired transition {} resulting in marking {}", t, newMarking)
-        //          context become active(newMarking)
       }
 
     case FireTransition(t, data) =>

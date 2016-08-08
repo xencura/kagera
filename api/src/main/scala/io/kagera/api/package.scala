@@ -1,16 +1,15 @@
 package io.kagera
 
+import io.kagera.api.multiset.MultiSet
+
 import scala.PartialFunction._
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.language.higherKinds
 import scalax.collection.Graph
 import scalax.collection.GraphPredef._
 import scalax.collection.edge.WLDiEdge
 import scalaz.@@
-import scala.language.higherKinds
 
 package object api {
-
-  type Marking[P] = Map[P, Long]
 
   object tags {
     trait Id
@@ -30,48 +29,14 @@ package object api {
     def findById(id: String) = seq.find(e => implicitly[Identifiable[T]].apply(e) == id)
   }
 
-  /**
-   * Type alias for a petri net with token game and executor. This makes an executable process.
-   *
-   * @tparam P
-   *   The place type
-   * @tparam T
-   *   The transition type
-   * @tparam M
-   *   The marking type
-   */
-  trait PetriNetProcess[P, T, M] extends PetriNet[P, T] with TokenGame[P, T, M] with TransitionExecutor[P, T, M]
-
-  implicit class MarkingLikeApi[M, P](val m: M)(implicit val markingLike: MarkingLike[M, P]) {
-
-    def multiplicity = markingLike.multiplicity(m)
-
-    def consume(other: M) = markingLike.consume(m, other)
-
-    def remove(other: M) = markingLike.remove(m, other)
-
-    def produce(other: M) = markingLike.produce(m, other)
-
-    def isEmpty = markingLike.multiplicity(m).isEmpty
-
-    def isSubMarking(other: M) = markingLike.isSubMarking(m, other)
-  }
-
-  trait TransitionExecutor[P, T, M] {
-
-    this: PetriNet[P, T] =>
-
-    def fireTransition(marking: M, id: java.util.UUID)(transition: T, data: Option[Any] = None)(implicit
-      ec: ExecutionContext
-    ): Future[M]
-  }
-
   type BiPartiteGraph[P, T, E[X] <: EdgeLikeIn[X]] = Graph[Either[P, T], E]
 
   class ScalaGraphPetriNet[P, T](val innerGraph: BiPartiteGraph[P, T, WLDiEdge]) extends PetriNet[P, T] {
 
-    override def inMarking(t: T): Marking[P] = innerGraph.get(t).incoming.map(e => e.source.asPlace -> e.weight).toMap
-    override def outMarking(t: T): Marking[P] = innerGraph.get(t).outgoing.map(e => e.target.asPlace -> e.weight).toMap
+    override def inMarking(t: T): MultiSet[P] =
+      innerGraph.get(t).incoming.map(e => e.source.asPlace -> e.weight.toInt).toMap
+    override def outMarking(t: T): MultiSet[P] =
+      innerGraph.get(t).outgoing.map(e => e.target.asPlace -> e.weight.toInt).toMap
     override def outAdjacentPlaces(t: T): Set[P] = innerGraph.outgoingPlaces(t)
     override def outAdjacentTransitions(p: P): Set[T] = innerGraph.outgoingTransitions(p)
     override def inAdjacentPlaces(t: T): Set[P] = innerGraph.incomingPlaces(t)

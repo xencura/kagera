@@ -1,7 +1,8 @@
 package io.kagera.dot
 
-import io.kagera.api.MarkingLike
+import io.kagera.api.multiset.MultiSet
 
+import scala.language.higherKinds
 import scalax.collection.Graph
 import scalax.collection.edge.WLDiEdge
 import scalax.collection.io.dot._
@@ -26,16 +27,14 @@ object PetriNet {
       }
   }
 
-  def markedPetriNetTheme[P, T, M](
-    marking: M
-  )(implicit markingLike: MarkingLike[M, P]): GraphTheme[Either[P, T], WLDiEdge] =
+  def markedPetriNetTheme[P, T](marking: MultiSet[P]): GraphTheme[Either[P, T], WLDiEdge] =
     new GraphTheme[Either[P, T], WLDiEdge] {
 
       override def nodeLabelFn = labelFn
       override def nodeDotAttrFn = node =>
         node match {
           case Left(nodeA) =>
-            markingLike.multiplicity(marking).get(nodeA) match {
+            marking.get(nodeA) match {
               case Some(n) if n > 0 =>
                 List(
                   DotAttr("shape", "doublecircle"),
