@@ -6,20 +6,21 @@ import scala.concurrent.{ ExecutionContext, Future }
 
 trait TransitionExecutor[S] {
 
-  this: PetriNet[Place[_], Transition] with TokenGame[Place[_], Transition, ColoredMarking] =>
+  this: PetriNet[Place[_], Transition[_, _, _]] with TokenGame[Place[_], Transition[_, _, _], ColoredMarking] =>
 
   implicit val executionContext: ExecutionContext
 
-  val transitionFunctions: Map[Transition, _] =
+  val transitionFunctions: Map[Transition[_, _, _], _] =
     transitions.map(t => t -> t.apply(inMarking(t), outMarking(t))).toMap
 
-  def tfn(t: Transition): (ColoredMarking, t.Context, t.Input) => Future[(ColoredMarking, t.Context, t.Output)] =
-    transitionFunctions(t)
-      .asInstanceOf[(ColoredMarking, t.Context, t.Input) => Future[(ColoredMarking, t.Context, t.Output)]]
+  def tfn[Input, Output](
+    t: Transition[Input, Output, S]
+  ): (ColoredMarking, S, Input) => Future[(ColoredMarking, S, Output)] =
+    transitionFunctions(t).asInstanceOf[(ColoredMarking, S, Input) => Future[(ColoredMarking, S, Output)]]
 
-  def fireTransition(t: Transition { type Input = Unit })(marking: ColoredMarking, context: S) = ???
-
-  def fireTransition(t: Transition { type Context = S })(marking: ColoredMarking, context: S, input: t.Input) = {
+  def fireTransition[Input, Output](
+    t: Transition[Input, Output, S]
+  )(marking: ColoredMarking, context: S, input: Input): Future[(ColoredMarking, S)] = {
 
     // pick the tokens
     val result = enabledParameters(marking)

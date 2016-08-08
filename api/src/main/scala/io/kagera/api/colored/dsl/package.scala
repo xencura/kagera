@@ -10,29 +10,30 @@ import scalax.collection.edge.WLDiEdge
 
 package object dsl {
 
-  implicit class TransitionDSL(t: Transition) {
-    def ~>[C](p: Place[C], weight: Long = 1): Arc = arc(t, p, weight)
+  implicit class TransitionDSL[C](t: Transition[_, C, _]) {
+    def ~>[A](p: Place[C], weight: Long = 1): Arc = arc(t, p, weight)
   }
 
   implicit class PlaceDSL[C](p: Place[C]) {
-    def ~>(t: Transition, weight: Long = 1, filter: C => Boolean = token => true): Arc = arc[C](p, t, weight, filter)
+    def ~>(t: Transition[C, _, _], weight: Long = 1, filter: C => Boolean = token => true): Arc =
+      arc[C](p, t, weight, filter)
   }
 
-  def arc[C](t: Transition, p: Place[C], weight: Long): Arc =
+  def arc(t: Transition[_, _, _], p: Place[_], weight: Long): Arc =
     WLDiEdge[Node, String](Right(t), Left(p))(weight, "")
 
-  def arc[C](p: Place[C], t: Transition, weight: Long, filter: C => Boolean = (token: C) => true): Arc = {
+  def arc[C](p: Place[C], t: Transition[_, _, _], weight: Long, filter: C => Boolean = (token: C) => true): Arc = {
     val innerEdge = new PTEdgeImpl[C](weight, filter)
     WLDiEdge[Node, PTEdge[C]](Left(p), Right(t))(weight, innerEdge)
   }
 
-  def nullPlace(id: Long, label: String) = Place[Null](id, label)
+  def nullPlace(id: Long, label: String) = Place[Unit](id, label)
 
-  def constantTransition[I, O](id: Long, label: String, isManaged: Boolean = false, constant: O) =
-    new AbstractTransition[I, O](id, label, isManaged, Duration.Undefined) {
+  def constantTransition[I, O, S](id: Long, label: String, isManaged: Boolean = false, constant: O) =
+    new IdentityTransition[I, O, S](id, label, isManaged, Duration.Undefined) {
       override def apply(inAdjacent: MultiSet[Place[_]], outAdjacent: MultiSet[Place[_]])(implicit
         executor: ExecutionContext
-      ): (ColoredMarking, Context, I) => Future[(ColoredMarking, O)] =
+      ): (ColoredMarking, S, I) => Future[(ColoredMarking, O)] =
         (marking, state, input) => {
           val tokens = outAdjacent.map { case (place, weight) =>
             produceTokens(place, weight.toInt)
@@ -41,14 +42,12 @@ package object dsl {
           Future.successful(marking -> constant)
         }
 
-      override def updateState(e: O): (Context) => Context = i => i
-
       override def produceTokens[C](place: Place[C], count: Int): MultiSet[C] =
         MultiSet.empty[C] + (constant.asInstanceOf[C] -> count)
     }
 
-  def nullTransition(id: Long, label: String, isManaged: Boolean = false) =
-    constantTransition[Null, Null](id, label, isManaged, null)
+  def nullTransition[S](id: Long, label: String, isManaged: Boolean = false) =
+    constantTransition[Unit, Unit, S](id, label, isManaged, ())
 
   def process[S](params: Arc*)(implicit ec: ExecutionContext): ColoredPetriNetProcess[S] =
     new ScalaGraphPetriNet(Graph(params: _*)) with ColoredTokenGame with TransitionExecutor[S] {

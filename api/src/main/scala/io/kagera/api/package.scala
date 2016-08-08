@@ -26,7 +26,7 @@ package object api {
   }
 
   implicit class IdFn[T : Identifiable](seq: Iterable[T]) {
-    def findById(id: String) = seq.find(e => implicitly[Identifiable[T]].apply(e) == id)
+    def findById(id: Long) = seq.find(e => implicitly[Identifiable[T]].apply(e) == id)
   }
 
   type BiPartiteGraph[P, T, E[X] <: EdgeLikeIn[X]] = Graph[Either[P, T], E]

@@ -5,9 +5,9 @@ import org.scalatest.WordSpec
 
 class AutoStepperSpec extends WordSpec {
 
-  val p1 = Place[Null](id = 1, label = "p1")
-  val p2 = Place[Null](id = 2, label = "p2")
-  val p3 = Place[Null](id = 3, label = "p3")
+  val p1 = Place[Unit](id = 1, label = "p1")
+  val p2 = Place[Unit](id = 2, label = "p2")
+  val p3 = Place[Unit](id = 3, label = "p3")
 
   val t1 = nullTransition(1, "t1", isManaged = false)
   val t2 = nullTransition(2, "t2", isManaged = true)
@@ -18,7 +18,7 @@ class AutoStepperSpec extends WordSpec {
 
       import scala.concurrent.ExecutionContext.Implicits.global
 
-      val initialMarking = ColoredMarking(p1(null))
+      val initialMarking = ColoredMarking(p1(()))
 
       val petriNet = process(p1 ~> t1, t1 ~> p2, p2 ~> t2, t2 ~> p3)
       //

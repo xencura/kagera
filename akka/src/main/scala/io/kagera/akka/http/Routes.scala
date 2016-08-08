@@ -3,7 +3,7 @@ package io.kagera.akka.http
 import akka.actor.ActorRef
 import akka.http.scaladsl.server.Directives
 import akka.util.Timeout
-import io.kagera.akka.actor.PetriNetActor.GetState
+import io.kagera.akka.actor.PersistentPetriNetActor.GetState
 
 trait Routes extends Directives {
 

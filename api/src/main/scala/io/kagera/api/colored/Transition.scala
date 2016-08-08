@@ -8,26 +8,7 @@ import scala.concurrent.duration.{ Duration, FiniteDuration }
 /**
  * A transition in a colored petri net.
  */
-trait Transition {
-
-  /**
-   * The input type of this transition. May be Unit if no input is expected.
-   */
-  type Input
-
-  /**
-   * The output type of this transition, that is the type of value this transition emits. May be Unit if nothing is
-   * emitted.
-   */
-  type Output
-
-  /**
-   * The type of 'context' the transition requires. This is to allow transitions to access some kind of global state to
-   * close over instead of just the in-adjacent marking.
-   *
-   * By default it is unrestricted.
-   */
-  type Context = Any
+trait Transition[Input, Output, State] {
 
   /**
    * The unique identifier of this transition.
@@ -81,7 +62,7 @@ trait Transition {
    */
   def apply(inAdjacent: MultiSet[Place[_]], outAdjacent: MultiSet[Place[_]])(implicit
     executor: scala.concurrent.ExecutionContext
-  ): (ColoredMarking, Context, Input) => Future[(ColoredMarking, Output)]
+  ): (ColoredMarking, State, Input) => Future[(ColoredMarking, Output)]
 
-  def updateState(e: Output): Context => Context
+  def updateState(e: Output): State => State
 }
