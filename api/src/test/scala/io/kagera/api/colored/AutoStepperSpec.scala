@@ -1,7 +1,9 @@
 package io.kagera.api.colored
 
 import io.kagera.api.colored.dsl._
+import io.kagera.api.multiset._
 import org.scalatest.WordSpec
+import shapeless._
 
 class AutoStepperSpec extends WordSpec {
 
@@ -20,7 +22,7 @@ class AutoStepperSpec extends WordSpec {
 
       val initialMarking = ColoredMarking(p1(()))
 
-      val petriNet = process(p1 ~> t1, t1 ~> p2, p2 ~> t2, t2 ~> p3)
+      val petriNet = process[Void](p1 ~> t1, t1 ~> p2, p2 ~> t2, t2 ~> p3)
       //
       //      val instance = processInstance(petriNet, initialMarking, java.util.UUID.randomUUID())
       //

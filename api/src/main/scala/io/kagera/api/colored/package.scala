@@ -1,10 +1,11 @@
 package io.kagera.api
 
-import io.kagera.api.tags.Label
+import io.kagera.api.multiset.MultiSet
+import shapeless.tag
+import shapeless.tag._
 
 import scala.language.existentials
 import scalax.collection.edge.WLDiEdge
-import scalaz.{ @@, Tag }
 
 package object colored {
 
@@ -13,21 +14,23 @@ package object colored {
    */
   type Node = Either[Place[_], Transition[_, _, _]]
 
+  type MarkedPlace[T] = (Place[T], MultiSet[T])
+
   /**
    * Type alias for the edge type of the scalax.collection.Graph backing the petri net.
    */
   type Arc = WLDiEdge[Node]
 
-  implicit def placeLabel[C](p: Place[C]): @@[String, Label] = Tag[String, Label](p.label)
+  implicit def placeLabel[C](p: Place[C]): String @@ tags.Label = tag[tags.Label](p.label)
 
-  implicit def placeIdentifier(p: Place[_]): @@[Long, tags.Id] = Tag[Long, tags.Id](p.id)
+  implicit def placeIdentifier(p: Place[_]): Long @@ tags.Id = tag[tags.Id](p.id)
 
   implicit object TransitionLabeler extends Labeled[Transition[_, _, _]] {
-    override def apply(t: Transition[_, _, _]): @@[String, tags.Label] = Tag[String, tags.Label](t.label)
+    override def apply(t: Transition[_, _, _]): String @@ tags.Label = tag[tags.Label](t.label)
   }
 
   implicit object TransitionIdentifier extends Identifiable[Transition[_, _, _]] {
-    override def apply(t: Transition[_, _, _]): @@[Long, tags.Id] = Tag[Long, tags.Id](t.id)
+    override def apply(t: Transition[_, _, _]): Long @@ tags.Id = tag[tags.Id](t.id)
   }
 
   type ColoredPetriNetProcess[S] = PetriNet[Place[_], Transition[_, _, _]]

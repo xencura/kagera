@@ -8,7 +8,9 @@ package object multiset {
 
     def empty[T]: MultiSet[T] = Map.empty[T, Int]
 
-    def apply[T](elements: T*) = elements.foldLeft(empty[T]) { case (mset, e) => mset.add(e, 1) }
+    def from[T](elements: Iterable[T]) = elements.foldLeft(empty[T]) { case (mset, e) => mset.add(e, 1) }
+
+    def apply[T](elements: T*) = from(elements.toSeq)
   }
 
   implicit class MultiSetOps[T](mset: MultiSet[T]) {

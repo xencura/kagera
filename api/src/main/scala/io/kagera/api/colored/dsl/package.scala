@@ -33,14 +33,15 @@ package object dsl {
     new IdentityTransition[I, O, S](id, label, isManaged, Duration.Undefined) {
       override def apply(inAdjacent: MultiSet[Place[_]], outAdjacent: MultiSet[Place[_]])(implicit
         executor: ExecutionContext
-      ): (ColoredMarking, S, I) => Future[(ColoredMarking, O)] =
-        (marking, state, input) => {
-          val tokens = outAdjacent.map { case (place, weight) =>
-            produceTokens(place, weight.toInt)
-          }
+      ): (ColoredMarking, S, I) => Future[(ColoredMarking, O)] = { (marking, state, input) =>
+        {
+          val producedTokens: Map[Place[_], MultiSet[_]] = outAdjacent.map { case (place, weight) =>
+            place -> produceTokens(place, weight.toInt)
+          }.toMap
 
-          Future.successful(marking -> constant)
+          Future.successful(ColoredMarking(producedTokens) -> constant)
         }
+      }
 
       override def produceTokens[C](place: Place[C], count: Int): MultiSet[C] =
         MultiSet.empty[C] + (constant.asInstanceOf[C] -> count)

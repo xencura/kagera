@@ -5,9 +5,6 @@ import io.kagera.api.multiset.MultiSet
 import scala.concurrent.Future
 import scala.concurrent.duration.{ Duration, FiniteDuration }
 
-/**
- * A transition in a colored petri net.
- */
 trait Transition[Input, Output, State] {
 
   /**

@@ -20,7 +20,7 @@ trait ColoredTokenGame extends TokenGame[Place[_], Transition[_, _, _], ColoredM
       Seq.empty
     else {
       val map: Map[Place[_], MultiSet[_]] = consumable.map { case (place, count, tokens) =>
-        place -> MultiSet(tokens.allElements.take(count.toInt))
+        place -> MultiSet.from(tokens.allElements.take(count.toInt))
       }.toMap
 
       Seq(ColoredMarking(map))

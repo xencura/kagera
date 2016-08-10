@@ -7,7 +7,7 @@ import scala.language.higherKinds
 import scalax.collection.Graph
 import scalax.collection.GraphPredef._
 import scalax.collection.edge.WLDiEdge
-import scalaz.@@
+import shapeless.tag._
 
 package object api {
 
