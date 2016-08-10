@@ -45,35 +45,40 @@ class PersistentPetriNetActorSpec
 
   "A persistent petri net actor" should {
 
-    "Respond with the current marking on receiving GetState" in {
+    "Be able to restore it's state after termination" in {
 
-      val initialMarking = ColoredMarking(p1(()))
-
+      // creates a petri net actor with initial marking: p1 -> 1
       val id = UUID.randomUUID()
+      val initialMarking = ColoredMarking(p1(()))
 
       val actor = system.actorOf(Props(new PersistentPetriNetActor[Unit](id, petriNet, initialMarking, ())))
 
+      // assert that the actor is in the initial state
       actor ! GetState
 
       expectMsg(initialMarking)
 
-      actor ! FireTransition(t1.id, ())
+      // fire the first transition (t1) manually
+      actor ! FireTransition(t1, ())
 
+      // expect the next marking: p2 -> 1
       expectMsg(ColoredMarking(p2(())))
 
+      // since t2 fires automatically we also expect the next marking: p3 -> 1
+      expectMsg(ColoredMarking(p3(())))
+
+      // terminate the actor
       watch(actor)
-
       actor ! PoisonPill
-
       expectMsgClass(classOf[Terminated])
 
+      // create a new actor with the same persistent identifier
       val newActor = system.actorOf(Props(new PersistentPetriNetActor[Unit](id, petriNet, initialMarking, ())))
 
       newActor ! GetState
 
-      val msg = expectMsgClass(classOf[ColoredMarking])
-
-      println(msg)
+      // assert that the marking is the same as before termination
+      expectMsg(ColoredMarking(p3(())))
     }
   }
 

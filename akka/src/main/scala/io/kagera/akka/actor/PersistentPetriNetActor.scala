@@ -9,6 +9,7 @@ import io.kagera.api._
 import io.kagera.api.colored._
 import io.kagera.api.multiset._
 import akka.pattern.pipe
+import shapeless.tag._
 
 object PersistentPetriNetActor {
 
@@ -19,13 +20,13 @@ object PersistentPetriNetActor {
   case object GetState
 
   case class TransitionFired(
-    transition_id: Long,
+    transition_id: Long @@ tags.Id,
     consumed: Map[Long, MultiSet[Int]],
     produced: Map[Long, MultiSet[_]],
     out: Any
   )
 
-  case class FireTransition(transition_id: Long, input: Any)
+  case class FireTransition(transition_id: Long @@ tags.Id, input: Any)
 
   implicit class ColoredMarkingFns(marking: ColoredMarking) {
     def indexed: Map[Long, MultiSet[Int]] = marking.data.map { case (p, tokens) =>
@@ -68,8 +69,6 @@ class PersistentPetriNetActor[S](
 
   override def persistenceId: String = s"petrinet-$id"
 
-  var availableMarking: ColoredMarking = initialMarking
-  var reserved: Map[Transition[_, _, _], ColoredMarking] = Map.empty
   var currentMarking: ColoredMarking = initialMarking
   var state: S = initialState
 
@@ -90,37 +89,59 @@ class PersistentPetriNetActor[S](
     case GetState =>
       sender() ! currentMarking
 
-    case (originalSender: ActorRef, e: TransitionFired) =>
+    case e: TransitionFired =>
       persist(e) { persisted =>
         applyEvent(e)
-        originalSender ! currentMarking
+        sender() ! currentMarking
+        step()
       }
 
-    case FireTransition(id, input) =>
-      val transition = getTransitionById(id)
-      val originalSender = sender()
+    case FireTransition(id, input) => fire(getTransitionById(id), input)
+  }
 
-      val futureResult = process.enabledParameters(availableMarking).get(transition) match {
-        case None => throw new IllegalArgumentException(s"Transition $transition is not enabled")
-        case Some(params) =>
-          val consume = params.head
-          process.fireTransition(transition)(consume, state, input).map { case (produced, output) =>
-            val transitionId = transition.id
-            val consumedIndex: Map[Long, MultiSet[Int]] = consume.indexed
-            val produceIndex: Map[Long, MultiSet[_]] = produced.data.map { case (place, tokens) =>
-              place.id -> tokens
-            }.toMap
-
-            originalSender -> TransitionFired(transitionId, consumedIndex, produceIndex, output)
-          }
+  /**
+   * Fires the first enabled transition
+   */
+  def step() = {
+    process
+      .enabledParameters(currentMarking)
+      .view
+      .filter { case (t, markings) =>
+        t.isManaged
       }
+      .headOption
+      .foreach { case (t, markings) =>
+        fire(t.asInstanceOf[Transition[Any, _, S]], ())
+      }
+  }
 
-      futureResult.pipeTo(self)
+  /**
+   * Fires a specific transition with input
+   *
+   * @param transition
+   * @param input
+   * @return
+   */
+  def fire(transition: Transition[Any, _, S], input: Any) = {
+
+    val futureResult = process.enabledParameters(currentMarking).get(transition) match {
+      case None => throw new IllegalArgumentException(s"Transition $transition is not enabled")
+      case Some(params) =>
+        val consume = params.head
+        process.fireTransition(transition)(consume, state, input).map { case (produced, output) =>
+          val consumedIndex: Map[Long, MultiSet[Int]] = consume.indexed
+          val produceIndex: Map[Long, MultiSet[_]] = produced.data.map { case (place, tokens) =>
+            place.id -> tokens
+          }.toMap
+
+          TransitionFired(transition, consumedIndex, produceIndex, output)
+        }
+    }
+
+    futureResult.pipeTo(self)(sender())
   }
 
   def applyEvent: Receive = { case TransitionFired(id, consumed, produced, out) =>
-    println("applying event")
-
     val transition = getTransitionById(id)
     val consumedMarking = consumed.realizeFrom(currentMarking)
     val producedMarking = ColoredMarking(data = produced.map { case (id, tokens) => getPlaceById(id) -> tokens }.toMap)

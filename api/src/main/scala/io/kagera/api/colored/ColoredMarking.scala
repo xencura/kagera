@@ -1,7 +1,6 @@
 package io.kagera.api.colored
 
 import io.kagera.api.multiset._
-import shapeless.{ HMap, HNil }
 
 object ColoredMarking {
 
@@ -10,14 +9,6 @@ object ColoredMarking {
   def apply(markedPlaces: MarkedPlace[_]*): ColoredMarking = {
     val map: Map[Place[_], MultiSet[_]] = markedPlaces.toSeq.toMap
     ColoredMarking(map)
-  }
-
-  import shapeless.poly._
-
-  val foo = 1 :: HNil
-
-  object Foo extends (MarkedPlace ~> MultiSet) {
-    override def apply[T](f: (Place[T], MultiSet[T])): MultiSet[T] = ???
   }
 }
 

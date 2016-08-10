@@ -1,7 +1,7 @@
 package io.kagera.api
 
 import io.kagera.api.multiset.MultiSet
-import shapeless.tag
+import shapeless.{ tag, HMap }
 import shapeless.tag._
 
 import scala.language.existentials
@@ -25,15 +25,13 @@ package object colored {
 
   implicit def placeIdentifier(p: Place[_]): Long @@ tags.Id = tag[tags.Id](p.id)
 
-  implicit object TransitionLabeler extends Labeled[Transition[_, _, _]] {
-    override def apply(t: Transition[_, _, _]): String @@ tags.Label = tag[tags.Label](t.label)
-  }
+  implicit def transitionLabeler(t: Transition[_, _, _]): String @@ tags.Label = tag[tags.Label](t.label)
 
-  implicit object TransitionIdentifier extends Identifiable[Transition[_, _, _]] {
-    override def apply(t: Transition[_, _, _]): Long @@ tags.Id = tag[tags.Id](t.id)
-  }
+  implicit def transitionIdentifier(t: Transition[_, _, _]): Long @@ tags.Id = tag[tags.Id](t.id)
 
   type ColoredPetriNetProcess[S] = PetriNet[Place[_], Transition[_, _, _]]
     with ColoredTokenGame
     with TransitionExecutor[S]
+
+  def foo[Transition : Identifiable : Labeled] = ???
 }

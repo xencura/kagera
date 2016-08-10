@@ -8,9 +8,6 @@ object Place {
 
 /**
  * A Place in a colored petri net.
- *
- * TODO !! A special kind of place where Color == Nothing (or Null?) should exist for which no data should be kept in
- * the marking. This then supports the uncolored or 'normal' petri net place.
  */
 trait Place[Color] {
 
