@@ -14,8 +14,6 @@ object ColoredMarking {
 
 case class ColoredMarking(data: Map[Place[_], MultiSet[_]]) {
 
-  implicit def toMarking(map: Map[Place[_], MultiSet[_]]): ColoredMarking = ColoredMarking(map)
-
   def get[C](p: Place[C]): Option[MultiSet[C]] = data.get(p).map(_.asInstanceOf[MultiSet[C]])
 
   def apply[C](p: Place[C]): MultiSet[C] = get(p).get
