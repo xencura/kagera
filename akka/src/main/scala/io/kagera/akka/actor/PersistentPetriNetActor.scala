@@ -2,7 +2,6 @@ package io.kagera.akka.actor
 
 import java.util.UUID
 
-import akka.actor.ActorRef
 import akka.persistence.PersistentActor
 import io.kagera.akka.actor.PersistentPetriNetActor._
 import io.kagera.api._
