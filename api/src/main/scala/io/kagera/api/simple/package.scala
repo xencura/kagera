@@ -2,8 +2,6 @@ package io.kagera.api
 
 import io.kagera.api.multiset.MultiSet
 
-import scalaz.syntax.std.boolean._
-
 package object simple {
 
   def isSubMarking[P](marking: MultiSet[P], other: MultiSet[P]): Boolean =
@@ -29,6 +27,7 @@ package object simple {
     override def consumableMarkings(m: MultiSet[P])(t: T): Iterable[MultiSet[P]] = {
       // for uncolored markings there is only 1 consumable marking per transition
       val in = inMarking(t)
+
       isSubMarking(m, in).option(in)
     }
 

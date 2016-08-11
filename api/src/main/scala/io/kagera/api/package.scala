@@ -29,6 +29,14 @@ package object api {
     def findById(id: Long) = seq.find(e => implicitly[Identifiable[T]].apply(e) == id)
   }
 
+  implicit class OptionOps(check: Boolean) {
+    def option[A](provider: => A): Option[A] =
+      if (check)
+        Some(provider)
+      else
+        None
+  }
+
   type BiPartiteGraph[P, T, E[X] <: EdgeLikeIn[X]] = Graph[Either[P, T], E]
 
   class ScalaGraphPetriNet[P, T](val innerGraph: BiPartiteGraph[P, T, WLDiEdge]) extends PetriNet[P, T] {
