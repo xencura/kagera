@@ -10,7 +10,6 @@ object TokenGame {
   }
 
   def stepRandom[P, T, M]: Step[P, T, M] = (process, marking) => {
-    import scalaz.syntax.std.boolean._
     import scala.util.Random
 
     val params = process.enabledParameters(marking)

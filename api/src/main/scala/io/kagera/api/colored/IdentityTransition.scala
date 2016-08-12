@@ -1,10 +1,9 @@
 package io.kagera.api.colored
 
-import scala.concurrent.Future
+import scala.concurrent.duration.Duration
 
-abstract class IdentityTransition[T](id: Long, label: String, isManaged: Boolean)
-    extends AbstractTransition[T, T](id, label, isManaged) {
+abstract class IdentityTransition[I, O, S](id: Long, label: String, isManaged: Boolean, maximumOperationTime: Duration)
+    extends AbstractTransition[I, O, S](id, label, isManaged, maximumOperationTime) {
 
-  override def apply(input: T)(implicit executor: scala.concurrent.ExecutionContext): Future[T] =
-    Future.successful(input)
+  override def updateState(e: O): (S) => S = s => s
 }

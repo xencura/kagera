@@ -6,7 +6,7 @@ import scalax.collection.GraphPredef.EdgeLikeIn
 import scalax.collection.io.dot._
 import scalax.collection.io.dot.implicits._
 
-object Graph {
+object GraphDot {
 
   def generateDot[N, E[X] <: EdgeLikeIn[X]](graph: Graph[N, E], theme: GraphTheme[N, E]) = {
     val myRoot =
