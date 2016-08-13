@@ -1,18 +1,28 @@
 package io.kagera.api.colored
 
+import io.kagera.api.colored.ColoredMarking.MarkingData
 import io.kagera.api.multiset._
 
 object ColoredMarking {
 
-  def empty: ColoredMarking = ColoredMarking(Nil: _*)
+  type MarkingData = Map[Place[_], MultiSet[_]]
 
-  def apply(markedPlaces: MarkedPlace[_]*): ColoredMarking = {
-    val map: Map[Place[_], MultiSet[_]] = markedPlaces.toSeq.toMap
-    ColoredMarking(map)
+  def empty: ColoredMarking = ColoredMarking(Map.empty[Place[_], MultiSet[_]])
+
+  def apply[A](m1: MarkedPlace[A]): ColoredMarking = {
+    ColoredMarking(Map(m1): Map[Place[_], MultiSet[_]])
+  }
+
+  def apply[A, B](m1: MarkedPlace[A], m2: MarkedPlace[B]): ColoredMarking = {
+    ColoredMarking(Map(m1, m2): Map[Place[_], MultiSet[_]])
+  }
+
+  def apply[A, B, C](m1: MarkedPlace[A], m2: MarkedPlace[B], m3: MarkedPlace[C]): ColoredMarking = {
+    ColoredMarking(Map(m1, m2, m3): Map[Place[_], MultiSet[_]])
   }
 }
 
-case class ColoredMarking(data: Map[Place[_], MultiSet[_]]) {
+case class ColoredMarking(data: MarkingData) {
 
   def get[C](p: Place[C]): Option[MultiSet[C]] = data.get(p).map(_.asInstanceOf[MultiSet[C]])
 

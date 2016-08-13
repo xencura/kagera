@@ -31,6 +31,15 @@ package object multiset {
         }
       }
 
+    def isSubSet(other: MultiSet[T]): Boolean =
+      !other.exists { case (element, count) =>
+        mset.get(element) match {
+          case None => true
+          case Some(n) if n < count => true
+          case _ => false
+        }
+      }
+
     def multisetSize: Int = mset.values.sum
 
     def multiplicities(map: MultiSet[T]): Map[T, Int] = map

@@ -95,12 +95,4 @@ trait PetriNet[P, T] {
    *   The set of nodes.
    */
   def nodes: scala.collection.Set[Either[P, T]]
-
-  def is1Safe(m0: Map[P, Long]): Boolean = ???
-
-  def reachable(m0: Map[P, Long], target: Map[P, Long]): Boolean = ???
-
-  def boundedness(m0: Map[P, Long], p: P) = ???
-
-  def liveliness(m: Map[P, Long], t: T) = ???
 }

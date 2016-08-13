@@ -9,6 +9,7 @@ import io.kagera.akka.actor.PersistentPetriNetActor
 import io.kagera.akka.actor.PersistentPetriNetActor.{ FireTransition, GetState, TransitionFired }
 import io.kagera.api.colored.dsl._
 import io.kagera.api.colored._
+import io.kagera.api.multiset.MultiSet
 import org.scalatest.WordSpecLike
 
 object PersistentPetriNetActorSpec {
@@ -49,7 +50,7 @@ class PersistentPetriNetActorSpec
 
       // creates a petri net actor with initial marking: p1 -> 1
       val id = UUID.randomUUID()
-      val initialMarking = ColoredMarking(p1(()))
+      val initialMarking = ColoredMarking(p1 -> 1)
 
       val actor = system.actorOf(Props(new PersistentPetriNetActor[Unit](id, petriNet, initialMarking, ())))
 
@@ -62,10 +63,10 @@ class PersistentPetriNetActorSpec
       actor ! FireTransition(t1, ())
 
       // expect the next marking: p2 -> 1
-      expectMsg(ColoredMarking(p2(())))
+      expectMsg(ColoredMarking(p2 -> 1))
 
       // since t2 fires automatically we also expect the next marking: p3 -> 1
-      expectMsg(ColoredMarking(p3(())))
+      expectMsg(ColoredMarking(p3 -> 1))
 
       // terminate the actor
       watch(actor)

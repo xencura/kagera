@@ -21,6 +21,8 @@ package object colored {
 
   type MarkedPlace[T] = (Place[T], MultiSet[T])
 
+  implicit def toMarkedPlace(tuple: (Place[Unit], Int)): MarkedPlace[Unit] = tuple._1 -> Map[Unit, Int](() -> tuple._2)
+
   implicit def toMarking(map: Map[Place[_], MultiSet[_]]): ColoredMarking = ColoredMarking(map)
 
   implicit def placeLabel[C](p: Place[C]): String @@ tags.Label = tag[tags.Label](p.label)

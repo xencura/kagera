@@ -1,6 +1,7 @@
 package io.kagera.api.colored
 
 import io.kagera.api._
+import io.kagera.api.colored.ColoredMarking.MarkingData
 import io.kagera.api.multiset._
 
 import scala.concurrent.duration.Duration
@@ -35,15 +36,15 @@ package object dsl {
         executor: ExecutionContext
       ): (ColoredMarking, S, I) => Future[(ColoredMarking, O)] = { (marking, state, input) =>
         {
-          val produced: ColoredMarking = outAdjacent.map { case (place, weight) =>
+          val produced: MarkingData = outAdjacent.map { case (place, weight) =>
             place -> produceTokens(place, weight.toInt)
           }.toMap
 
-          Future.successful(produced -> constant)
+          Future.successful(ColoredMarking(produced) -> constant)
         }
       }
 
-      override def produceTokens[C](place: Place[C], count: Int): MultiSet[C] =
+      def produceTokens[C](place: Place[C], count: Int): MultiSet[C] =
         MultiSet.empty[C] + (constant.asInstanceOf[C] -> count)
     }
 

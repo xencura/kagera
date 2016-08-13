@@ -2,7 +2,7 @@ package io.kagera.api.colored
 
 import io.kagera.api.multiset.MultiSet
 
-import scala.concurrent.Future
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.concurrent.duration.{ Duration, FiniteDuration }
 
 /**
