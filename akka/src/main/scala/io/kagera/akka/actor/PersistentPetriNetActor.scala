@@ -8,7 +8,10 @@ import io.kagera.api._
 import io.kagera.api.colored._
 import io.kagera.api.multiset._
 import akka.pattern.pipe
+import io.kagera.api.colored.ColoredMarking.MarkingData
 import shapeless.tag._
+
+import scala.language.existentials
 
 object PersistentPetriNetActor {
 
@@ -18,29 +21,39 @@ object PersistentPetriNetActor {
   // how to deterministically assign each token an identifier?
   case object GetState
 
-  case class TransitionFired(
-    transition_id: Long @@ tags.Id,
-    consumed: Map[Long, MultiSet[Int]],
+  // persist model
+  case class TransitionFiredPersist(
+    transition_id: Long,
+    consumed: MarkingIndex,
     produced: Map[Long, MultiSet[_]],
+    out: Any
+  )
+
+  case class TransitionFired[S](
+    transition: Transition[_, _, S],
+    consumed: ColoredMarking,
+    produced: ColoredMarking,
     out: Any
   )
 
   case class FireTransition(transition_id: Long @@ tags.Id, input: Any)
 
+  case class State[S](marking: ColoredMarking, state: S)
+
   implicit class ColoredMarkingFns(marking: ColoredMarking) {
-    def indexed: Map[Long, MultiSet[Int]] = marking.data.map { case (p, tokens) =>
-      p.id -> tokens.map { case (value, count) =>
-        hashCodeOf(value) -> count
+    def indexed: Map[Long, MultiSet[Int]] = marking.data.map { case (place, tokens) =>
+      place.id -> tokens.map { case (value, count) =>
+        tokenIdentifier(place)(value) -> count
       }
     }
   }
 
   implicit class MarkingIndexFns(indexedMarking: MarkingIndex) {
     def realizeFrom(marking: ColoredMarking): ColoredMarking = {
-      val data: Map[Place[_], MultiSet[_]] = indexedMarking.map { case (pid, values) =>
-        val place = marking.markedPlaces.findById(pid).get
+      val data: MarkingData = indexedMarking.map { case (pid, values) =>
+        val place = marking.markedPlaces.getById(pid)
         val tokens = values.map { case (id, count) =>
-          val value = marking(place).keySet.find(e => hashCodeOf(e) == id).get
+          val value = marking(place).keySet.find(e => tokenIdentifier(place)(e) == id).get
           value -> count
         }
 
@@ -51,11 +64,43 @@ object PersistentPetriNetActor {
     }
   }
 
+  // this approach is fragile, the function cannot change ever or recovery breaks
+  // a more robust alternative is to generate the ids and persist them
+  def tokenIdentifier[C](p: Place[C]): Any => Int = obj => hashCodeOf[Any](obj)
+
   def hashCodeOf[T](e: T): Int = {
     if (e == null)
       -1
     else
       e.hashCode()
+  }
+
+  implicit class ProcessFns[S](process: ColoredPetriNetProcess[S]) {
+
+    def getTransitionById(id: Long): Transition[Any, Any, S] =
+      process.transitions.getById(id).asInstanceOf[Transition[Any, Any, S]]
+  }
+
+  trait TransitionEventAdapter[S] {
+    def write(e: TransitionFired[_]): TransitionFiredPersist = {
+      val consumedIndex: Map[Long, MultiSet[Int]] = e.consumed.indexed
+      val produceIndex: Map[Long, MultiSet[_]] = e.produced.data.map { case (place, tokens) => place.id -> tokens }.toMap
+
+      TransitionFiredPersist(e.transition, consumedIndex, produceIndex, e.out)
+    }
+
+    def read(
+      process: ColoredPetriNetProcess[S],
+      currentMarking: ColoredMarking,
+      e: TransitionFiredPersist
+    ): TransitionFired[S] = {
+      val transition = process.getTransitionById(e.transition_id)
+      val consumed = e.consumed.realizeFrom(currentMarking)
+      val produced = ColoredMarking(data = e.produced.map { case (id, tokens) =>
+        process.places.getById(id) -> tokens
+      }.toMap)
+      TransitionFired(transition, consumed, produced, e.out)
+    }
   }
 }
 
@@ -71,31 +116,22 @@ class PersistentPetriNetActor[S](
   var currentMarking: ColoredMarking = initialMarking
   var state: S = initialState
 
+  val eventAdapter = new TransitionEventAdapter[S] {}
+
   import context.dispatcher
 
-  def getTransitionById(id: Long): Transition[Any, _, S] =
-    process.transitions
-      .findById(id)
-      .getOrElse { throw new IllegalStateException(s"No transition found with identifier: $id") }
-      .asInstanceOf[Transition[Any, _, S]]
-
-  def getPlaceById(id: Long): Place[_] =
-    process.places.findById(id).getOrElse { throw new IllegalStateException(s"No place found with identifier: $id") }
-
-  def getById[C](marking: ColoredMarking, id: Iterable[Long]): ColoredMarking = ???
-
-  override def receiveCommand: Receive = {
+  override def receiveCommand = {
     case GetState =>
       sender() ! currentMarking
 
-    case e: TransitionFired =>
-      persist(e) { persisted =>
+    case e: TransitionFired[_] =>
+      persist(eventAdapter.write(e)) { persisted =>
         applyEvent(e)
         sender() ! currentMarking
         step()
       }
 
-    case FireTransition(id, input) => fire(getTransitionById(id), input)
+    case FireTransition(id, input) => fire(process.getTransitionById(id), input)
   }
 
   /**
@@ -128,26 +164,19 @@ class PersistentPetriNetActor[S](
       case Some(params) =>
         val consume = params.head
         process.fireTransition(transition)(consume, state, input).map { case (produced, output) =>
-          val consumedIndex: Map[Long, MultiSet[Int]] = consume.indexed
-          val produceIndex: Map[Long, MultiSet[_]] = produced.data.map { case (place, tokens) =>
-            place.id -> tokens
-          }.toMap
-
-          TransitionFired(transition, consumedIndex, produceIndex, output)
+          TransitionFired(transition, consume, produced, output)
         }
     }
 
     futureResult.pipeTo(self)(sender())
   }
 
-  def applyEvent: Receive = { case TransitionFired(id, consumed, produced, out) =>
-    val transition = getTransitionById(id)
-    val consumedMarking = consumed.realizeFrom(currentMarking)
-    val producedMarking = ColoredMarking(data = produced.map { case (id, tokens) => getPlaceById(id) -> tokens }.toMap)
-
-    //      state = transition.updateState(out)
-    currentMarking = currentMarking -- consumedMarking ++ producedMarking
+  def applyEvent: Receive = { case e: TransitionFired[_] =>
+    currentMarking = currentMarking -- e.consumed ++ e.produced
+    state = e.transition.asInstanceOf[Transition[_, Any, S]].updateState(state)(e.out)
   }
 
-  override def receiveRecover: Receive = applyEvent
+  override def receiveRecover: Receive = { case e: TransitionFiredPersist =>
+    applyEvent(eventAdapter.read(process, currentMarking, e))
+  }
 }

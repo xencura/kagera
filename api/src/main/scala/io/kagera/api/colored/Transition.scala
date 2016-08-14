@@ -85,5 +85,5 @@ trait Transition[Input, Output, State] {
    * @param e
    * @return
    */
-  def updateState(e: Output): State => State
+  def updateState(e: State): Output => State
 }

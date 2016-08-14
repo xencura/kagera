@@ -22,11 +22,17 @@ package object api {
   type Labeled[T] = T => String @@ tags.Label
 
   implicit class LabeledFn[T : Labeled](seq: Iterable[T]) {
-    def findByLabel(label: String) = seq.find(e => implicitly[Labeled[T]].apply(e) == label)
+    def findByLabel(label: String): Option[T] = seq.find(e => implicitly[Labeled[T]].apply(e) == label)
+    def getByLabel(label: String): T = findByLabel(label).getOrElse {
+      throw new IllegalStateException(s"No element found with label: $label")
+    }
   }
 
   implicit class IdFn[T : Identifiable](seq: Iterable[T]) {
-    def findById(id: Long) = seq.find(e => implicitly[Identifiable[T]].apply(e) == id)
+    def findById(id: Long): Option[T] = seq.find(e => implicitly[Identifiable[T]].apply(e) == id)
+    def getById(id: Long): T = findById(id).getOrElse {
+      throw new IllegalStateException(s"No element found with id: $id")
+    }
   }
 
   implicit class OptionOps(check: Boolean) {
@@ -59,7 +65,7 @@ package object api {
   implicit def placeToNode[P, T](p: P): Either[P, T] = Left(p)
   implicit def transitionToNode[P, T](t: T): Either[P, T] = Right(t)
 
-  implicit class DirectedBiPartiteNodeTAdditions[A, B](val node: BiPartiteGraph[A, B, WLDiEdge]#NodeT) {
+  implicit class PetriNetGraphNodeTAdditions[A, B](val node: BiPartiteGraph[A, B, WLDiEdge]#NodeT) {
 
     def asPlace: A = node.value match {
       case Left(p) => p
@@ -87,7 +93,7 @@ package object api {
     def isTransition = cond(node.value) { case Right(n) => true }
   }
 
-  implicit class DirectedBiPartiteGraphAdditions[P, T](val graph: BiPartiteGraph[P, T, WLDiEdge]) {
+  implicit class PetriNetGraphAdditions[P, T](val graph: BiPartiteGraph[P, T, WLDiEdge]) {
 
     def findPTEdge(from: P, to: T): Option[WLDiEdge[Either[P, T]]] =
       graph.get(Left(from)).outgoing.find(_.target.value == Right(to)).map(_.toOuter)

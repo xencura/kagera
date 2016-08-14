@@ -33,6 +33,19 @@ package object colored {
 
   implicit def transitionIdentifier(t: Transition[_, _, _]): Long @@ tags.Id = tag[tags.Id](t.id)
 
+  /**
+   * TODO
+   *
+   * Incorporate the upper bounds of the
+   *
+   * place color: C transition input: I transition output: E
+   *
+   * Then that we can define:
+   *
+   * Uncolored petri nets, where C is Unit Non interactive nets, Where I is Unit
+   *
+   * @tparam S
+   */
   type ColoredPetriNetProcess[S] = PetriNet[Place[_], Transition[_, _, _]]
     with ColoredTokenGame
     with TransitionExecutor[S]

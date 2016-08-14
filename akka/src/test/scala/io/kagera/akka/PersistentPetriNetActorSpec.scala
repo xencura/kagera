@@ -4,12 +4,11 @@ import java.util.UUID
 
 import akka.actor.{ ActorSystem, PoisonPill, Props, Terminated }
 import akka.testkit.{ ImplicitSender, TestKit }
-import com.typesafe.config.{ Config, ConfigFactory }
+import com.typesafe.config.ConfigFactory
 import io.kagera.akka.actor.PersistentPetriNetActor
-import io.kagera.akka.actor.PersistentPetriNetActor.{ FireTransition, GetState, TransitionFired }
-import io.kagera.api.colored.dsl._
+import io.kagera.akka.actor.PersistentPetriNetActor.{ FireTransition, GetState }
 import io.kagera.api.colored._
-import io.kagera.api.multiset.MultiSet
+import io.kagera.api.colored.dsl._
 import org.scalatest.WordSpecLike
 
 object PersistentPetriNetActorSpec {
@@ -42,11 +41,11 @@ class PersistentPetriNetActorSpec
 
   import system.dispatcher
 
-  val petriNet = process[Unit](p1 ~> t1, t1 ~> p2, p2 ~> t2, t2 ~> p3)
-
   "A persistent petri net actor" should {
 
     "Be able to restore it's state after termination" in {
+
+      val petriNet = process[Unit](p1 ~> t1, t1 ~> p2, p2 ~> t2, t2 ~> p3)
 
       // creates a petri net actor with initial marking: p1 -> 1
       val id = UUID.randomUUID()
@@ -79,7 +78,7 @@ class PersistentPetriNetActorSpec
       newActor ! GetState
 
       // assert that the marking is the same as before termination
-      expectMsg(ColoredMarking(p3(())))
+      expectMsg(ColoredMarking(p3 -> 1))
     }
   }
 
