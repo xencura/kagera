@@ -157,15 +157,17 @@ class PersistentPetriNetActor[S](
    * @param input
    * @return
    */
-  def fire(transition: Transition[Any, _, S], input: Any) = {
+  def fire(transition: Transition[Any, _, S], input: Any): Unit = {
 
-    val futureResult = process.enabledParameters(currentMarking).get(transition) match {
+    process.enabledParameters(currentMarking).get(transition) match {
       case None => throw new IllegalArgumentException(s"Transition $transition is not enabled")
-      case Some(params) =>
-        val consume = params.head
-        process.fireTransition(transition)(consume, state, input).map { case (produced, output) =>
-          TransitionFired(transition, consume, produced, output)
-        }
+      case Some(params) => fire(transition, params.head, input)
+    }
+  }
+
+  def fire(transition: Transition[Any, _, S], consume: ColoredMarking, input: Any): Unit = {
+    val futureResult = process.fireTransition(transition)(consume, state, input).map { case (produced, output) =>
+      TransitionFired(transition, consume, produced, output)
     }
 
     futureResult.pipeTo(self)(sender())

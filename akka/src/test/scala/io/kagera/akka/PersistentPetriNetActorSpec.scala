@@ -32,12 +32,21 @@ class PersistentPetriNetActorSpec
     with WordSpecLike
     with ImplicitSender {
 
+  trait Event
+  case class Added(n: Int) extends Event
+  case class Removed(n: Int) extends Event
+
+  val eventSourcing: Set[Int] => Event => Set[Int] = set => {
+    case Added(c) => set + c
+    case Removed(c) => set - c
+  }
+
   val p1 = Place[Unit](id = 1, label = "p1")
   val p2 = Place[Unit](id = 2, label = "p2")
   val p3 = Place[Unit](id = 3, label = "p3")
 
-  val t1 = nullTransition(1, "t1", isManaged = false)
-  val t2 = nullTransition(2, "t2", isManaged = true)
+  val t1 = stateFunction(eventSourcing)(set => Added(1))
+  val t2 = stateFunction(eventSourcing, isManaged = true)(set => Added(2))
 
   import system.dispatcher
 
@@ -45,13 +54,13 @@ class PersistentPetriNetActorSpec
 
     "Be able to restore it's state after termination" in {
 
-      val petriNet = process[Unit](p1 ~> t1, t1 ~> p2, p2 ~> t2, t2 ~> p3)
+      val petriNet = process[Set[Int]](p1 ~> t1, t1 ~> p2, p2 ~> t2, t2 ~> p3)
 
       // creates a petri net actor with initial marking: p1 -> 1
       val id = UUID.randomUUID()
       val initialMarking = ColoredMarking(p1 -> 1)
 
-      val actor = system.actorOf(Props(new PersistentPetriNetActor[Unit](id, petriNet, initialMarking, ())))
+      val actor = system.actorOf(Props(new PersistentPetriNetActor[Set[Int]](id, petriNet, initialMarking, Set.empty)))
 
       // assert that the actor is in the initial state
       actor ! GetState
@@ -73,7 +82,8 @@ class PersistentPetriNetActorSpec
       expectMsgClass(classOf[Terminated])
 
       // create a new actor with the same persistent identifier
-      val newActor = system.actorOf(Props(new PersistentPetriNetActor[Unit](id, petriNet, initialMarking, ())))
+      val newActor =
+        system.actorOf(Props(new PersistentPetriNetActor[Set[Int]](id, petriNet, initialMarking, Set.empty)))
 
       newActor ! GetState
 

@@ -6,13 +6,34 @@ import io.kagera.api.multiset._
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{ ExecutionContext, Future }
+import scala.util.Random
 import scalax.collection.Graph
 import scalax.collection.edge.WLDiEdge
 
 package object dsl {
 
-  implicit class TransitionDSL[C](t: Transition[_, C, _]) {
-    def ~>[A](p: Place[C], weight: Long = 1): Arc = arc(t, p, weight)
+  def stateFunction[S, E](stateTransition: S => E => S, id: Long = Random.nextLong, isManaged: Boolean = false)(
+    fn: S => E
+  ): Transition[Unit, E, S] =
+    new AbstractTransition[Unit, E, S](id, label = "", isManaged, maximumOperationTime = Duration.Undefined) {
+
+      override def apply(inAdjacent: MultiSet[Place[_]], outAdjacent: MultiSet[Place[_]])(implicit
+        executor: ExecutionContext
+      ) =
+        (consume, state, in) => {
+
+          val produce: MarkingData = outAdjacent.map { case (place, count) =>
+            place -> Map(() -> count)
+          }.toMap
+
+          Future.successful(ColoredMarking(produce), fn(state))
+        }
+
+      override def updateState(state: S): (E) => S = stateTransition(state)
+    }
+
+  implicit class TransitionDSL(t: Transition[_, _, _]) {
+    def ~>[C](p: Place[C], weight: Long = 1): Arc = arc(t, p, weight)
   }
 
   implicit class PlaceDSL[C](p: Place[C]) {

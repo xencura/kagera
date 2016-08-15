@@ -13,8 +13,6 @@ abstract class AbstractTransition[I, O, S](
 
   override def toString = label
 
-  def produceTokens[C](place: Place[C], count: Int): MultiSet[C]
-
   type Input = I
   type Output = O
 }
