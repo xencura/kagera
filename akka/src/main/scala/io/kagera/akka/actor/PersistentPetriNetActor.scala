@@ -2,6 +2,7 @@ package io.kagera.akka.actor
 
 import java.util.UUID
 
+import akka.actor.Props
 import akka.persistence.PersistentActor
 import io.kagera.akka.actor.PersistentPetriNetActor._
 import io.kagera.api._
@@ -102,6 +103,9 @@ object PersistentPetriNetActor {
       TransitionFired(transition, consumed, produced, e.out)
     }
   }
+
+  def props[S](id: UUID, process: ColoredPetriNetProcess[S], initialMarking: ColoredMarking, initialState: S) =
+    Props(new PersistentPetriNetActor[S](id: UUID, process, initialMarking, initialState))
 }
 
 class PersistentPetriNetActor[S](

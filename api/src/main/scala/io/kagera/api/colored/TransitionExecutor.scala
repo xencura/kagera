@@ -9,7 +9,7 @@ trait TransitionExecutor[S] {
   this: PetriNet[Place[_], Transition[_, _, _]] with TokenGame[Place[_], Transition[_, _, _], ColoredMarking] =>
 
   // TODO remove this requirement
-  implicit val executionContext: ExecutionContext
+  implicit def executionContext: ExecutionContext
 
   val transitionFunctions: Map[Transition[_, _, _], _] =
     transitions.map(t => t -> t.apply(inMarking(t), outMarking(t))).toMap

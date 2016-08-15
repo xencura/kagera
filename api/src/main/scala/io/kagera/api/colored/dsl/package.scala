@@ -74,6 +74,6 @@ package object dsl {
 
   def process[S](params: Arc*)(implicit ec: ExecutionContext): ColoredPetriNetProcess[S] =
     new ScalaGraphPetriNet(Graph(params: _*)) with ColoredTokenGame with TransitionExecutor[S] {
-      override val executionContext = ec
+      override lazy implicit val executionContext = ec
     }
 }
