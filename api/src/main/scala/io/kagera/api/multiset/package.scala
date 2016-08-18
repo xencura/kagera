@@ -46,8 +46,8 @@ package object multiset {
 
     def setMultiplicity(map: Map[T, Int])(element: T, m: Int) = map + (element -> m)
 
-    def allElements: Iterable[T] = mset.foldLeft(List.empty[T]) { case (l, (e, count)) =>
-      l ++ List.fill(count)(e)
+    def allElements: Iterable[T] = mset.foldLeft(List.empty[T]) { case (list, (e, count)) =>
+      List.fill[T](count)(e) ::: list
     }
 
     def add(element: T, count: Int): Map[T, Int] = mset + (element -> (1 + mset.getOrElse(element, 0)))

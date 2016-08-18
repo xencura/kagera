@@ -20,11 +20,12 @@ trait ColoredTokenGame extends TokenGame[Place[_], Transition[_, _, _], ColoredM
     if (consumable.exists { case (place, count, tokens) => tokens.multisetSize < count })
       Seq.empty
     else {
-      val marking: MarkingData = consumable.map { case (place, count, tokens) =>
-        place -> MultiSet.from(tokens.allElements.take(count.toInt))
-      }.toMap
+      val consume = consumable.map { case (place, count, tokens) =>
+        place -> MultiSet.from(tokens.allElements.take(count))
+      }.toMarking
 
-      Seq(marking)
+      // TODO lazily compute all permutations instead of only providing the first result
+      Seq(consume)
     }
   }
 
