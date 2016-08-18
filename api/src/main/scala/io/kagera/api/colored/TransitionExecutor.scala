@@ -23,15 +23,17 @@ trait TransitionExecutor[S] {
     t: Transition[Input, Output, S]
   )(consume: ColoredMarking, state: S, input: Input): Future[(ColoredMarking, Output)] = {
 
-    if (consume.multiplicities == inMarking(t)) {
+    if (consume.multiplicities != inMarking(t)) {
       // TODO make more explicit what is wrong here, mention the first multiplicity that is incorrect.
       Future.failed(new IllegalArgumentException(s"Transition $t may not consume $consume"))
     }
 
-    tfn(t)(consume, state, input)
-      .recoverWith { case e: Exception =>
-        Future.failed(new RuntimeException(s"Transition '$t' failed to fire!", e))
-      }
-      .map { case (produce, output) => (produce, output) }
+    def handleFailure: PartialFunction[Throwable, Future[(ColoredMarking, Output)]] = { case e: Exception =>
+      Future.failed(new TransitionFailedException(t, e))
+    }
+
+    try {
+      tfn(t)(consume, state, input).recoverWith { handleFailure }
+    } catch { handleFailure }
   }
 }

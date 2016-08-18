@@ -2,7 +2,8 @@ package io.kagera.akka.actor
 
 import java.util.UUID
 
-import akka.actor.{ ActorLogging, Props }
+import akka.actor.Status.Failure
+import akka.actor.{ Actor, ActorLogging, ActorRef, Props }
 import akka.persistence.PersistentActor
 import io.kagera.akka.actor.PersistentPetriNetActor._
 import io.kagera.api._
@@ -11,6 +12,7 @@ import io.kagera.api.multiset._
 import akka.pattern.pipe
 import shapeless.tag._
 
+import scala.collection._
 import scala.language.existentials
 
 object PersistentPetriNetActor {
@@ -27,18 +29,29 @@ object PersistentPetriNetActor {
   case object GetAccumulatedState
 
   // persist model
-  case class TransitionFiredPersist(
+  protected case class TransitionFiredPersist(
     transition_id: Long,
     consumed: MarkingIndex,
     produced: Map[Long, MultiSet[_]],
     out: Any
   )
 
-  case class TransitionFired[S](
+  protected case class TransitionFired[S](
     transition: Transition[_, _, S],
     consumed: ColoredMarking,
     produced: ColoredMarking,
     out: Any
+  )
+
+  case class TransitionFailed[S](transition: Transition[_, _, S], reason: Throwable)
+
+  // response
+  case class TransitionFiredResponse[S](
+    transition: Long,
+    consumed: ColoredMarking,
+    produced: ColoredMarking,
+    marking: ColoredMarking,
+    state: S
   )
 
   case class FireTransition(transition_id: Long @@ tags.Id, input: Any)
@@ -84,15 +97,20 @@ object PersistentPetriNetActor {
       process.transitions.getById(id).asInstanceOf[Transition[Any, Any, S]]
   }
 
+  /**
+   * Translates to/from the persist and internal event model
+   *
+   * @tparam S
+   */
   trait TransitionEventAdapter[S] {
-    def write(e: TransitionFired[_]): TransitionFiredPersist = {
+    def writeEvent(e: TransitionFired[_]): TransitionFiredPersist = {
       val consumedIndex: Map[Long, MultiSet[Int]] = e.consumed.indexed
       val produceIndex: Map[Long, MultiSet[_]] = e.produced.data.map { case (place, tokens) => place.id -> tokens }.toMap
 
       TransitionFiredPersist(e.transition, consumedIndex, produceIndex, e.out)
     }
 
-    def read(
+    def readEvent(
       process: ColoredPetriNetProcess[S],
       currentMarking: ColoredMarking,
       e: TransitionFiredPersist
@@ -116,33 +134,31 @@ class PersistentPetriNetActor[S](
   initialMarking: ColoredMarking,
   initialState: S
 ) extends PersistentActor
-    with ActorLogging {
+    with ActorLogging
+    with TransitionEventAdapter[S] {
 
   override def persistenceId: String = s"petrinet-$id"
 
   var currentMarking: ColoredMarking = initialMarking
   var availableMarking: ColoredMarking = initialMarking
-  var accumulatedMarking: ColoredMarking = initialMarking
-
   var state: S = initialState
-
-  val eventAdapter = new TransitionEventAdapter[S] {}
 
   import context.dispatcher
 
   override def receiveCommand = {
     case GetState =>
-      sender() ! currentMarking
-
-    case GetAccumulatedState =>
-      sender() ! accumulatedMarking
+      sender() ! State[S](currentMarking, state)
 
     case e: TransitionFired[_] =>
-      persist(eventAdapter.write(e)) { persisted =>
+      persist(writeEvent(e)) { persisted =>
         applyEvent(e)
-        sender() ! currentMarking
+        val response = TransitionFiredResponse[S](e.transition, e.consumed, e.produced, currentMarking, state)
+        sender() ! response
         step()
       }
+    case e: TransitionFailed[_] =>
+      log.info(s"received transition falied: ${e.transition}")
+      sender() ! e
 
     case FireTransition(id, input) => fire(process.getTransitionById(id), input)
   }
@@ -173,18 +189,24 @@ class PersistentPetriNetActor[S](
   def fire(transition: Transition[Any, _, S], input: Any): Unit = {
 
     process.enabledParameters(availableMarking).get(transition) match {
-      case None => throw new IllegalArgumentException(s"Transition $transition is not enabled")
+      case None =>
+        sender() ! TransitionFailed(transition, new IllegalArgumentException(s"Transition $transition is not enabled"))
       case Some(params) => fire(transition, params.head, input)
     }
   }
 
   def fire(transition: Transition[Any, _, S], consume: ColoredMarking, input: Any): Unit = {
 
-    availableMarking = availableMarking -- consume
+    availableMarking --= consume
 
-    val futureResult = process.fireTransition(transition)(consume, state, input).map { case (produced, output) =>
-      TransitionFired(transition, consume, produced, output)
-    }
+    val futureResult = process
+      .fireTransition(transition)(consume, state, input)
+      .map { case (produced, output) =>
+        TransitionFired(transition, consume, produced, output)
+      }
+      .recover { case e: Throwable =>
+        TransitionFailed(transition, e)
+      }
 
     futureResult.pipeTo(self)(sender())
   }
@@ -192,11 +214,10 @@ class PersistentPetriNetActor[S](
   def applyEvent: Receive = { case e: TransitionFired[_] =>
     currentMarking = currentMarking -- e.consumed ++ e.produced
     availableMarking ++= e.produced
-    accumulatedMarking ++= e.produced
     state = e.transition.asInstanceOf[Transition[_, Any, S]].updateState(state)(e.out)
   }
 
   override def receiveRecover: Receive = { case e: TransitionFiredPersist =>
-    applyEvent(eventAdapter.read(process, currentMarking, e))
+    applyEvent(readEvent(process, currentMarking, e))
   }
 }
