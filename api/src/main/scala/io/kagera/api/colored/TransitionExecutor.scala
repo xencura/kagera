@@ -28,7 +28,7 @@ trait TransitionExecutor[S] {
       Future.failed(new IllegalArgumentException(s"Transition $t may not consume $consume"))
     }
 
-    def handleFailure: PartialFunction[Throwable, Future[(ColoredMarking, Output)]] = { case e: Exception =>
+    def handleFailure: PartialFunction[Throwable, Future[(ColoredMarking, Output)]] = { case e: Throwable =>
       Future.failed(new TransitionFailedException(t, e))
     }
 

@@ -2,18 +2,17 @@ package io.kagera.akka.actor
 
 import java.util.UUID
 
-import akka.actor.Status.Failure
-import akka.actor.{ Actor, ActorLogging, ActorRef, Props }
+import akka.actor.{ ActorLogging, Props }
 import akka.persistence.PersistentActor
 import io.kagera.akka.actor.PersistentPetriNetActor._
 import io.kagera.api._
 import io.kagera.api.colored._
 import io.kagera.api.multiset._
-import akka.pattern.pipe
 import shapeless.tag._
 
 import scala.collection._
 import scala.language.existentials
+import scala.util.{ Failure, Random, Success }
 
 object PersistentPetriNetActor {
 
@@ -43,16 +42,23 @@ object PersistentPetriNetActor {
     out: Any
   )
 
-  case class TransitionFailed[S](transition: Transition[_, _, S], reason: Throwable)
+  sealed trait TransitionResult
 
   // response
-  case class TransitionFiredResponse[S](
+  case class TransitionFiredSuccessfully[S](
     transition: Long,
     consumed: ColoredMarking,
     produced: ColoredMarking,
     marking: ColoredMarking,
     state: S
-  )
+  ) extends TransitionResult
+
+  case class TransitionFailed[S](
+    transition: Transition[_, _, S],
+    consume: ColoredMarking,
+    input: Any,
+    reason: Throwable
+  ) extends TransitionResult
 
   case class FireTransition(transition_id: Long @@ tags.Id, input: Any)
 
@@ -124,6 +130,9 @@ object PersistentPetriNetActor {
     }
   }
 
+  case class JobCompleted(id: Long)
+  case class JobTimedout(id: Long)
+
   def props[S](id: UUID, process: ColoredPetriNetProcess[S], initialMarking: ColoredMarking, initialState: S) =
     Props(new PersistentPetriNetActor[S](id: UUID, process, initialMarking, initialState))
 }
@@ -140,24 +149,52 @@ class PersistentPetriNetActor[S](
   override def persistenceId: String = s"petrinet-$id"
 
   var currentMarking: ColoredMarking = initialMarking
-  var availableMarking: ColoredMarking = initialMarking
   var state: S = initialState
 
+  case class Job(
+    id: Long,
+    t: Transition[Any, _, S],
+    consume: ColoredMarking,
+    input: Any,
+    startTime: Long = System.currentTimeMillis()
+  ) {
+    val result = process.fireTransition(t)(consume, state, input)
+  }
+
   import context.dispatcher
+
+  def nextJobId(): Long = Random.nextLong()
+  val runningJobs: mutable.Map[Long, Job] = mutable.Map.empty
+
+  def reservedMarking =
+    runningJobs.map { case (id, job) => job.consume }.reduceOption(_ ++ _).getOrElse(ColoredMarking.empty)
+  def availableMarking = currentMarking -- reservedMarking
 
   override def receiveCommand = {
     case GetState =>
       sender() ! State[S](currentMarking, state)
 
-    case e: TransitionFired[_] =>
-      persist(writeEvent(e)) { persisted =>
-        applyEvent(e)
-        val response = TransitionFiredResponse[S](e.transition, e.consumed, e.produced, currentMarking, state)
-        sender() ! response
-        step()
+    case JobCompleted(id) =>
+      val job = runningJobs(id)
+      job.result.value.foreach {
+        case Success((produced, output)) =>
+          val e = TransitionFired(job.t, job.consume, produced, output)
+          persist(writeEvent(e)) { persisted =>
+            applyEvent(e)
+            log.debug(s"Transition fired ${e.transition}")
+            val response = TransitionFiredSuccessfully[S](e.transition, e.consumed, e.produced, currentMarking, state)
+            runningJobs -= id
+            step()
+            sender() ! response
+          }
+        case Failure(reason) =>
+          log.warning(s"Transition '${job.t}' failed: {}", reason)
+          runningJobs -= id
+          sender ! TransitionFailed(job.t, job.consume, job.input, reason)
       }
+
     case e: TransitionFailed[_] =>
-      log.info(s"received transition falied: ${e.transition}")
+      log.warning(s"Transition '${e.transition}' failed: {}", e)
       sender() ! e
 
     case FireTransition(id, input) => fire(process.getTransitionById(id), input)
@@ -190,30 +227,25 @@ class PersistentPetriNetActor[S](
 
     process.enabledParameters(availableMarking).get(transition) match {
       case None =>
-        sender() ! TransitionFailed(transition, new IllegalArgumentException(s"Transition $transition is not enabled"))
+        sender() ! TransitionFailed(
+          transition,
+          ColoredMarking.empty,
+          input,
+          new IllegalStateException(s"Transition $transition is not enabled")
+        )
       case Some(params) => fire(transition, params.head, input)
     }
   }
 
   def fire(transition: Transition[Any, _, S], consume: ColoredMarking, input: Any): Unit = {
-
-    availableMarking --= consume
-
-    val futureResult = process
-      .fireTransition(transition)(consume, state, input)
-      .map { case (produced, output) =>
-        TransitionFired(transition, consume, produced, output)
-      }
-      .recover { case e: Throwable =>
-        TransitionFailed(transition, e)
-      }
-
-    futureResult.pipeTo(self)(sender())
+    val job = Job(nextJobId(), transition, consume, input)
+    runningJobs += job.id -> job
+    val originalSender = sender()
+    job.result.onComplete { case _ => self.tell(JobCompleted(job.id), originalSender) }
   }
 
   def applyEvent: Receive = { case e: TransitionFired[_] =>
     currentMarking = currentMarking -- e.consumed ++ e.produced
-    availableMarking ++= e.produced
     state = e.transition.asInstanceOf[Transition[_, Any, S]].updateState(state)(e.out)
   }
 

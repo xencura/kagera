@@ -11,7 +11,7 @@ import io.kagera.akka.actor.PersistentPetriNetActor.{
   GetState,
   State,
   TransitionFailed,
-  TransitionFiredResponse
+  TransitionFiredSuccessfully
 }
 import io.kagera.api.colored._
 import io.kagera.api.colored.dsl._
@@ -55,6 +55,8 @@ class PersistentPetriNetActorSpec
 
   "A persistent petri net actor" should {
 
+    "Respond with a TransitionFiredSuccessfully message if a transition fired successfully" in {}
+
     "Respond with a TransitionFailed message if a transition failed to fire" in {
 
       val t1 = stateFunction(eventSourcing)(set => throw new RuntimeException("something went wrong"))
@@ -94,10 +96,10 @@ class PersistentPetriNetActorSpec
       actor ! FireTransition(t1, ())
 
       // expect the next marking: p2 -> 1
-      expectMsgPF() { case TransitionFiredResponse(t1, _, _, result, _) if result == ColoredMarking(p2 -> 1) => }
+      expectMsgPF() { case TransitionFiredSuccessfully(t1, _, _, result, _) if result == ColoredMarking(p2 -> 1) => }
 
       // since t2 fires automatically we also expect the next marking: p3 -> 1
-      expectMsgPF() { case TransitionFiredResponse(t2, _, _, result, _) if result == ColoredMarking(p3 -> 1) => }
+      expectMsgPF() { case TransitionFiredSuccessfully(t2, _, _, result, _) if result == ColoredMarking(p3 -> 1) => }
 
       // terminate the actor
       watch(actor)
