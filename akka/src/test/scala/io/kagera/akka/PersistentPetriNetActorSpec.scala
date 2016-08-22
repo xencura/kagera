@@ -27,8 +27,6 @@ object PersistentPetriNetActorSpec {
       |  actor.provider = "akka.actor.LocalActorRefProvider"
       |}
       |
-      |cram.list-authorized-parties.endpoint-uri = "direct:mdmEndpoint"
-      |
       |logging.root.level = WARN
     """.stripMargin)
 }
@@ -77,7 +75,6 @@ class PersistentPetriNetActorSpec
 
       val t1 = stateFunction(eventSourcing)(set => Added(1))
       val t2 = stateFunction(eventSourcing, isManaged = true)(set => Added(2))
-      val t3 = stateFunction(eventSourcing)(set => throw new RuntimeException("something went wrong"))
 
       val petriNet = process[Set[Int]](p1 ~> t1, t1 ~> p2, p2 ~> t2, t2 ~> p3)
 
