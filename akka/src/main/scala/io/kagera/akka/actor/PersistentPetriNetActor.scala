@@ -7,6 +7,7 @@ import akka.persistence.PersistentActor
 import io.kagera.akka.actor.PersistentPetriNetActor._
 import io.kagera.akka.actor.TransitionEventAdapter.TransitionFiredPersist
 import io.kagera.api._
+import io.kagera.api.colored.ExceptionStrategy.RetryWithDelay
 import io.kagera.api.colored._
 import shapeless.tag._
 
@@ -19,6 +20,10 @@ object PersistentPetriNetActor {
   // we don't want to store the consumed token values in this event, just pointers / identifiers
   // how to deterministically assign each token an identifier?
   case object GetState
+
+  case class ResolveTransition(id: Long)
+
+  case class ResolveAll(id: Long)
 
   case class TransitionFired(
     transition_id: Long,
@@ -51,9 +56,11 @@ object PersistentPetriNetActor {
 
   case class State[S](marking: ColoredMarking, state: S)
 
-  case class JobCompleted(id: Long)
+  case class TransitionExceptionState(time: Long, exception: Throwable, exceptionStrategy: ExceptionStrategy)
 
-  case class JobTimedout(id: Long)
+  protected case class JobCompleted(id: Long)
+
+  protected case class JobTimedout(id: Long)
 
   def props[S](id: UUID, process: ColoredPetriNetProcess[S], initialMarking: ColoredMarking, initialState: S) =
     Props(new PersistentPetriNetActor[S](id: UUID, process, initialMarking, initialState))
@@ -66,9 +73,9 @@ class PersistentPetriNetActor[S](
   initialState: S
 ) extends PersistentActor
     with ActorLogging
-    with TransitionEventAdapter[S] {
+    with DefaultEventAdapter[S] {
 
-  override def persistenceId: String = s"petrinet-$id"
+  override def persistenceId: String = s"process-$id"
 
   def currentTime(): Long = System.currentTimeMillis()
 
@@ -89,10 +96,13 @@ class PersistentPetriNetActor[S](
 
   def nextJobId(): Long = Random.nextLong()
 
-  def transitionStatus(t: Transition[Any, _, S]) = ???
-
   val runningJobs: mutable.Map[Long, Job] = mutable.Map.empty
-  val exceptionState: mutable.Map[Long, (Long, Throwable)] = mutable.Map.empty
+
+  val exceptionState: mutable.Map[Long, TransitionExceptionState] = mutable.Map.empty
+
+  def isBlocked(t: Transition[Any, _, S]): Option[String] = exceptionState.get(t.id).map {
+    case TransitionExceptionState(time, exception, RetryWithDelay(initialDelay, count, fn)) => ""
+  }
 
   // The marking that is already used by running jobs
   def reservedMarking: ColoredMarking =

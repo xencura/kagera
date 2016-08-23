@@ -1,5 +1,6 @@
 package io.kagera.api.colored
 
+import io.kagera.api.colored.ExceptionStrategy.BlockSelf
 import io.kagera.api.multiset.MultiSet
 
 import scala.concurrent.{ ExecutionContext, Future }
@@ -56,6 +57,13 @@ trait Transition[Input, Output, State] {
    * @return
    */
   def delay: FiniteDuration = Duration.Zero
+
+  /**
+   * Indicates a strategy to use when dealing with exceptions.
+   *
+   * @return
+   */
+  def exceptionStrategy: Throwable => ExceptionStrategy = e => BlockSelf
 
   /**
    * Given the in and out adjacent places with their weight returns a function:

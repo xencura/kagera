@@ -1,10 +1,8 @@
 package io.kagera.akka
 
-import io.kagera.api.colored.{ Transition, _ }
+import io.kagera.api._
+import io.kagera.api.colored._
 
-/**
- * Created by su43xu on 23-8-2016.
- */
 package object actor {
   implicit class ProcessFns[S](process: ColoredPetriNetProcess[S]) {
 

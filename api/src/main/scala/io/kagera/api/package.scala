@@ -43,6 +43,15 @@ package object api {
         None
   }
 
+  def requireUniqueElements[T](i: Iterable[T], name: String = "Element"): Unit = {
+    (Set.empty[T] /: i) { (set, e) =>
+      if (set.contains(e))
+        throw new IllegalArgumentException(s"$name '$e' is not unique!")
+      else
+        set + e
+    }
+  }
+
   type BiPartiteGraph[P, T, E[X] <: EdgeLikeIn[X]] = Graph[Either[P, T], E]
 
   /**

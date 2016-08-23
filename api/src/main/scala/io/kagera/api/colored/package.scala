@@ -37,6 +37,8 @@ package object colored {
 
   implicit def transitionIdentifier(t: Transition[_, _, _]): Long @@ tags.Id = tag[tags.Id](t.id)
 
+  type ExceptionHandler = Throwable => ExceptionStrategy
+
   /**
    * TODO
    *

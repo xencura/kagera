@@ -1,7 +1,6 @@
 package io.kagera.api.colored
 
 import io.kagera.api._
-import io.kagera.api.colored.ColoredMarking.MarkingData
 import io.kagera.api.multiset._
 
 import scala.concurrent.duration.Duration
@@ -22,11 +21,8 @@ package object dsl {
       ) =
         (consume, state, in) => {
 
-          val produce: MarkingData = outAdjacent.map { case (place, count) =>
-            place -> Map(() -> count)
-          }.toMap
-
-          Future.successful(ColoredMarking(produce), fn(state))
+          val produce = outAdjacent.map { case (place, count) => place -> Map(() -> count) }.toMarking
+          Future.successful(produce, fn(state))
         }
 
       override def updateState(state: S): (E) => S = stateTransition(state)
@@ -57,11 +53,11 @@ package object dsl {
         executor: ExecutionContext
       ): (ColoredMarking, S, I) => Future[(ColoredMarking, O)] = { (marking, state, input) =>
         {
-          val produced: MarkingData = outAdjacent.map { case (place, weight) =>
+          val produced = outAdjacent.map { case (place, weight) =>
             place -> produceTokens(place, weight.toInt)
-          }.toMap
+          }.toMarking
 
-          Future.successful(ColoredMarking(produced) -> constant)
+          Future.successful(produced -> constant)
         }
       }
 
@@ -71,15 +67,6 @@ package object dsl {
 
   def nullTransition[S](id: Long, label: String, isManaged: Boolean = false) =
     constantTransition[Unit, Unit, S](id, label, isManaged, ())
-
-  def requireUniqueElements[T](i: Iterable[T], name: String = "Element"): Unit = {
-    (Set.empty[T] /: i) { (set, e) =>
-      if (set.contains(e))
-        throw new IllegalArgumentException(s"$name '$e' is not unique!")
-      else
-        set + e
-    }
-  }
 
   def process[S](params: Arc*)(implicit ec: ExecutionContext): ColoredPetriNetProcess[S] = {
     val petriNet = new ScalaGraphPetriNet(Graph(params: _*)) with ColoredTokenGame with TransitionExecutor[S] {
