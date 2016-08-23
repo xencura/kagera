@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+message ConsumedToken {
+    int64 id = 1;
+    int32 count = 2;
+}
+
+message ProducedToken {
+    int64 id = 1;
+    int32 count = 2;
+    int32 serializer_id = 3;
+    bytes manifest = 4;
+    bytes data = 5;
+}
+
+message TransitionFired {
+   int64 transition_id = 1;
+   int64 time_started = 2;
+   int64 time_completed = 3;
+   repeated ConsumedToken consumed = 4;
+   repeated ProducedToken produced = 5;
+   bytes ouput = 6;
+}
