@@ -25,6 +25,16 @@ object PersistentPetriNetActorSpec {
       |  persistence.journal.plugin = "akka.persistence.journal.inmem"
       |  persistence.snapshot-store.plugin = "akka.persistence.snapshot-store.local"
       |  actor.provider = "akka.actor.LocalActorRefProvider"
+      |
+      |   persistence {
+      |    serializers = {
+      |      akka-unit-serializer = "io.kagera.akka.serializer.UnitSerializer"
+      |    }
+      |
+      |    bindings = {
+      |      scala.unit = unit-serializer
+      |    }
+      |  }
       |}
       |
       |logging.root.level = WARN
@@ -36,7 +46,7 @@ class PersistentPetriNetActorSpec
     with WordSpecLike
     with ImplicitSender {
 
-  trait Event
+  trait Event extends Serializable
   case class Added(n: Int) extends Event
   case class Removed(n: Int) extends Event
 

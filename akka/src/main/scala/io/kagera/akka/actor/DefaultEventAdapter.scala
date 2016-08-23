@@ -1,10 +1,12 @@
 package io.kagera.akka.actor
 
+import akka.actor.ActorSystem
+import akka.serialization.SerializationExtension
 import io.kagera.akka.actor.DefaultEventAdapter._
 import io.kagera.akka.actor.PersistentPetriNetActor.TransitionFired
+import io.kagera.api._
 import io.kagera.api.colored.{ ColoredMarking, _ }
 import io.kagera.api.multiset._
-import io.kagera.api._
 
 object DefaultEventAdapter {
 
@@ -18,7 +20,7 @@ object DefaultEventAdapter {
     time_completed: Long,
     consumed: MarkingIndex,
     produced: Map[Long, MultiSet[_]],
-    out: Any
+    out: Array[Byte]
   ) // this should be Array[Byte] with pluggable
 
   implicit class ColoredMarkingFns(marking: ColoredMarking) {
@@ -57,11 +59,20 @@ object DefaultEventAdapter {
 
 trait DefaultEventAdapter[S] extends TransitionEventAdapter[S, TransitionFiredPersist] {
 
+  implicit val system: ActorSystem
+
   override def writeEvent(e: TransitionFired): TransitionFiredPersist = {
     val consumedIndex: Map[Long, MultiSet[Int]] = e.consumed.indexed
     val produceIndex: Map[Long, MultiSet[_]] = e.produced.data.map { case (place, tokens) => place.id -> tokens }.toMap
 
-    TransitionFiredPersist(e.transition_id, e.time_started, e.time_completed, consumedIndex, produceIndex, e.out)
+    val obj = e.out.asInstanceOf[AnyRef]
+
+    // for now we re-use akka SerializationExtension
+    val serializer = SerializationExtension.get(system).findSerializerFor(obj)
+    val binary = serializer.toBinary(obj)
+
+    // TODO use the protobuf generated message here
+    TransitionFiredPersist(e.transition_id, e.time_started, e.time_completed, consumedIndex, produceIndex, binary)
   }
 
   override def readEvent(
@@ -74,6 +85,7 @@ trait DefaultEventAdapter[S] extends TransitionEventAdapter[S, TransitionFiredPe
     val produced = ColoredMarking(data = e.produced.map { case (id, tokens) =>
       process.places.getById(id) -> tokens
     }.toMap)
+
     TransitionFired(transition, e.time_started, e.time_started, consumed, produced, e.out)
   }
 }

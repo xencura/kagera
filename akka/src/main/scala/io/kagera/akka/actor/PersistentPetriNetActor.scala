@@ -21,10 +21,6 @@ object PersistentPetriNetActor {
   // how to deterministically assign each token an identifier?
   case object GetState
 
-  case class ResolveTransition(id: Long)
-
-  case class ResolveAll(id: Long)
-
   case class TransitionFired(
     transition_id: Long,
     time_started: Long,
@@ -77,6 +73,7 @@ class PersistentPetriNetActor[S](
 
   override def persistenceId: String = s"process-$id"
 
+  override implicit val system = context.system
   def currentTime(): Long = System.currentTimeMillis()
 
   var currentMarking: ColoredMarking = initialMarking
@@ -163,7 +160,6 @@ class PersistentPetriNetActor[S](
    * @return
    */
   def fire(transition: Transition[Any, _, S], input: Any): Unit = {
-
     process.enabledParameters(availableMarking).get(transition) match {
       case None =>
         sender() ! TransitionFailed(

@@ -1,16 +1,18 @@
 syntax = "proto3";
 
 message ConsumedToken {
-    int64 id = 1;
-    int32 count = 2;
+    int32 place_id = 1;
+    int32 value_id = 2;
+    int32 count = 3;
 }
 
 message ProducedToken {
-    int64 id = 1;
-    int32 count = 2;
-    int32 serializer_id = 3;
-    bytes manifest = 4;
-    bytes data = 5;
+    int32 place_id = 1;
+    int32 value_id = 2;
+    int32 count = 3;
+    int32 serializer_id = 4;
+    bytes manifest = 5;
+    bytes data = 6;
 }
 
 message TransitionFired {
@@ -19,5 +21,5 @@ message TransitionFired {
    int64 time_completed = 3;
    repeated ConsumedToken consumed = 4;
    repeated ProducedToken produced = 5;
-   bytes ouput = 6;
+   bytes output = 6;
 }
