@@ -48,7 +48,7 @@ package object dsl {
   def nullPlace(id: Long, label: String) = Place[Unit](id, label)
 
   def constantTransition[I, O, S](id: Long, label: String, isManaged: Boolean = false, constant: O) =
-    new IdentityTransition[I, O, S](id, label, isManaged, Duration.Undefined) {
+    new AbstractTransition[I, O, S](id, label, isManaged, Duration.Undefined) {
       override def apply(inAdjacent: MultiSet[Place[_]], outAdjacent: MultiSet[Place[_]])(implicit
         executor: ExecutionContext
       ): (ColoredMarking, S, I) => Future[(ColoredMarking, O)] = { (marking, state, input) =>
@@ -63,6 +63,8 @@ package object dsl {
 
       def produceTokens[C](place: Place[C], count: Int): MultiSet[C] =
         MultiSet.empty[C] + (constant.asInstanceOf[C] -> count)
+
+      override def updateState(s: S): (O) => S = e => s
     }
 
   def nullTransition[S](id: Long, label: String, isManaged: Boolean = false) =

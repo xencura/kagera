@@ -4,8 +4,8 @@ import java.util.UUID
 
 import akka.actor.{ ActorLogging, Props }
 import akka.persistence.PersistentActor
+import io.kagera.akka.actor.DefaultEventAdapter.TransitionFiredPersist
 import io.kagera.akka.actor.PersistentPetriNetActor._
-import io.kagera.akka.actor.TransitionEventAdapter.TransitionFiredPersist
 import io.kagera.api._
 import io.kagera.api.colored.ExceptionStrategy.RetryWithDelay
 import io.kagera.api.colored._

@@ -1,7 +1,5 @@
 package io.kagera.api.colored
 
-import io.kagera.api.multiset._
-
 import scala.concurrent.duration.Duration
 
 abstract class AbstractTransition[I, O, S](
@@ -12,7 +10,4 @@ abstract class AbstractTransition[I, O, S](
 ) extends Transition[I, O, S] {
 
   override def toString = label
-
-  type Input = I
-  type Output = O
 }
