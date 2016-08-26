@@ -4,7 +4,6 @@ import java.util.UUID
 
 import akka.actor.{ ActorLogging, Props }
 import akka.persistence.PersistentActor
-import io.kagera.akka.actor.DefaultEventAdapter.TransitionFiredPersist
 import io.kagera.akka.actor.PersistentPetriNetActor._
 import io.kagera.api._
 import io.kagera.api.colored.ExceptionStrategy.RetryWithDelay
@@ -185,7 +184,7 @@ class PersistentPetriNetActor[S](
     state = t.updateState(state)(e.out)
   }
 
-  override def receiveRecover: Receive = { case e: TransitionFiredPersist =>
+  override def receiveRecover: Receive = { case e: io.kagera.akka.persistence.TransitionFired =>
     applyEvent(readEvent(process, currentMarking, e))
   }
 }

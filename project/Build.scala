@@ -1,6 +1,7 @@
 import sbt._
 import sbt.Keys._
 import spray.revolver.RevolverPlugin.Revolver
+import com.trueaccord.scalapb.{ ScalaPbPlugin => PB }
 
 object Build extends Build {
 
@@ -26,7 +27,12 @@ object Build extends Build {
     incOptions := incOptions.value.withNameHashing(true)
   )
 
-  lazy val defaultProjectSettings = basicSettings ++ formattingSettings ++ Revolver.settings ++ Sonatype.settings
+  lazy val scalaPBSettings = PB.protobufSettings ++ Seq(
+    PB.runProtoc in PB.protobufConfig := (args => com.github.os72.protocjar.Protoc.runProtoc("-v261" +: args.toArray))
+  )
+
+  lazy val defaultProjectSettings =
+    basicSettings ++ formattingSettings ++ Revolver.settings ++ Sonatype.settings ++ scalaPBSettings
 
   //  lazy val common = (crossProject.crossType(CrossType.Pure) in file("common"))
   //    .settings(defaultProjectSettings: _*)
@@ -67,7 +73,6 @@ object Build extends Build {
           akkaActor,
           akkaPersistence,
           akkaSlf4j,
-//        akkaHttp,
           graph,
           akkaTestkit % "test",
           scalatest % "test"

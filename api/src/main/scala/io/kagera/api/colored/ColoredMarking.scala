@@ -32,9 +32,14 @@ object ColoredMarking {
   }
 }
 
+// TODO generalize this, shapeless HMap seems a good fit, however we need to know the keys
 case class ColoredMarking(data: MarkingData) {
 
   def get[C](p: Place[C]): Option[MultiSet[C]] = data.get(p).map(_.asInstanceOf[MultiSet[C]])
+
+  def getOrElse[C](p: Place[C], mset: MultiSet[C]): MultiSet[C] = get(p).getOrElse(mset)
+
+  def getOrEmpty[C](p: Place[C]): MultiSet[C] = getOrElse(p, MultiSet.empty[C])
 
   def apply[C](p: Place[C]): MultiSet[C] = get(p).get
 
@@ -45,6 +50,11 @@ case class ColoredMarking(data: MarkingData) {
   def multiplicities: MultiSet[Place[_]] = data.mapValues(_.multisetSize)
 
   def markedPlaces: Set[Place[_]] = data.keySet
+
+  def add[C](place: Place[C], token: C, count: Int) =
+    data + (place -> getOrEmpty(place).add(token, count))
+
+  def add[C](place: Place[C], token: C): ColoredMarking = add(place, token, 1)
 
   def +[C](tuple: (Place[C], MultiSet[C])): ColoredMarking = tuple match {
     case (place, tokens) => data + (place -> tokens)

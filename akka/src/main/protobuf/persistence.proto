@@ -1,0 +1,31 @@
+syntax = "proto2";
+
+option java_package = "io.kagera.akka";
+
+message SerializedData {
+   optional int32 serializer_id = 1;
+   optional bytes manifest = 2;
+   optional bytes data = 3;
+}
+
+message ConsumedToken {
+    optional int32 place_id = 1;
+    optional int32 token_id = 2;
+    optional int32 count = 3;
+}
+
+message ProducedToken {
+    optional int32 place_id = 1;
+    optional int32 token_id = 2;
+    optional int32 count = 3;
+    optional SerializedData token_data = 4;
+}
+
+message TransitionFired {
+   optional int64 transition_id = 1;
+   optional int64 time_started = 2;
+   optional int64 time_completed = 3;
+   repeated ConsumedToken consumed = 4;
+   repeated ProducedToken produced = 5;
+   optional SerializedData data = 6;
+}
