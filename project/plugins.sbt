@@ -12,6 +12,6 @@ addSbtPlugin("org.scala-js" % "sbt-scalajs" % "0.6.8")
 
 addSbtPlugin("io.spray" % "sbt-revolver" % "0.7.1")
 
-addSbtPlugin("com.trueaccord.scalapb" % "sbt-scalapb" % "0.4.20")
+addSbtPlugin("com.trueaccord.scalapb" % "sbt-scalapb" % "0.4.21")
 
 //addSbtPlugin("net.virtual-void" % "sbt-dependency-graph" % "0.8.2")
