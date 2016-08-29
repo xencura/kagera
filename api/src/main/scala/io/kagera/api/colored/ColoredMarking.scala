@@ -52,7 +52,7 @@ case class ColoredMarking(data: MarkingData) {
   def markedPlaces: Set[Place[_]] = data.keySet
 
   def add[C](place: Place[C], token: C, count: Int) =
-    data + (place -> getOrEmpty(place).add(token, count))
+    data + (place -> getOrEmpty(place).multisetIncrement(token, count))
 
   def add[C](place: Place[C], token: C): ColoredMarking = add(place, token, 1)
 
