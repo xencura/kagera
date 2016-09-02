@@ -70,7 +70,7 @@ package object dsl {
   def nullTransition[S](id: Long, label: String, isManaged: Boolean = false) =
     constantTransition[Unit, Unit, S](id, label, isManaged, ())
 
-  def process[S](params: Arc*)(implicit ec: ExecutionContext): ColoredPetriNetProcess[S] = {
+  def process[S](params: Arc*)(implicit ec: ExecutionContext): ExecutablePetriNet[S] = {
     val petriNet = new ScalaGraphPetriNet(Graph(params: _*)) with ColoredTokenGame with TransitionExecutor[S] {
       override lazy implicit val executionContext = ec
     }

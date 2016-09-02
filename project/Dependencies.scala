@@ -3,12 +3,12 @@ import sbt._
 
 object Dependencies {
 
-  val akkaVersion = "2.3.11"
+  val akkaVersion = "2.4.9"
   val sprayVersion = "1.3.2"
   val scalazVersion = "7.1.3"
 
   val akkaActor = "com.typesafe.akka" %% "akka-actor" % akkaVersion
-  val akkaPersistence = "com.typesafe.akka" %% "akka-persistence-experimental" % akkaVersion
+  val akkaPersistence = "com.typesafe.akka" %% "akka-persistence" % akkaVersion
   val akkaTestkit = "com.typesafe.akka" %% "akka-testkit" % akkaVersion
   val akkaSlf4j = "com.typesafe.akka" %% "akka-slf4j" % akkaVersion
 //  val akkaHttp              = "com.typesafe.akka"               %% "akka-http-experimental" % akkaVersion
