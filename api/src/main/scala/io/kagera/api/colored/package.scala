@@ -52,7 +52,5 @@ package object colored {
    *
    * @tparam S
    */
-  type ColoredPetriNetProcess[S] = PetriNet[Place[_], Transition[_, _, _]]
-    with ColoredTokenGame
-    with TransitionExecutor[S]
+  type ExecutablePetriNet[S] = PetriNet[Place[_], Transition[_, _, _]] with ColoredTokenGame with TransitionExecutor[S]
 }

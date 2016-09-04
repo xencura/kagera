@@ -8,7 +8,7 @@ package object multiset {
 
     def empty[T]: MultiSet[T] = Map.empty[T, Int]
 
-    def from[T](elements: Iterable[T]) = elements.foldLeft(empty[T]) { case (mset, e) => mset.add(e, 1) }
+    def from[T](elements: Iterable[T]) = elements.foldLeft(empty[T]) { case (mset, e) => mset.multisetIncrement(e, 1) }
 
     def apply[T](elements: T*) = from(elements.toSeq)
   }
@@ -50,7 +50,7 @@ package object multiset {
       List.fill[T](count)(e) ::: list
     }
 
-    def add(element: T, count: Int): Map[T, Int] = mset + (element -> (1 + mset.getOrElse(element, 0)))
+    def multisetIncrement(element: T, count: Int): Map[T, Int] = mset + (element -> (1 + mset.getOrElse(element, 0)))
 
     def remove(element: T, count: Int): Map[T, Int] = mset.get(element) match {
       case None => mset

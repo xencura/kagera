@@ -3,7 +3,7 @@ package io.kagera.akka.actor
 import akka.actor.ActorSystem
 import akka.serialization.SerializationExtension
 import com.google.protobuf.ByteString
-import io.kagera.akka.actor.DefaultEventAdapter._
+import io.kagera.akka.actor.PetriNetEventAdapter._
 import io.kagera.akka.actor.PersistentPetriNetActor.TransitionFired
 import io.kagera.akka.persistence.{ ConsumedToken, ProducedToken, SerializedData }
 import io.kagera.api._
@@ -11,7 +11,7 @@ import io.kagera.api.colored.{ ColoredMarking, _ }
 
 import scala.runtime.BoxedUnit
 
-object DefaultEventAdapter {
+object PetriNetEventAdapter {
 
   // this approach is fragile, the function cannot change ever or recovery breaks
   // a more robust alternative is to generate the ids and persist them
@@ -25,7 +25,7 @@ object DefaultEventAdapter {
   }
 }
 
-trait DefaultEventAdapter[S] extends TransitionEventAdapter[S, io.kagera.akka.persistence.TransitionFired] {
+trait PetriNetEventAdapter[S] {
 
   def system: ActorSystem
 
@@ -67,7 +67,7 @@ trait DefaultEventAdapter[S] extends TransitionEventAdapter[S, io.kagera.akka.pe
       .getOrElse(BoxedUnit.UNIT)
   }
 
-  override def writeEvent(e: TransitionFired): io.kagera.akka.persistence.TransitionFired = {
+  def writeEvent(e: TransitionFired): io.kagera.akka.persistence.TransitionFired = {
 
     val consumedTokens: Seq[ConsumedToken] = e.consumed.data.toSeq.flatMap { case (place, tokens) =>
       tokens.toSeq.map { case (value, count) =>
@@ -102,8 +102,8 @@ trait DefaultEventAdapter[S] extends TransitionEventAdapter[S, io.kagera.akka.pe
     protobufEvent
   }
 
-  override def readEvent(
-    process: ColoredPetriNetProcess[S],
+  def readEvent(
+    process: ExecutablePetriNet[S],
     currentMarking: ColoredMarking,
     e: io.kagera.akka.persistence.TransitionFired
   ): TransitionFired = {
@@ -126,7 +126,6 @@ trait DefaultEventAdapter[S] extends TransitionEventAdapter[S, io.kagera.akka.pe
       case _ => throw new IllegalStateException("Missing data in persisted ProducedToken")
     }
 
-    // defaults to Unit instance () in case no data was serialized
     val data = deserializeObject(e.data)
 
     val timeStarted = e.timeStarted.getOrElse(throw new IllegalStateException("Missing field timeStarted"))

@@ -15,8 +15,6 @@ object Dependencies {
   val akkaAnalyticsCassandra = "com.github.krasserm" %% "akka-analytics-cassandra" % "0.3.1"
   val akkaPersistenceCassandra = "com.typesafe.akka" %% "akka-persistence-cassandra" % "0.17"
 
-//  val akkaHttp              = "com.typesafe.akka"               %% "akka-http-experimental" % akkaVersion
-
   val graph = "com.assembla.scala-incubator" %% "graph-core" % "1.10.1"
   val graphDot = "com.assembla.scala-incubator" %% "graph-dot" % "1.10.1"
 
