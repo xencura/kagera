@@ -1,14 +1,10 @@
 package io.kagera.akka.actor
 
-import java.util.UUID
-
 import akka.actor.{ ActorLogging, Props }
 import akka.persistence.PersistentActor
 import io.kagera.akka.actor.PersistentPetriNetActor._
-import io.kagera.api._
 import io.kagera.api.colored.ExceptionStrategy.RetryWithDelay
 import io.kagera.api.colored._
-import shapeless.tag._
 
 import scala.collection._
 import scala.language.existentials
@@ -16,24 +12,16 @@ import scala.util.{ Failure, Random, Success }
 
 object PersistentPetriNetActor {
 
-  // we don't want to store the consumed token values in this event, just pointers / identifiers
-  // how to deterministically assign each token an identifier?
+  // commands
   trait Command
 
   case object GetState extends Command
 
-  case class TransitionFired(
-    transition_id: Long,
-    time_started: Long,
-    time_completed: Long,
-    consumed: ColoredMarking,
-    produced: ColoredMarking,
-    out: Any
-  ) extends Command
+  case class FireTransition(transition_id: Long, input: Any)
 
+  // responses
   sealed trait TransitionResult
 
-  // response
   case class TransitionFiredSuccessfully[S](
     transition_id: Long,
     consumed: ColoredMarking,
@@ -45,11 +33,19 @@ object PersistentPetriNetActor {
   case class TransitionFailed(transition_id: Long, consume: ColoredMarking, input: Any, reason: Throwable)
       extends TransitionResult
 
-  case class FireTransition(transition_id: Long @@ tags.Id, input: Any)
-
   case class State[S](marking: ColoredMarking, state: S)
 
   case class TransitionExceptionState(time: Long, exception: Throwable, exceptionStrategy: ExceptionStrategy)
+
+  // events
+  case class TransitionFired(
+    transition_id: Long,
+    time_started: Long,
+    time_completed: Long,
+    consumed: ColoredMarking,
+    produced: ColoredMarking,
+    out: Any
+  )
 
   protected case class JobCompleted(id: Long)
 
