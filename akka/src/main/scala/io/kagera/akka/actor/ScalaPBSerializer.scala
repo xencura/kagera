@@ -41,9 +41,6 @@ class ScalaPBSerializer(system: ExtendedActorSystem) extends SerializerWithStrin
   override def identifier: Int = ScalaPBSerializer.Identifier
 
   override def fromBinary(bytes: Array[Byte], manifest: String): AnyRef = {
-
-    println("fromBinary")
-
     manifests
       .get(manifest)
       .map { case (_, companion) => companion.parseFrom(bytes) }
@@ -55,7 +52,6 @@ class ScalaPBSerializer(system: ExtendedActorSystem) extends SerializerWithStrin
   }
 
   override def toBinary(o: AnyRef): Array[Byte] = {
-    println("toBinary")
     o match {
       case msg: com.trueaccord.scalapb.GeneratedMessage =>
         val stream: ByteArrayOutputStream = new ByteArrayOutputStream()

@@ -35,19 +35,15 @@ object PersistentPetriNetActor {
 
   // response
   case class TransitionFiredSuccessfully[S](
-    transition: Long,
+    transition_id: Long,
     consumed: ColoredMarking,
     produced: ColoredMarking,
     marking: ColoredMarking,
     state: S
   ) extends TransitionResult
 
-  case class TransitionFailed[S](
-    transition: Transition[_, _, S],
-    consume: ColoredMarking,
-    input: Any,
-    reason: Throwable
-  ) extends TransitionResult
+  case class TransitionFailed(transition_id: Long, consume: ColoredMarking, input: Any, reason: Throwable)
+      extends TransitionResult
 
   case class FireTransition(transition_id: Long @@ tags.Id, input: Any)
 
@@ -119,7 +115,7 @@ class PersistentPetriNetActor[S](process: ExecutablePetriNet[S], initialMarking:
             log.debug(s"Transition fired ${job.t}")
             val response = TransitionFiredSuccessfully[S](job.t, e.consumed, e.produced, currentMarking, state)
             runningJobs -= id
-            step()
+            tryStep()
             sender() ! response
           }
         case Failure(reason) =>
@@ -128,8 +124,8 @@ class PersistentPetriNetActor[S](process: ExecutablePetriNet[S], initialMarking:
           sender ! TransitionFailed(job.t, job.consume, job.input, reason)
       }
 
-    case e: TransitionFailed[_] =>
-      log.warning(s"Transition '${e.transition}' failed: {}", e)
+    case e: TransitionFailed =>
+      log.warning(s"Transition '${process.getTransitionById(e.transition_id)}' failed: {}", e)
       sender() ! e
 
     case FireTransition(id, input) => fire(process.getTransitionById(id), input)
@@ -138,17 +134,21 @@ class PersistentPetriNetActor[S](process: ExecutablePetriNet[S], initialMarking:
   /**
    * Fires the first enabled transition
    */
-  def step() = {
-    process
+  def tryStep() = {
+    val enabled = process
       .enabledParameters(availableMarking)
       .view
       .filter { case (t, markings) =>
         t.isManaged
       }
       .headOption
-      .foreach { case (t, markings) =>
-        fire(t.asInstanceOf[Transition[Any, _, S]], ())
-      }
+
+    if (!enabled.isDefined)
+      log.debug("Cannot fire an automatic transition, none are enabled")
+
+    enabled.foreach { case (t, markings) =>
+      fire(t.asInstanceOf[Transition[Any, _, S]], ())
+    }
   }
 
   /**
@@ -172,6 +172,7 @@ class PersistentPetriNetActor[S](process: ExecutablePetriNet[S], initialMarking:
   }
 
   def fire(transition: Transition[Any, _, S], consume: ColoredMarking, input: Any): Unit = {
+    log.debug(s"Firing transition: $transition")
     val job = Job(nextJobId(), transition, consume, input)
     runningJobs += job.id -> job
     val originalSender = sender()
