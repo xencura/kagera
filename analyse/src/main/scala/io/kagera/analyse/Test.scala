@@ -4,9 +4,21 @@ import akka.analytics.cassandra.JournalKey
 import org.apache.spark.{ SparkConf, SparkContext }
 import org.apache.spark.rdd.RDD
 import akka.analytics.cassandra._
+import com.typesafe.config.ConfigFactory
 import io.kagera.akka.persistence.TransitionFired
 
-class Test extends App {
+object Test extends App {
+
+  val serializerConfig =
+    """
+      |akka {
+      |  persistence {
+      |    serializers = {
+      |      scalapb = "io.kagera.akka.actor.ScalaPBSerializer"
+      |    }
+      |  }
+      |}
+    """.stripMargin
 
   val conf = new SparkConf()
     .setAppName("KageraExample")
@@ -15,7 +27,7 @@ class Test extends App {
     .set("spark.cassandra.journal.keyspace", "akka")
     .set("spark.cassandra.journal.table", "messages")
 
-  val sc = new SparkContext(conf)
+  val sc = new SparkContext(conf).withSerializerConfig(ConfigFactory.parseString(serializerConfig))
 
   // expose journaled Akka Persistence events as RDD
   val rdd: RDD[(JournalKey, Any)] = sc.eventTable().cache()
