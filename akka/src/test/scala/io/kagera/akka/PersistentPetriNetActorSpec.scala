@@ -6,8 +6,8 @@ import akka.actor.{ ActorSystem, PoisonPill, Props, Terminated }
 import akka.testkit.{ ImplicitSender, TestKit }
 import com.typesafe.config.ConfigFactory
 import io.kagera.akka.PersistentPetriNetActorSpec._
-import io.kagera.akka.actor.PersistentPetriNetActor
-import io.kagera.akka.actor.PersistentPetriNetActor.{
+import io.kagera.akka.actor.PetriNetProcess
+import io.kagera.akka.actor.PetriNetProcess.{
   FireTransition,
   GetState,
   State,
@@ -72,7 +72,7 @@ class PersistentPetriNetActorSpec
       val id = UUID.randomUUID()
       val initialMarking = ColoredMarking(p1 -> 1)
 
-      val actor = system.actorOf(Props(new PersistentPetriNetActor[Set[Int]](petriNet, initialMarking, Set.empty)))
+      val actor = system.actorOf(Props(new PetriNetProcess[Set[Int]](petriNet, initialMarking, Set.empty)))
 
       actor ! FireTransition(t1, ())
 
@@ -91,8 +91,7 @@ class PersistentPetriNetActorSpec
       // creates a petri net actor with initial marking: p1 -> 1
       val initialMarking = ColoredMarking(p1 -> 1)
 
-      val actor =
-        system.actorOf(Props(new PersistentPetriNetActor[Set[Int]](petriNet, initialMarking, Set.empty)), actorName)
+      val actor = system.actorOf(Props(new PetriNetProcess[Set[Int]](petriNet, initialMarking, Set.empty)), actorName)
 
       // assert that the actor is in the initial state
       actor ! GetState
@@ -115,7 +114,7 @@ class PersistentPetriNetActorSpec
 
       // create a new actor with the same persistent identifier
       val newActor =
-        system.actorOf(Props(new PersistentPetriNetActor[Set[Int]](petriNet, initialMarking, Set.empty)), actorName)
+        system.actorOf(Props(new PetriNetProcess[Set[Int]](petriNet, initialMarking, Set.empty)), actorName)
 
       newActor ! GetState
 

@@ -2,7 +2,7 @@ package io.kagera.akka.actor
 
 import akka.actor.{ ActorLogging, Props }
 import akka.persistence.PersistentActor
-import io.kagera.akka.actor.PersistentPetriNetActor._
+import io.kagera.akka.actor.PetriNetProcess._
 import io.kagera.api.colored.ExceptionStrategy.RetryWithDelay
 import io.kagera.api.colored._
 
@@ -10,7 +10,7 @@ import scala.collection._
 import scala.language.existentials
 import scala.util.{ Failure, Random, Success }
 
-object PersistentPetriNetActor {
+object PetriNetProcess {
 
   // commands
   trait Command
@@ -52,10 +52,10 @@ object PersistentPetriNetActor {
   protected case class JobTimedout(id: Long)
 
   def props[S](process: ExecutablePetriNet[S], initialMarking: ColoredMarking, initialState: S) =
-    Props(new PersistentPetriNetActor[S](process, initialMarking, initialState))
+    Props(new PetriNetProcess[S](process, initialMarking, initialState))
 }
 
-class PersistentPetriNetActor[S](process: ExecutablePetriNet[S], initialMarking: ColoredMarking, initialState: S)
+class PetriNetProcess[S](process: ExecutablePetriNet[S], initialMarking: ColoredMarking, initialState: S)
     extends PersistentActor
     with ActorLogging
     with PetriNetEventAdapter[S] {

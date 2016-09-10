@@ -4,7 +4,7 @@ import akka.actor.ActorSystem
 import akka.serialization.SerializationExtension
 import com.google.protobuf.ByteString
 import io.kagera.akka.actor.PetriNetEventAdapter._
-import io.kagera.akka.actor.PersistentPetriNetActor.TransitionFired
+import io.kagera.akka.actor.PetriNetProcess.TransitionFired
 import io.kagera.akka.persistence.{ ConsumedToken, ProducedToken, SerializedData }
 import io.kagera.api._
 import io.kagera.api.colored.{ ColoredMarking, _ }
