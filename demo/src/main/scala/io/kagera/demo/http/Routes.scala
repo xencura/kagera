@@ -1,23 +1,28 @@
 package io.kagera.demo.http
 
-import akka.actor.ActorRef
+import akka.NotUsed
+import akka.actor.{ ActorRef, ActorSystem }
 import akka.http.scaladsl.server.Directives
 import akka.util.Timeout
-import io.kagera.akka.actor.PetriNetProcess.GetState
-import io.kagera.api.colored.ExecutablePetriNet
+import io.kagera.akka.actor.PetriNetProcess
+import io.kagera.akka.actor.PetriNetProcess._
+import io.kagera.api.colored.{ ColoredMarking, ExecutablePetriNet }
+import io.kagera.demo.{ ConfiguredActorSystem, TestProcess }
+import akka.pattern.ask
+import akka.persistence.cassandra.query.scaladsl.CassandraReadJournal
+import akka.persistence.query.{ EventEnvelope, PersistenceQuery }
+import akka.stream.{ ActorMaterializer, Materializer }
+import akka.stream.scaladsl.Source
 
-trait Routes extends Directives {
+trait Routes extends Directives with TestProcess {
 
-  import akka.pattern.ask
+  this: ConfiguredActorSystem =>
 
   import scala.concurrent.duration._
 
   implicit val timeout = Timeout(2 seconds)
 
-  def stateActor: ActorRef
-  def getState(id: String) = stateActor.ask(id -> GetState).mapTo[String]
-
-  val repository: Map[String, ExecutablePetriNet[_]] = Map.empty
+  val repository: Map[String, ExecutablePetriNet[_]] = Map("test" -> sequentialProcess)
 
   val repositoryRoutes = pathPrefix("repository") {
 
@@ -27,41 +32,59 @@ trait Routes extends Directives {
     }
   }
 
-  // search processes by various means
-  val searchRoutes = pathPrefix("search") {
-    path("index") {
-      get { complete("") }
-    } ~
-      path("current_by_marking") {
-        // given a marking  (place -> count) returns all processes that currently have that state
-        post { complete("") }
-      } ~
-      path("by_history") {
-        // given a transition firing sequence (t1, t2, .. , tn) returns all processes that have this history
-        post { complete("") }
-      } ~
-      path("by_topology") {
-        // given a topology
-        post { complete("") }
-      }
-  }
+  // obtain read journal
+  val queries = PersistenceQuery(system).readJournalFor[CassandraReadJournal](CassandraReadJournal.Identifier)
+
+  // obtain all persistence ids
+  val persistenceIds: Source[String, NotUsed] = queries.allPersistenceIds()
+
+  //  val allEvents = persistenceIds.flatMapConcat(id => queries.eventsByPersistenceId(id, 0L, Long.MaxValue))
+
+  persistenceIds.runForeach { id => println("id: " + id) }
 
   val processRoutes = pathPrefix("process") {
-    pathEndOrSingleSlash {
+
+    path("_create") {
+      post {
+
+        val id = java.util.UUID.randomUUID().toString
+        val props = PetriNetProcess.props(sequentialProcess, ColoredMarking.empty, ())
+        system.actorOf(props, id).path.name
+
+        complete(id)
+      }
+    } ~
       path(Segment) { id =>
         {
+
+          val actorSelection = system.actorSelection(s"/user/$id")
+
           pathEndOrSingleSlash {
             get {
               // should return the current state (marking) of the process
-              complete("")
+              val futureResult = actorSelection.ask(GetState).mapTo[State[_]].map { state =>
+                state.marking.toString
+              }
+              complete(futureResult)
             }
           } ~
-            path("step") {
-              // should attempt to fire the next enabled transition
-              post { complete("") }
+            path("fire" / Segment) { tid =>
+              post {
+                val msg = FireTransition(tid.toLong, ())
+                val futureResult = actorSelection.ask(msg).mapTo[TransitionResult].map {
+                  case success: TransitionFiredSuccessfully[_] => "success"
+                  case failure: TransitionFailed => "failure"
+                }
+                complete(futureResult)
+              }
             }
+
+          path("step") {
+            // should attempt to fire the next enabled transition
+            post { complete("") }
+          }
         }
       }
-    }
+
   }
 }
