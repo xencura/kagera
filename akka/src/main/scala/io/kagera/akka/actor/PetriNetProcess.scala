@@ -1,7 +1,7 @@
 package io.kagera.akka.actor
 
 import akka.actor.{ ActorLogging, Props }
-import akka.persistence.PersistentActor
+import akka.persistence.{ PersistentActor, RecoveryCompleted }
 import io.kagera.akka.actor.PetriNetProcess._
 import io.kagera.api.colored.ExceptionStrategy.RetryWithDelay
 import io.kagera.api.colored._
@@ -15,9 +15,11 @@ object PetriNetProcess {
   // commands
   trait Command
 
+  case object Step extends Command
+
   case object GetState extends Command
 
-  case class FireTransition(transition_id: Long, input: Any)
+  case class FireTransition(transition_id: Long, input: Any) extends Command
 
   // responses
   sealed trait TransitionResult
@@ -60,9 +62,9 @@ class PetriNetProcess[S](process: ExecutablePetriNet[S], initialMarking: Colored
     with ActorLogging
     with PetriNetEventAdapter[S] {
 
-  val id = context.self.path.name
+  val processId = context.self.path.name
 
-  override def persistenceId: String = s"process-$id"
+  override def persistenceId: String = s"process-$processId"
 
   override implicit val system = context.system
   def currentTime(): Long = System.currentTimeMillis()
@@ -131,15 +133,11 @@ class PetriNetProcess[S](process: ExecutablePetriNet[S], initialMarking: Colored
    * Fires the first enabled transition
    */
   def tryStep() = {
-    val enabled = process
-      .enabledParameters(availableMarking)
-      .view
-      .filter { case (t, markings) =>
-        t.isManaged
-      }
-      .headOption
+    val enabled = process.enabledParameters(availableMarking).view.find { case (t, markings) =>
+      t.isManaged
+    }
 
-    if (!enabled.isDefined)
+    if (enabled.isEmpty)
       log.debug("Cannot fire an automatic transition, none are enabled")
 
     enabled.foreach { case (t, markings) =>
@@ -149,10 +147,6 @@ class PetriNetProcess[S](process: ExecutablePetriNet[S], initialMarking: Colored
 
   /**
    * Fires a specific transition with input
-   *
-   * @param transition
-   * @param input
-   * @return
    */
   def fire(transition: Transition[Any, _, S], input: Any): Unit = {
     process.enabledParameters(availableMarking).get(transition) match {
@@ -181,7 +175,8 @@ class PetriNetProcess[S](process: ExecutablePetriNet[S], initialMarking: Colored
     state = t.updateState(state)(e.out)
   }
 
-  override def receiveRecover: Receive = { case e: io.kagera.akka.persistence.TransitionFired =>
-    applyEvent(readEvent(process, currentMarking, e))
+  override def receiveRecover: Receive = {
+    case e: io.kagera.akka.persistence.TransitionFired => applyEvent(readEvent(process, currentMarking, e))
+    case RecoveryCompleted => tryStep()
   }
 }

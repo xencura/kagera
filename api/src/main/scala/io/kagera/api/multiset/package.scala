@@ -50,12 +50,13 @@ package object multiset {
       List.fill[T](count)(e) ::: list
     }
 
-    def multisetIncrement(element: T, count: Int): Map[T, Int] = mset + (element -> (1 + mset.getOrElse(element, 0)))
+    def multisetDecrement(element: T, count: Int): MultiSet[T] =
+      mset.get(element) match {
+        case None => mset
+        case Some(n) if n <= count => mset - element
+        case Some(n) => mset + (element -> (n - count))
+      }
 
-    def remove(element: T, count: Int): Map[T, Int] = mset.get(element) match {
-      case None => mset
-      case Some(n) if n <= count => mset - element
-      case Some(n) => mset + (element -> (n - count))
-    }
+    def multisetIncrement(element: T, count: Int): MultiSet[T] = mset + (element -> (1 + mset.getOrElse(element, 0)))
   }
 }

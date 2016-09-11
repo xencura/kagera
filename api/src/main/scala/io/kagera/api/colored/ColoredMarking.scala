@@ -2,7 +2,6 @@ package io.kagera.api.colored
 
 import io.kagera.api.colored.ColoredMarking.MarkingData
 import io.kagera.api.multiset._
-import shapeless.PolyDefns.~>
 
 object ColoredMarking {
 

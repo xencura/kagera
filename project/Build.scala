@@ -56,7 +56,7 @@ object Build extends Build {
 
   lazy val api = Project("api", file("api"))
     .settings(defaultProjectSettings: _*)
-    .settings(name := "kagera-api", libraryDependencies ++= Seq(graph, shapeless, scalaReflect, scalatest % "test"))
+    .settings(name := "kagera-api", libraryDependencies ++= Seq(graph, shapeless, scalatest % "test"))
 
   lazy val visualization = Project("visualization", file("visualization"))
     .dependsOn(api)
@@ -69,6 +69,7 @@ object Build extends Build {
       defaultProjectSettings ++ Seq(
         name := "kagera-akka",
         libraryDependencies ++= Seq(
+          scalaReflect,
           akkaActor,
           akkaPersistence,
           akkaSlf4j,
@@ -86,7 +87,7 @@ object Build extends Build {
       defaultProjectSettings ++ Seq(
         resolvers += "krasserm at bintray" at "http://dl.bintray.com/krasserm/maven",
         name := "kagera-analyse",
-        libraryDependencies ++= Seq(akkaAnalyticsCassandra, akkaAnalyticsKafka)
+        libraryDependencies ++= Seq(akkaAnalyticsCassandra, akkaHttp)
       )
     )
 
@@ -94,7 +95,7 @@ object Build extends Build {
     .dependsOn(api, visualization, akka, analyse)
     .settings(
       defaultProjectSettings ++ Seq(
-        libraryDependencies ++= Seq(akkaHttp),
+        libraryDependencies ++= Seq(akkaHttp, akkaPersistenceQuery, akkaPersistenceCassandra),
         name := "kagera-demo-app",
         mainClass := Some("io.kagera.demo.Main")
       )
