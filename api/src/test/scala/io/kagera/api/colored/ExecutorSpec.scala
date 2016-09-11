@@ -23,7 +23,7 @@ class ExecutorSpec extends WordSpec {
 
       val p = process(p1 ~> mockedTransition, mockedTransition ~> p2)
 
-      val m = ColoredMarking(p1(()))
+      val m = Marking(p1(()))
     }
   }
 }

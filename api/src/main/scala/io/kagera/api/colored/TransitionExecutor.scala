@@ -6,7 +6,7 @@ import scala.concurrent.{ ExecutionContext, Future }
 
 trait TransitionExecutor[S] {
 
-  this: PetriNet[Place[_], Transition[_, _, _]] with TokenGame[Place[_], Transition[_, _, _], ColoredMarking] =>
+  this: PetriNet[Place[_], Transition[_, _, _]] with TokenGame[Place[_], Transition[_, _, _], Marking] =>
 
   // TODO remove this requirement
   implicit def executionContext: ExecutionContext
@@ -14,21 +14,19 @@ trait TransitionExecutor[S] {
   val transitionFunctions: Map[Transition[_, _, _], _] =
     transitions.map(t => t -> t.apply(inMarking(t), outMarking(t))).toMap
 
-  def tfn[Input, Output](
-    t: Transition[Input, Output, S]
-  ): (ColoredMarking, S, Input) => Future[(ColoredMarking, Output)] =
-    transitionFunctions(t).asInstanceOf[(ColoredMarking, S, Input) => Future[(ColoredMarking, Output)]]
+  def tfn[Input, Output](t: Transition[Input, Output, S]): (Marking, S, Input) => Future[(Marking, Output)] =
+    transitionFunctions(t).asInstanceOf[(Marking, S, Input) => Future[(Marking, Output)]]
 
   def fireTransition[Input, Output](
     t: Transition[Input, Output, S]
-  )(consume: ColoredMarking, state: S, input: Input): Future[(ColoredMarking, Output)] = {
+  )(consume: Marking, state: S, input: Input): Future[(Marking, Output)] = {
 
     if (consume.multiplicities != inMarking(t)) {
       // TODO make more explicit what is wrong here, mention the first multiplicity that is incorrect.
       Future.failed(new IllegalArgumentException(s"Transition $t may not consume $consume"))
     }
 
-    def handleFailure: PartialFunction[Throwable, Future[(ColoredMarking, Output)]] = { case e: Throwable =>
+    def handleFailure: PartialFunction[Throwable, Future[(Marking, Output)]] = { case e: Throwable =>
       Future.failed(new TransitionFailedException(t, e))
     }
 

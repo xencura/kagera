@@ -51,7 +51,7 @@ package object dsl {
     new AbstractTransition[I, O, S](id, label, isManaged, Duration.Undefined) {
       override def apply(inAdjacent: MultiSet[Place[_]], outAdjacent: MultiSet[Place[_]])(implicit
         executor: ExecutionContext
-      ): (ColoredMarking, S, I) => Future[(ColoredMarking, O)] = { (marking, state, input) =>
+      ): (Marking, S, I) => Future[(Marking, O)] = { (marking, state, input) =>
         {
           val produced = outAdjacent.map { case (place, weight) =>
             place -> produceTokens(place, weight.toInt)

@@ -10,7 +10,7 @@ abstract class StateTransition[I, E, S](id: Long, label: String, isManaged: Bool
 
   override def apply(inAdjacent: MultiSet[Place[_]], outAdjacent: MultiSet[Place[_]])(implicit
     executor: ExecutionContext
-  ): (ColoredMarking, S, I) => Future[(ColoredMarking, E)] = { (consume, state, input) =>
+  ): (Marking, S, I) => Future[(Marking, E)] = { (consume, state, input) =>
     {
       val produce = outAdjacent.map {
         // assumes uncolored outgoing places (Place[Unit])
@@ -21,5 +21,5 @@ abstract class StateTransition[I, E, S](id: Long, label: String, isManaged: Bool
     }
   }
 
-  def produceEvent(consume: ColoredMarking, state: S, input: I): Future[E]
+  def produceEvent(consume: Marking, state: S, input: I): Future[E]
 }

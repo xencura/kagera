@@ -7,7 +7,7 @@ import io.kagera.akka.actor.PetriNetEventAdapter._
 import io.kagera.akka.actor.PetriNetProcess.TransitionFired
 import io.kagera.akka.persistence.{ ConsumedToken, ProducedToken, SerializedData }
 import io.kagera.api._
-import io.kagera.api.colored.{ ColoredMarking, _ }
+import io.kagera.api.colored.{ Marking, _ }
 
 import scala.runtime.BoxedUnit
 
@@ -104,13 +104,13 @@ trait PetriNetEventAdapter[S] {
 
   def readEvent(
     process: ExecutablePetriNet[S],
-    currentMarking: ColoredMarking,
+    currentMarking: Marking,
     e: io.kagera.akka.persistence.TransitionFired
   ): TransitionFired = {
 
     val transition = process.getTransitionById(e.transitionId.get)
 
-    val consumed = e.consumed.foldLeft(ColoredMarking.empty) {
+    val consumed = e.consumed.foldLeft(Marking.empty) {
       case (accumulated, ConsumedToken(Some(placeId), Some(tokenId), Some(count))) =>
         val place = currentMarking.markedPlaces.getById(placeId)
         val value = currentMarking(place).keySet.find(e => tokenIdentifier(place)(e) == tokenId).get
@@ -118,7 +118,7 @@ trait PetriNetEventAdapter[S] {
       case _ => throw new IllegalStateException("Missing data in persisted ConsumedToken")
     }
 
-    val produced = e.produced.foldLeft(ColoredMarking.empty) {
+    val produced = e.produced.foldLeft(Marking.empty) {
       case (accumulated, ProducedToken(Some(placeId), Some(tokenId), Some(count), data)) =>
         val place = process.places.getById(placeId)
         val value = deserializeObject(data)

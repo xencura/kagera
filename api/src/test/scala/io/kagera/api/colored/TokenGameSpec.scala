@@ -20,7 +20,7 @@ class TokenGameSpec extends WordSpec {
 
     "NOT mark a transition enabled if there are NOT enough tokens in in-adjacent places" in {
 
-      val marking = ColoredMarking(p1(10, 10))
+      val marking = Marking(p1(10, 10))
 
       // the multiplicity of p1 is 2
       marking.multiplicities(p1) should be(2)
@@ -30,7 +30,7 @@ class TokenGameSpec extends WordSpec {
     }
 
     "DO mark a transition as enabled if there ARE enough tokens in in-adjacent places" in {
-      val marking = ColoredMarking(p1(10, 10, 10))
+      val marking = Marking(p1(10, 10, 10))
 
       // the multiplicity of p1 is 2
       marking.multiplicities(p1) should be(3)
@@ -41,7 +41,7 @@ class TokenGameSpec extends WordSpec {
 
     "NOT mark a transition enabled if an in-adjacent edge filters the token" in {
 
-      val marking = ColoredMarking(p1(10))
+      val marking = Marking(p1(10))
 
       testProcess.isEnabled(marking)(t1) should be(false)
     }

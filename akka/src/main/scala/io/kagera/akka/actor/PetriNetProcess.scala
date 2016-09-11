@@ -26,16 +26,16 @@ object PetriNetProcess {
 
   case class TransitionFiredSuccessfully[S](
     transition_id: Long,
-    consumed: ColoredMarking,
-    produced: ColoredMarking,
-    marking: ColoredMarking,
+    consumed: Marking,
+    produced: Marking,
+    marking: Marking,
     state: S
   ) extends TransitionResult
 
-  case class TransitionFailed(transition_id: Long, consume: ColoredMarking, input: Any, reason: Throwable)
+  case class TransitionFailed(transition_id: Long, consume: Marking, input: Any, reason: Throwable)
       extends TransitionResult
 
-  case class State[S](marking: ColoredMarking, state: S)
+  case class State[S](marking: Marking, state: S)
 
   case class TransitionExceptionState(time: Long, exception: Throwable, exceptionStrategy: ExceptionStrategy)
 
@@ -44,8 +44,8 @@ object PetriNetProcess {
     transition_id: Long,
     time_started: Long,
     time_completed: Long,
-    consumed: ColoredMarking,
-    produced: ColoredMarking,
+    consumed: Marking,
+    produced: Marking,
     out: Any
   )
 
@@ -53,11 +53,11 @@ object PetriNetProcess {
 
   protected case class JobTimedout(id: Long)
 
-  def props[S](process: ExecutablePetriNet[S], initialMarking: ColoredMarking, initialState: S) =
+  def props[S](process: ExecutablePetriNet[S], initialMarking: Marking, initialState: S) =
     Props(new PetriNetProcess[S](process, initialMarking, initialState))
 }
 
-class PetriNetProcess[S](process: ExecutablePetriNet[S], initialMarking: ColoredMarking, initialState: S)
+class PetriNetProcess[S](process: ExecutablePetriNet[S], initialMarking: Marking, initialState: S)
     extends PersistentActor
     with ActorLogging
     with PetriNetEventAdapter[S] {
@@ -69,16 +69,10 @@ class PetriNetProcess[S](process: ExecutablePetriNet[S], initialMarking: Colored
   override implicit val system = context.system
   def currentTime(): Long = System.currentTimeMillis()
 
-  var currentMarking: ColoredMarking = initialMarking
+  var currentMarking: Marking = initialMarking
   var state: S = initialState
 
-  case class Job(
-    id: Long,
-    t: Transition[Any, _, S],
-    consume: ColoredMarking,
-    input: Any,
-    startTime: Long = currentTime()
-  ) {
+  case class Job(id: Long, t: Transition[Any, _, S], consume: Marking, input: Any, startTime: Long = currentTime()) {
     val result = process.fireTransition(t)(consume, state, input)
   }
 
@@ -95,9 +89,9 @@ class PetriNetProcess[S](process: ExecutablePetriNet[S], initialMarking: Colored
   }
 
   // The marking that is already used by running jobs
-  def reservedMarking: ColoredMarking =
-    runningJobs.map { case (id, job) => job.consume }.reduceOption(_ ++ _).getOrElse(ColoredMarking.empty)
-  def availableMarking: ColoredMarking = currentMarking -- reservedMarking
+  def reservedMarking: Marking =
+    runningJobs.map { case (id, job) => job.consume }.reduceOption(_ ++ _).getOrElse(Marking.empty)
+  def availableMarking: Marking = currentMarking -- reservedMarking
 
   override def receiveCommand = {
     case GetState =>
@@ -153,7 +147,7 @@ class PetriNetProcess[S](process: ExecutablePetriNet[S], initialMarking: Colored
       case None =>
         sender() ! TransitionFailed(
           transition,
-          ColoredMarking.empty,
+          Marking.empty,
           input,
           new IllegalStateException(s"Transition $transition is not enabled")
         )
@@ -161,7 +155,7 @@ class PetriNetProcess[S](process: ExecutablePetriNet[S], initialMarking: Colored
     }
   }
 
-  def fire(transition: Transition[Any, _, S], consume: ColoredMarking, input: Any): Unit = {
+  def fire(transition: Transition[Any, _, S], consume: Marking, input: Any): Unit = {
     log.debug(s"Firing transition: $transition")
     val job = Job(nextJobId(), transition, consume, input)
     runningJobs += job.id -> job

@@ -83,7 +83,7 @@ trait Transition[Input, Output, State] {
    */
   def apply(inAdjacent: MultiSet[Place[_]], outAdjacent: MultiSet[Place[_]])(implicit
     executor: scala.concurrent.ExecutionContext
-  ): (ColoredMarking, State, Input) => Future[(ColoredMarking, Output)]
+  ): (Marking, State, Input) => Future[(Marking, Output)]
 
   /**
    * The state transition function:

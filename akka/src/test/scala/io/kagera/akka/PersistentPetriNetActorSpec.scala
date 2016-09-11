@@ -70,7 +70,7 @@ class PersistentPetriNetActorSpec
       val petriNet = process[Set[Int]](p1 ~> t1, t1 ~> p2)
 
       val id = UUID.randomUUID()
-      val initialMarking = ColoredMarking(p1 -> 1)
+      val initialMarking = Marking(p1 -> 1)
 
       val actor = system.actorOf(Props(new PetriNetProcess[Set[Int]](petriNet, initialMarking, Set.empty)))
 
@@ -89,7 +89,7 @@ class PersistentPetriNetActorSpec
       val petriNet = process[Set[Int]](p1 ~> t1, t1 ~> p2, p2 ~> t2, t2 ~> p3)
 
       // creates a petri net actor with initial marking: p1 -> 1
-      val initialMarking = ColoredMarking(p1 -> 1)
+      val initialMarking = Marking(p1 -> 1)
 
       val actor = system.actorOf(Props(new PetriNetProcess[Set[Int]](petriNet, initialMarking, Set.empty)), actorName)
 
@@ -102,10 +102,10 @@ class PersistentPetriNetActorSpec
       actor ! FireTransition(t1, ())
 
       // expect the next marking: p2 -> 1
-      expectMsgPF() { case TransitionFiredSuccessfully(t1, _, _, result, _) if result == ColoredMarking(p2 -> 1) => }
+      expectMsgPF() { case TransitionFiredSuccessfully(t1, _, _, result, _) if result == Marking(p2 -> 1) => }
 
       // since t2 fires automatically we also expect the next marking: p3 -> 1
-      expectMsgPF() { case TransitionFiredSuccessfully(t2, _, _, result, _) if result == ColoredMarking(p3 -> 1) => }
+      expectMsgPF() { case TransitionFiredSuccessfully(t2, _, _, result, _) if result == Marking(p3 -> 1) => }
 
       // terminate the actor
       watch(actor)
@@ -119,7 +119,7 @@ class PersistentPetriNetActorSpec
       newActor ! GetState
 
       // assert that the marking is the same as before termination
-      expectMsg(State[Set[Int]](ColoredMarking(p3 -> 1), Set(1, 2)))
+      expectMsg(State[Set[Int]](Marking(p3 -> 1), Set(1, 2)))
     }
   }
 }
