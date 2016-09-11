@@ -1,6 +1,6 @@
-# Kagera Petri net process DSL & executor
+# Kagera. A Discrete, colored Petri Net DSL & Executor.
 
-Petri net specification example:
+Colored Petri net example:
 
 ```
 val sum = {
@@ -11,11 +11,11 @@ val sum = {
     val c = Place[Int](id = 3, label = "result")
 
     // transitions
-    val init = TFn(id = 1, label = "init") {
+    val init = Transition(id = 1, label = "init") {
       () => (5, 5)
     }
 
-    val sum = TFn(id = 2, label = "sum") {
+    val sum = Transition(id = 2, label = "sum") {
       (a: Int, b: Int) => a + b
     }
 
@@ -29,17 +29,20 @@ val sum = {
 ```
 
 Short term plans:
-
 * Http API (using akka http)
-* Persistence (with persistent actors)
-* Visual state using GraphViz
 * Clustering & Sharding
-* Other execution models, splitting processes over multiple actors
+* Other execution models, such as:
+  * Splitting processes over multiple actors
+  * Streams (e.g. https://github.com/functional-streams-for-scala/fs2) for non persistent processes.
 
 Long term plans:
+* Hyarchical petri nets
+* Timed petri nets
 * Process migration
-* Analysis, path querying 
-* Path prediction
+* Analysis (using apache Spark or apache Flink), some examples:
+  * Path querying
+  * Path prediction
+  * Transition timing
 * Visual process editor
 
 
