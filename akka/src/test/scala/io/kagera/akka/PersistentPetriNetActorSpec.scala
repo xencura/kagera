@@ -7,22 +7,36 @@ import akka.testkit.{ ImplicitSender, TestKit }
 import com.typesafe.config.ConfigFactory
 import io.kagera.akka.PersistentPetriNetActorSpec._
 import io.kagera.akka.actor.PetriNetProcess
-import io.kagera.akka.actor.PetriNetProcess.{
-  FireTransition,
-  GetState,
-  State,
-  TransitionFailed,
-  TransitionFiredSuccessfully
-}
+import io.kagera.akka.actor.PetriNetProcess._
 import io.kagera.api.colored._
 import io.kagera.api.colored.dsl._
+import io.kagera.api.colored.transitions.UncoloredTransition
+import io.kagera.api.multiset._
 import org.scalatest.WordSpecLike
+
+import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.duration.Duration
+import scala.util.Random
 
 object PersistentPetriNetActorSpec {
 
   sealed trait Event
   case class Added(n: Int) extends Event
   case class Removed(n: Int) extends Event
+
+  def stateTransition[S, E](
+    eventSourcing: S => E => S,
+    fn: S => E,
+    id: Long = Random.nextLong,
+    isManaged: Boolean = false
+  ): Transition[Unit, E, S] =
+    new AbstractTransition[Unit, E, S](id, label = "", isManaged, maximumOperationTime = Duration.Undefined)
+      with UncoloredTransition[Unit, E, S] {
+
+      override val updateState = eventSourcing
+
+      override def produceEvent(consume: Marking, state: S, input: Unit): Future[E] = Future.successful(fn(state))
+    }
 
   val config = ConfigFactory.parseString("""
       |akka {
@@ -65,7 +79,7 @@ class PersistentPetriNetActorSpec
 
     "Respond with a TransitionFailed message if a transition failed to fire" in {
 
-      val t1 = stateFunction(eventSourcing)(set => throw new RuntimeException("something went wrong"))
+      val t1 = stateTransition[Set[Int], Event](eventSourcing, set => throw new RuntimeException("something went wrong"))
 
       val petriNet = process[Set[Int]](p1 ~> t1, t1 ~> p2)
 
@@ -83,8 +97,8 @@ class PersistentPetriNetActorSpec
 
       val actorName = java.util.UUID.randomUUID().toString
 
-      val t1 = stateFunction(eventSourcing)(set => Added(1))
-      val t2 = stateFunction(eventSourcing, isManaged = true)(set => Added(2))
+      val t1 = stateTransition[Set[Int], Event](eventSourcing, set => Added(1))
+      val t2 = stateTransition[Set[Int], Event](eventSourcing, set => Added(2), isManaged = true)
 
       val petriNet = process[Set[Int]](p1 ~> t1, t1 ~> p2, p2 ~> t2, t2 ~> p3)
 

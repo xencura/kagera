@@ -11,8 +11,8 @@ import scalax.collection.edge.WLDiEdge
 
 class ExecutorSpec extends WordSpec {
 
-  val p1 = nullPlace(id = 1, label = "p1")
-  val p2 = nullPlace(id = 2, label = "p2")
+  val p1 = Place[Unit](id = 1, label = "p1")
+  val p2 = Place[Unit](id = 2, label = "p2")
 
   val mockedTransition = nullTransition(1, "t1", false)
 

@@ -5,28 +5,10 @@ import io.kagera.api.multiset._
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{ ExecutionContext, Future }
-import scala.util.Random
 import scalax.collection.Graph
 import scalax.collection.edge.WLDiEdge
 
 package object dsl {
-
-  def stateFunction[S, E](stateTransition: S => E => S, id: Long = Random.nextLong, isManaged: Boolean = false)(
-    fn: S => E
-  ): Transition[Unit, E, S] =
-    new AbstractTransition[Unit, E, S](id, label = "", isManaged, maximumOperationTime = Duration.Undefined) {
-
-      override def apply(inAdjacent: MultiSet[Place[_]], outAdjacent: MultiSet[Place[_]])(implicit
-        executor: ExecutionContext
-      ) =
-        (consume, state, in) => {
-
-          val produce = outAdjacent.map { case (place, count) => place -> Map(() -> count) }.toMarking
-          Future.successful(produce, fn(state))
-        }
-
-      override def updateState(state: S): (E) => S = stateTransition(state)
-    }
 
   implicit class TransitionDSL(t: Transition[_, _, _]) {
     def ~>[C](p: Place[C], weight: Long = 1): Arc = arc(t, p, weight)
@@ -45,8 +27,6 @@ package object dsl {
     WLDiEdge[Node, PTEdge[C]](Left(p), Right(t))(weight, innerEdge)
   }
 
-  def nullPlace(id: Long, label: String) = Place[Unit](id, label)
-
   def constantTransition[I, O, S](id: Long, label: String, isManaged: Boolean = false, constant: O) =
     new AbstractTransition[I, O, S](id, label, isManaged, Duration.Undefined) {
       override def apply(inAdjacent: MultiSet[Place[_]], outAdjacent: MultiSet[Place[_]])(implicit
@@ -64,7 +44,7 @@ package object dsl {
       def produceTokens[C](place: Place[C], count: Int): MultiSet[C] =
         MultiSet.empty[C] + (constant.asInstanceOf[C] -> count)
 
-      override def updateState(s: S): (O) => S = e => s
+      override def updateState = s => e => s
     }
 
   def nullTransition[S](id: Long, label: String, isManaged: Boolean = false) =
