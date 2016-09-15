@@ -107,7 +107,7 @@ class PetriNetProcess[S](process: ExecutablePetriNet[S], initialMarking: Marking
             log.debug(s"Transition fired ${job.t}")
             val response = TransitionFiredSuccessfully[S](job.t, e.consumed, e.produced, currentMarking, state)
             runningJobs -= id
-            tryStep()
+            fireAllEnabledTransitions()
             sender() ! response
           }
         case Failure(reason) =>
@@ -124,19 +124,21 @@ class PetriNetProcess[S](process: ExecutablePetriNet[S], initialMarking: Marking
   }
 
   /**
-   * Fires the first enabled transition
+   * Fires all automated enabled transitions
    */
-  def tryStep() = {
-    val enabled = process.enabledParameters(availableMarking).view.find { case (t, markings) =>
-      t.isManaged
-    }
+  def fireAllEnabledTransitions() = fireAllEnabled(availableMarking)
 
-    if (enabled.isEmpty)
-      log.debug("Cannot fire an automatic transition, none are enabled")
-
-    enabled.foreach { case (t, markings) =>
-      fire(t.asInstanceOf[Transition[Any, _, S]], ())
-    }
+  def fireAllEnabled(available: Marking): Unit = {
+    process
+      .enabledParameters(availableMarking)
+      .find { case (t, markings) =>
+        t.isManaged
+      }
+      .foreach { case (t, markings) =>
+        log.debug(s"Transition $t is automated and enabled: firing")
+        val job = fire(t.asInstanceOf[Transition[Any, _, S]], markings.head, ())
+        fireAllEnabled(available -- job.consume)
+      }
   }
 
   /**
@@ -155,12 +157,12 @@ class PetriNetProcess[S](process: ExecutablePetriNet[S], initialMarking: Marking
     }
   }
 
-  def fire(transition: Transition[Any, _, S], consume: Marking, input: Any): Unit = {
-    log.debug(s"Firing transition: $transition")
+  def fire(transition: Transition[Any, _, S], consume: Marking, input: Any): Job = {
     val job = Job(nextJobId(), transition, consume, input)
     runningJobs += job.id -> job
     val originalSender = sender()
     job.result.onComplete { case _ => self.tell(JobCompleted(job.id), originalSender) }
+    job
   }
 
   def applyEvent: Receive = { case e: TransitionFired =>
@@ -171,6 +173,6 @@ class PetriNetProcess[S](process: ExecutablePetriNet[S], initialMarking: Marking
 
   override def receiveRecover: Receive = {
     case e: io.kagera.akka.persistence.TransitionFired => applyEvent(readEvent(process, currentMarking, e))
-    case RecoveryCompleted => tryStep()
+    case RecoveryCompleted => fireAllEnabledTransitions()
   }
 }

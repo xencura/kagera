@@ -18,5 +18,5 @@ trait UncoloredTransition[Input, Output, State] extends Transition[Input, Output
     }
   }
 
-  def produceEvent(consume: Marking, state: State, input: Input): Future[Output]
+  def produceEvent(consume: Marking, state: State, input: Input)(implicit executor: ExecutionContext): Future[Output]
 }
