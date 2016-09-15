@@ -1,18 +1,13 @@
 package io.kagera.demo.http
 
-import akka.NotUsed
-import akka.actor.{ ActorRef, ActorSystem }
 import akka.http.scaladsl.server.Directives
+import akka.pattern.ask
 import akka.util.Timeout
 import io.kagera.akka.actor.PetriNetProcess
 import io.kagera.akka.actor.PetriNetProcess._
-import io.kagera.api.colored.{ ExecutablePetriNet, Marking }
+import io.kagera.api.colored.{ ExecutablePetriNet, Generators, Marking, Place, Transition }
 import io.kagera.demo.{ ConfiguredActorSystem, TestProcess }
-import akka.pattern.ask
-import akka.persistence.cassandra.query.scaladsl.CassandraReadJournal
-import akka.persistence.query.{ EventEnvelope, PersistenceQuery }
-import akka.stream.{ ActorMaterializer, Materializer }
-import akka.stream.scaladsl.Source
+import io.kagera.dot.GraphDot
 
 trait Routes extends Directives with TestProcess {
 
@@ -22,7 +17,11 @@ trait Routes extends Directives with TestProcess {
 
   implicit val timeout = Timeout(2 seconds)
 
-  val repository: Map[String, ExecutablePetriNet[_]] = Map("test" -> sequentialProcess)
+  val repository: Map[String, ExecutablePetriNet[_]] = Map("test" -> Generators.uncoloredSequential(5))
+
+  import io.kagera.dot.PetriNetDot._
+
+//  val dot = GraphDot.generateDot(repository.head._2.innerGraph, petriNetTheme[Place[_], Transition[_, _, _]])
 
   val repositoryRoutes = pathPrefix("repository") {
 
@@ -31,16 +30,6 @@ trait Routes extends Directives with TestProcess {
       get { complete("") }
     }
   }
-
-  // obtain read journal
-  val queries = PersistenceQuery(system).readJournalFor[CassandraReadJournal](CassandraReadJournal.Identifier)
-
-  // obtain all persistence ids
-  val persistenceIds: Source[String, NotUsed] = queries.allPersistenceIds()
-
-  //  val allEvents = persistenceIds.flatMapConcat(id => queries.eventsByPersistenceId(id, 0L, Long.MaxValue))
-
-  persistenceIds.runForeach { id => println("id: " + id) }
 
   val processRoutes = pathPrefix("process") {
 
