@@ -44,7 +44,7 @@ trait Transition[Input, Output, State] {
    *
    * Require a TypeClass?
    */
-  val isManaged: Boolean
+  val isAutomated: Boolean
 
   /**
    * The maximum duration this transition may spend doing computation / io.

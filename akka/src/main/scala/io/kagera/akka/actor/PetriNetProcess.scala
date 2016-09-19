@@ -145,7 +145,7 @@ class PetriNetProcess[S](process: ExecutablePetriNet[S], initialMarking: Marking
     process
       .enabledParameters(availableMarking)
       .find { case (t, markings) =>
-        t.isManaged
+        t.isAutomated
       }
       .foreach { case (t, markings) =>
         log.debug(s"Transition $t is automated and enabled: firing")
