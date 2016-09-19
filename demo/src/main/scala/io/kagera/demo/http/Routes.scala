@@ -61,7 +61,7 @@ trait Routes extends Directives with TestProcess {
               post {
                 val msg = FireTransition(tid.toLong, ())
                 val futureResult = actorSelection.ask(msg).mapTo[TransitionResult].map {
-                  case success: TransitionFiredSuccessfully[_] => "success"
+                  case success: TransitionFired[_] => "success"
                   case failure: TransitionFailed => "failure"
                 }
                 complete(futureResult)

@@ -4,11 +4,11 @@ import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
 
+import akka.actor.ExtendedActorSystem
 import akka.serialization.SerializerWithStringManifest
 import com.trueaccord.scalapb.{ GeneratedMessage, GeneratedMessageCompanion, Message }
+import io.kagera.akka.actor.ScalaPBSerializer._
 import io.kagera.akka.persistence.TransitionFired
-import ScalaPBSerializer._
-import akka.actor.ExtendedActorSystem
 
 object ScalaPBSerializer {
   import scala.reflect.runtime.{ universe => ru }

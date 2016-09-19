@@ -3,7 +3,6 @@ package io.kagera.akka.actor
 import akka.actor.{ ActorLogging, Props }
 import akka.persistence.{ PersistentActor, RecoveryCompleted }
 import io.kagera.akka.actor.PetriNetProcess._
-import io.kagera.api.colored.ExceptionStrategy.RetryWithDelay
 import io.kagera.api.colored._
 
 import scala.collection._
@@ -15,32 +14,50 @@ object PetriNetProcess {
   // commands
   trait Command
 
+  /**
+   * Command to request the next enabled transition to be fired.
+   */
   case object Step extends Command
 
+  /**
+   * Command to request the current state of the process.
+   */
   case object GetState extends Command
 
+  /**
+   * Command to fire a specific transition with input.
+   */
   case class FireTransition(transition_id: Long, input: Any) extends Command
 
   // responses
   sealed trait TransitionResult
 
-  case class TransitionFiredSuccessfully[S](
-    transition_id: Long,
-    consumed: Marking,
-    produced: Marking,
-    marking: Marking,
-    state: S
-  ) extends TransitionResult
+  /**
+   * Response indicating that a transition has fired successfully
+   */
+  case class TransitionFired[S](transition_id: Long, consumed: Marking, produced: Marking, marking: Marking, state: S)
+      extends TransitionResult
 
+  /**
+   * Response indicating that a transition has failed.
+   */
   case class TransitionFailed(transition_id: Long, consume: Marking, input: Any, reason: Throwable)
       extends TransitionResult
 
+  /**
+   * Internal message indicating a job has completed
+   */
+  protected case class JobCompleted(id: Long)
+
+  /**
+   * Response containing the state of the process.
+   */
   case class State[S](marking: Marking, state: S)
 
-  case class TransitionExceptionState(time: Long, exception: Throwable, exceptionStrategy: ExceptionStrategy)
-
-  // events
-  case class TransitionFired(
+  /**
+   * An event describing the fact that a transition has fired in the petri net process.
+   */
+  case class TransitionFiredEvent(
     transition_id: Long,
     time_started: Long,
     time_completed: Long,
@@ -49,14 +66,13 @@ object PetriNetProcess {
     out: Any
   )
 
-  protected case class JobCompleted(id: Long)
-
-  protected case class JobTimedout(id: Long)
-
   def props[S](process: ExecutablePetriNet[S], initialMarking: Marking, initialState: S) =
     Props(new PetriNetProcess[S](process, initialMarking, initialState))
 }
 
+/**
+ * This actor is responsible for maintaining the state of a single petri net instance.
+ */
 class PetriNetProcess[S](process: ExecutablePetriNet[S], initialMarking: Marking, initialState: S)
     extends PersistentActor
     with ActorLogging
@@ -67,6 +83,7 @@ class PetriNetProcess[S](process: ExecutablePetriNet[S], initialMarking: Marking
   override def persistenceId: String = s"process-$processId"
 
   override implicit val system = context.system
+
   def currentTime(): Long = System.currentTimeMillis()
 
   var currentMarking: Marking = initialMarking
@@ -82,15 +99,11 @@ class PetriNetProcess[S](process: ExecutablePetriNet[S], initialMarking: Marking
 
   val runningJobs: mutable.Map[Long, Job] = mutable.Map.empty
 
-  val exceptionState: mutable.Map[Long, TransitionExceptionState] = mutable.Map.empty
-
-  def isBlocked(t: Transition[Any, _, S]): Option[String] = exceptionState.get(t.id).map {
-    case TransitionExceptionState(time, exception, RetryWithDelay(initialDelay, count, fn)) => ""
-  }
-
   // The marking that is already used by running jobs
   def reservedMarking: Marking =
     runningJobs.map { case (id, job) => job.consume }.reduceOption(_ ++ _).getOrElse(Marking.empty)
+
+  // The marking that is available for new transitions / jobs.
   def availableMarking: Marking = currentMarking -- reservedMarking
 
   override def receiveCommand = {
@@ -101,11 +114,11 @@ class PetriNetProcess[S](process: ExecutablePetriNet[S], initialMarking: Marking
       val job = runningJobs(id)
       job.result.value.foreach {
         case Success((produced, output)) =>
-          val e = TransitionFired(job.t, job.startTime, currentTime(), job.consume, produced, output)
+          val e = TransitionFiredEvent(job.t, job.startTime, currentTime(), job.consume, produced, output)
           persist(writeEvent(e)) { persisted =>
             applyEvent(e)
             log.debug(s"Transition fired ${job.t}")
-            val response = TransitionFiredSuccessfully[S](job.t, e.consumed, e.produced, currentMarking, state)
+            val response = TransitionFired[S](job.t, e.consumed, e.produced, currentMarking, state)
             runningJobs -= id
             fireAllEnabledTransitions()
             sender() ! response
@@ -124,7 +137,7 @@ class PetriNetProcess[S](process: ExecutablePetriNet[S], initialMarking: Marking
   }
 
   /**
-   * Fires all automated enabled transitions
+   * Fires all automated enabled transitions concurrently
    */
   def fireAllEnabledTransitions() = fireAllEnabled(availableMarking)
 
@@ -142,7 +155,7 @@ class PetriNetProcess[S](process: ExecutablePetriNet[S], initialMarking: Marking
   }
 
   /**
-   * Fires a specific transition with input
+   * Fires a specific transition with input, computes the marking it should consume
    */
   def fire(transition: Transition[Any, _, S], input: Any): Unit = {
     process.enabledParameters(availableMarking).get(transition) match {
@@ -157,6 +170,9 @@ class PetriNetProcess[S](process: ExecutablePetriNet[S], initialMarking: Marking
     }
   }
 
+  /**
+   * Fires a specific transition with input & marking
+   */
   def fire(transition: Transition[Any, _, S], consume: Marking, input: Any): Job = {
     val job = Job(nextJobId(), transition, consume, input)
     runningJobs += job.id -> job
@@ -165,7 +181,7 @@ class PetriNetProcess[S](process: ExecutablePetriNet[S], initialMarking: Marking
     job
   }
 
-  def applyEvent: Receive = { case e: TransitionFired =>
+  def applyEvent: Receive = { case e: TransitionFiredEvent =>
     currentMarking = currentMarking -- e.consumed ++ e.produced
     val t = process.getTransitionById(e.transition_id)
     state = t.updateState(state)(e.out)

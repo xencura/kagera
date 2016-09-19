@@ -133,10 +133,10 @@ class PersistentPetriNetActorSpec
       actor ! FireTransition(t1, ())
 
       // expect the next marking: p2 -> 1
-      expectMsgPF() { case TransitionFiredSuccessfully(t1.id, _, _, result, _) if result == Marking(p2 -> 1) => }
+      expectMsgPF() { case TransitionFired(t1.id, _, _, result, _) if result == Marking(p2 -> 1) => }
 
       // since t2 fires automatically we also expect the next marking: p3 -> 1
-      expectMsgPF() { case TransitionFiredSuccessfully(t2.id, _, _, result, _) if result == Marking(p3 -> 1) => }
+      expectMsgPF() { case TransitionFired(t2.id, _, _, result, _) if result == Marking(p3 -> 1) => }
 
       // terminate the actor
       watch(actor)
@@ -179,7 +179,7 @@ class PersistentPetriNetActorSpec
       // fire the first transition manually
       actor ! FireTransition(1, ())
 
-      expectMsgPF() { case TransitionFiredSuccessfully(t1.id, _, _, result, _) => }
+      expectMsgPF() { case TransitionFired(t1.id, _, _, result, _) => }
 
       import org.scalatest.concurrent.Timeouts._
 
@@ -187,8 +187,8 @@ class PersistentPetriNetActorSpec
 
         // expect that the two subsequent transitions are fired automatically and in parallel (in any order)
         expectMsgInAnyOrderPF(
-          { case TransitionFiredSuccessfully(t2.id, _, _, result, _) => },
-          { case TransitionFiredSuccessfully(t3.id, _, _, result, _) => }
+          { case TransitionFired(t2.id, _, _, result, _) => },
+          { case TransitionFired(t3.id, _, _, result, _) => }
         )
       }
     }
