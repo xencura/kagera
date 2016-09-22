@@ -143,7 +143,7 @@ class PetriNetProcess[S](process: ExecutablePetriNet[S], initialMarking: Marking
 
   def fireAllEnabled(available: Marking): Unit = {
     process
-      .enabledParameters(availableMarking)
+      .enabledParameters(available)
       .find { case (t, markings) =>
         t.isAutomated
       }

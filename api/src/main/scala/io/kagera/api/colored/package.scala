@@ -27,6 +27,11 @@ package object colored {
     def toMarking: Marking = Marking(i.toMap[Place[_], MultiSet[_]])
   }
 
+  implicit class ColoredPetriNetAdditions(petriNet: PetriNet[Place[_], Transition[_, _, _]]) {
+    def getEdge(p: Place[_], t: Transition[_, _, _]): Option[PTEdge[Any]] =
+      petriNet.innerGraph.findPTEdge(p, t).map(_.label.asInstanceOf[PTEdge[Any]])
+  }
+
   implicit def toMarking(map: Map[Place[_], MultiSet[_]]): Marking = Marking(map)
 
   implicit def placeLabel[C](p: Place[C]): String @@ tags.Label = tag[tags.Label](p.label)
