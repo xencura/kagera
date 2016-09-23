@@ -3,20 +3,20 @@ package io.kagera.akka
 import java.util.UUID
 
 import akka.actor.{ ActorSystem, PoisonPill, Props, Terminated }
-import akka.testkit.{ ImplicitSender, TestKit, TestProbe }
+import akka.testkit.{ ImplicitSender, TestKit }
 import com.typesafe.config.ConfigFactory
 import io.kagera.akka.PersistentPetriNetActorSpec._
 import io.kagera.akka.actor.PetriNetProcess
 import io.kagera.akka.actor.PetriNetProcess._
+import io.kagera.api.colored.ExceptionStrategy.{ BlockSelf, Fatal, RetryWithDelay }
 import io.kagera.api.colored._
 import io.kagera.api.colored.dsl._
 import io.kagera.api.colored.transitions.UncoloredTransition
-import io.kagera.api.multiset._
 import org.scalatest.WordSpecLike
-import org.scalatest.time.{ Millisecond, Milliseconds, Span }
+import org.scalatest.time.{ Milliseconds, Span }
 
-import scala.concurrent.{ ExecutionContext, Future }
 import scala.concurrent.duration.Duration
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.Random
 
 object PersistentPetriNetActorSpec {
@@ -28,11 +28,12 @@ object PersistentPetriNetActorSpec {
   def stateTransition[S, E](
     eventSourcing: S => E => S,
     fn: S => E,
-    id: Long = Random.nextLong,
+    id: Long = Math.abs(Random.nextLong),
     label: String = "",
-    isManaged: Boolean = false
+    isManaged: Boolean = false,
+    exceptionStrategy: TransitionExceptionHandler = (e, n) => BlockSelf
   ): Transition[Unit, E, S] =
-    new AbstractTransition[Unit, E, S](id, label, isManaged, maximumOperationTime = Duration.Undefined)
+    new AbstractTransition[Unit, E, S](id, label, isManaged, Duration.Undefined, exceptionStrategy)
       with UncoloredTransition[Unit, E, S] {
 
       override val updateState = eventSourcing
@@ -110,6 +111,58 @@ class PersistentPetriNetActorSpec
       expectMsgClass(classOf[TransitionFailed])
     }
 
+    "Respond with a TransitionNotEnabled message if a transition is not enabled" in {
+
+      val t1 = stateTransition[Set[Int], Event](eventSourcing, set => Added(1))
+      val t2 = stateTransition[Set[Int], Event](eventSourcing, set => Added(2))
+
+      val actorName = java.util.UUID.randomUUID().toString
+
+      val petriNet = process[Set[Int]](p1 ~> t1, t1 ~> p2, p2 ~> t2, t2 ~> p3)
+
+      // creates a petri net actor with initial marking: p1 -> 1
+      val initialMarking = Marking(p1 -> 1)
+
+      val actor = system.actorOf(Props(new PetriNetProcess[Set[Int]](petriNet, initialMarking, Set.empty)), actorName)
+
+      // attempt to fire the second transition
+      actor ! FireTransition(t2, ())
+
+      // expect a failure message
+      expectMsgPF() { case TransitionNotEnabled(t2.id, _) => }
+    }
+
+    "Retry to execute a transition with a delay when the exception strategy indicates so" in {
+
+      val handler: TransitionExceptionHandler = (e, n) =>
+        (e, n) match {
+          case (e, n) if n < 3 => RetryWithDelay((10 * Math.pow(2, n)).toLong)
+          case _ => Fatal
+        }
+
+      val t1 = stateTransition[Set[Int], Event](
+        eventSourcing,
+        set => {
+          println("attempting to fire")
+          throw new RuntimeException("something went wrong")
+        },
+        exceptionStrategy = handler
+      )
+
+      val petriNet = process[Set[Int]](p1 ~> t1, t1 ~> p2)
+
+      val id = UUID.randomUUID()
+      val initialMarking = Marking(p1 -> 1)
+
+      val actor = system.actorOf(Props(new PetriNetProcess[Set[Int]](petriNet, initialMarking, Set.empty)))
+
+      actor ! FireTransition(t1, ())
+
+      expectMsgClass(classOf[TransitionFailed])
+      expectMsgClass(classOf[TransitionFailed])
+      expectMsgClass(classOf[TransitionFailed])
+    }
+
     "Be able to restore it's state after termination" in {
 
       val actorName = java.util.UUID.randomUUID().toString
@@ -153,8 +206,6 @@ class PersistentPetriNetActorSpec
       expectMsg(State[Set[Int]](Marking(p3 -> 1), Set(1, 2)))
     }
 
-    "only fire one transition when two (or more) transitions compete for the same token" in {}
-
     "fire automatic transitions in paralallel when possible" in {
 
       def id[S, E]: S => E => S = s => e => s
@@ -187,8 +238,8 @@ class PersistentPetriNetActorSpec
 
         // expect that the two subsequent transitions are fired automatically and in parallel (in any order)
         expectMsgInAnyOrderPF(
-          { case TransitionFired(`t2`, _, _, _, _) => },
-          { case TransitionFired(`t3`, _, _, _, _) => }
+          { case TransitionFired(t2.id, _, _, _, _) => },
+          { case TransitionFired(t3.id, _, _, _, _) => }
         )
       }
     }

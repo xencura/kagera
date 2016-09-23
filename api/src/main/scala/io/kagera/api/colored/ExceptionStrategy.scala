@@ -3,7 +3,7 @@ package io.kagera.api.colored
 object ExceptionStrategy {
 
   /**
-   * Indicates a non recoverable exception that should stop any execution of this and other transitions.
+   * Indicates a non recoverable exception that should prevent any execution of this and other transitions.
    */
   case object Fatal extends ExceptionStrategy
 
@@ -13,10 +13,8 @@ object ExceptionStrategy {
   case object BlockSelf extends ExceptionStrategy
 
   /**
-   * Indicates that the the firing, using the same input, should be retried with a delay.
    */
-  case class RetryWithDelay(initialDelay: Long, maximumRetries: Int, timeFunction: Long => Long = time => time * 2)
-      extends ExceptionStrategy
+  case class RetryWithDelay(delay: Long) extends ExceptionStrategy
 
   /**
    * The exception thrown when retry is exhausted.
@@ -26,4 +24,4 @@ object ExceptionStrategy {
   case class RetryExhausted(nrOfRetries: Int) extends RuntimeException
 }
 
-trait ExceptionStrategy
+sealed trait ExceptionStrategy

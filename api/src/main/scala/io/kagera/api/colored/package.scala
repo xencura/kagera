@@ -21,6 +21,8 @@ package object colored {
 
   type MarkedPlace[T] = (Place[T], MultiSet[T])
 
+  type TransitionExceptionHandler = (Throwable, Int) => ExceptionStrategy
+
   implicit def toMarkedPlace(tuple: (Place[Unit], Int)): MarkedPlace[Unit] = tuple._1 -> Map[Unit, Int](() -> tuple._2)
 
   implicit class IterableToMarking(i: Iterable[(Place[_], MultiSet[_])]) {

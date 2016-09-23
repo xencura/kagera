@@ -63,7 +63,7 @@ trait Transition[Input, Output, State] {
    *
    * @return
    */
-  def exceptionStrategy: Throwable => ExceptionStrategy = e => BlockSelf
+  def exceptionStrategy: TransitionExceptionHandler = (e, n) => BlockSelf
 
   /**
    * Given the in and out adjacent places with their weight returns a function:
