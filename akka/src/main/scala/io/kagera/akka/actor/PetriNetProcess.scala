@@ -90,6 +90,8 @@ object PetriNetProcess {
     exceptionStrategy: ExceptionStrategy
   )
 
+  case class ExceptionState(consumed: Marking, exceptionStrategy: ExceptionStrategy, consecutiveFailureCount: Int)
+
   def props[S](process: ExecutablePetriNet[S], initialMarking: Marking, initialState: S) =
     Props(new PetriNetProcess[S](process, initialMarking, initialState))
 }
@@ -126,8 +128,6 @@ class PetriNetProcess[S](process: ExecutablePetriNet[S], initialMarking: Marking
     val result = process.fireTransition(transition)(consume, state, input)
   }
 
-  case class ExceptionState(consumed: Marking, exceptionStrategy: ExceptionStrategy, consecutiveFailureCount: Int)
-
   def isBlocked(transition_id: Long) = failures.get(transition_id).isDefined || failures.values.exists(_ == Fatal)
 
   import context.dispatcher
@@ -162,7 +162,7 @@ class PetriNetProcess[S](process: ExecutablePetriNet[S], initialMarking: Marking
             sender() ! response
           }
         case Failure(reason) =>
-          log.warning(s"Transition '${job.transition}' failed: {}", reason)
+          log.warning(s"Transition '${job.transition}' failed: {}", reason.getCause)
           runningJobs -= id
 
           // get the current exception state

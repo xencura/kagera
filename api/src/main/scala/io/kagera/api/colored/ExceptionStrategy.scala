@@ -13,15 +13,11 @@ object ExceptionStrategy {
   case object BlockSelf extends ExceptionStrategy
 
   /**
+   * Retries firing the transition after some delay.
    */
-  case class RetryWithDelay(delay: Long) extends ExceptionStrategy
-
-  /**
-   * The exception thrown when retry is exhausted.
-   *
-   * @param nrOfRetries
-   */
-  case class RetryExhausted(nrOfRetries: Int) extends RuntimeException
+  case class RetryWithDelay(delay: Long) extends ExceptionStrategy {
+    require(delay > 0, "Delay must be greater then zero")
+  }
 }
 
 sealed trait ExceptionStrategy

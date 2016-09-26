@@ -21,28 +21,6 @@ import scala.util.Random
 
 object PersistentPetriNetActorSpec {
 
-  sealed trait Event
-  case class Added(n: Int) extends Event
-  case class Removed(n: Int) extends Event
-
-  def stateTransition[S, E](
-    eventSourcing: S => E => S,
-    fn: S => E,
-    id: Long = Math.abs(Random.nextLong),
-    label: String = "",
-    isManaged: Boolean = false,
-    exceptionStrategy: TransitionExceptionHandler = (e, n) => BlockSelf
-  ): Transition[Unit, E, S] =
-    new AbstractTransition[Unit, E, S](id, label, isManaged, Duration.Undefined, exceptionStrategy)
-      with UncoloredTransition[Unit, E, S] {
-
-      override val updateState = eventSourcing
-
-      override def produceEvent(consume: Marking, state: S, input: Unit)(implicit
-        executor: ExecutionContext
-      ): Future[E] = Future { (fn(state)) }
-    }
-
   val config = ConfigFactory.parseString("""
       |akka {
       |  loggers = ["akka.testkit.TestEventListener"]
@@ -62,6 +40,10 @@ object PersistentPetriNetActorSpec {
       |
       |logging.root.level = WARN
     """.stripMargin)
+
+  sealed trait Event
+  case class Added(n: Int) extends Event
+  case class Removed(n: Int) extends Event
 }
 
 class PersistentPetriNetActorSpec
@@ -82,7 +64,15 @@ class PersistentPetriNetActorSpec
     }
   }
 
-  val eventSourcing: Set[Int] => Event => Set[Int] = set => {
+  def createPetriNetActor[S](
+    petriNet: ExecutablePetriNet[S],
+    initialMarking: Marking,
+    state: S,
+    actorName: String = UUID.randomUUID().toString
+  ) =
+    system.actorOf(Props(new PetriNetProcess[S](petriNet, initialMarking, state)), actorName)
+
+  val integerSetEventSource: Set[Int] => Event => Set[Int] = set => {
     case Added(c) => set + c
     case Removed(c) => set - c
   }
@@ -95,35 +85,40 @@ class PersistentPetriNetActorSpec
 
   "A persistent petri net actor" should {
 
-    "Respond with a TransitionFailed message if a transition failed to fire" in {
+    "Respond with a TransitionFailed message if a transition failed to fire" in new StateTransitionNet[
+      Set[Int],
+      Event
+    ] {
 
-      val t1 = stateTransition[Set[Int], Event](eventSourcing, set => throw new RuntimeException("something went wrong"))
+      override val eventSourcing = integerSetEventSource
 
-      val petriNet = process[Set[Int]](p1 ~> t1, t1 ~> p2)
+      val t1 = transition(id = 1)(set => throw new RuntimeException("something went wrong"))
 
-      val id = UUID.randomUUID()
+      val petriNet = createPetriNet(p1 ~> t1, t1 ~> p2)
+
       val initialMarking = Marking(p1 -> 1)
-
-      val actor = system.actorOf(Props(new PetriNetProcess[Set[Int]](petriNet, initialMarking, Set.empty)))
+      val actor = createPetriNetActor[Set[Int]](petriNet, initialMarking, Set.empty)
 
       actor ! FireTransition(t1, ())
 
       expectMsgClass(classOf[TransitionFailed])
     }
 
-    "Respond with a TransitionNotEnabled message if a transition is not enabled" in {
+    "Respond with a TransitionNotEnabled message if a transition is not enabled" in new StateTransitionNet[Set[
+      Int
+    ], Event] {
 
-      val t1 = stateTransition[Set[Int], Event](eventSourcing, set => Added(1))
-      val t2 = stateTransition[Set[Int], Event](eventSourcing, set => Added(2))
+      override val eventSourcing = integerSetEventSource
 
-      val actorName = java.util.UUID.randomUUID().toString
+      val t1 = transition(id = 1)(set => Added(1))
+      val t2 = transition(id = 2)(set => Added(2))
 
-      val petriNet = process[Set[Int]](p1 ~> t1, t1 ~> p2, p2 ~> t2, t2 ~> p3)
+      val petriNet = createPetriNet(p1 ~> t1, t1 ~> p2, p2 ~> t2, t2 ~> p3)
 
       // creates a petri net actor with initial marking: p1 -> 1
       val initialMarking = Marking(p1 -> 1)
 
-      val actor = system.actorOf(Props(new PetriNetProcess[Set[Int]](petriNet, initialMarking, Set.empty)), actorName)
+      val actor = createPetriNetActor[Set[Int]](petriNet, initialMarking, Set.empty)
 
       // attempt to fire the second transition
       actor ! FireTransition(t2, ())
@@ -132,29 +127,27 @@ class PersistentPetriNetActorSpec
       expectMsgPF() { case TransitionNotEnabled(t2.id, _) => }
     }
 
-    "Retry to execute a transition with a delay when the exception strategy indicates so" in {
+    "Retry to execute a transition with a delay when the exception strategy indicates so" in new StateTransitionNet[Set[
+      Int
+    ], Event] {
 
-      val handler: TransitionExceptionHandler = (e, n) =>
-        (e, n) match {
-          case (e, n) if n < 3 => RetryWithDelay((10 * Math.pow(2, n)).toLong)
-          case _ => Fatal
-        }
+      override val eventSourcing = integerSetEventSource
 
-      val t1 = stateTransition[Set[Int], Event](
-        eventSourcing,
-        set => {
-          println("attempting to fire")
-          throw new RuntimeException("something went wrong")
-        },
-        exceptionStrategy = handler
-      )
+      val retryHandler: TransitionExceptionHandler = {
+        case (e, n) if n < 3 => RetryWithDelay((10 * Math.pow(2, n)).toLong)
+        case _ => Fatal
+      }
 
-      val petriNet = process[Set[Int]](p1 ~> t1, t1 ~> p2)
+      val t1 = transition(id = 1, exceptionStrategy = retryHandler) { set =>
+        { throw new RuntimeException("something went wrong") }
+      }
+
+      val petriNet = createPetriNet(p1 ~> t1, t1 ~> p2)
 
       val id = UUID.randomUUID()
       val initialMarking = Marking(p1 -> 1)
 
-      val actor = system.actorOf(Props(new PetriNetProcess[Set[Int]](petriNet, initialMarking, Set.empty)))
+      val actor = createPetriNetActor[Set[Int]](petriNet, initialMarking, Set.empty)
 
       actor ! FireTransition(t1, ())
 
@@ -163,19 +156,25 @@ class PersistentPetriNetActorSpec
       expectMsgClass(classOf[TransitionFailed])
     }
 
-    "Be able to restore it's state after termination" in {
+    "Be able to restore it's state after termination" in new StateTransitionNet[Set[Int], Event] {
+
+      override val eventSourcing = integerSetEventSource
 
       val actorName = java.util.UUID.randomUUID().toString
 
-      val t1 = stateTransition[Set[Int], Event](eventSourcing, set => Added(1))
-      val t2 = stateTransition[Set[Int], Event](eventSourcing, set => Added(2), isManaged = true)
+      val t1 = transition(id = 1) { set =>
+        Added(1)
+      }
+      val t2 = transition(id = 2, isManaged = true) { set =>
+        Added(2)
+      }
 
       val petriNet = process[Set[Int]](p1 ~> t1, t1 ~> p2, p2 ~> t2, t2 ~> p3)
 
       // creates a petri net actor with initial marking: p1 -> 1
       val initialMarking = Marking(p1 -> 1)
 
-      val actor = system.actorOf(Props(new PetriNetProcess[Set[Int]](petriNet, initialMarking, Set.empty)), actorName)
+      val actor = createPetriNetActor[Set[Int]](petriNet, initialMarking, Set.empty, actorName)
 
       // assert that the actor is in the initial state
       actor ! GetState
@@ -197,8 +196,7 @@ class PersistentPetriNetActorSpec
       expectMsgClass(classOf[Terminated])
 
       // create a new actor with the same persistent identifier
-      val newActor =
-        system.actorOf(Props(new PetriNetProcess[Set[Int]](petriNet, initialMarking, Set.empty)), actorName)
+      val newActor = createPetriNetActor[Set[Int]](petriNet, initialMarking, Set.empty, actorName)
 
       newActor ! GetState
 
@@ -206,26 +204,23 @@ class PersistentPetriNetActorSpec
       expectMsg(State[Set[Int]](Marking(p3 -> 1), Set(1, 2)))
     }
 
-    "fire automatic transitions in paralallel when possible" in {
+    "fire automatic transitions in parallel when possible" in new StateTransitionNet[Unit, Unit] {
 
-      def id[S, E]: S => E => S = s => e => s
+      override val eventSourcing: Unit => Unit => Unit = s => e => s
 
       val p1 = Place[Unit](1, "p1")
       val p2 = Place[Unit](2, "p2")
 
       val t1 = nullTransition(1, "t1", isManaged = false)
-      val t2 = stateTransition[Unit, Unit](id[Unit, Unit], unit => Thread.sleep(500), 2, "t2", isManaged = true)
-      val t3 = stateTransition[Unit, Unit](id[Unit, Unit], unit => Thread.sleep(500), 3, "t3", isManaged = true)
+      val t2 = transition(id = 2, isManaged = true)(unit => Thread.sleep(500))
+      val t3 = transition(id = 3, isManaged = true)(unit => Thread.sleep(500))
 
-      val petriNet = process[Unit](t1 ~> p1, t1 ~> p2, p1 ~> t2, p2 ~> t3)
+      val petriNet = createPetriNet(t1 ~> p1, t1 ~> p2, p1 ~> t2, p2 ~> t3)
 
       // creates a petri net actor with initial marking: p1 -> 1
       val initialMarking = Marking.empty
 
-      val actor = system.actorOf(
-        Props(new PetriNetProcess[Unit](petriNet, initialMarking, ())),
-        java.util.UUID.randomUUID().toString
-      )
+      val actor = createPetriNetActor(petriNet, initialMarking, ())
 
       // fire the first transition manually
       actor ! FireTransition(1, ())
