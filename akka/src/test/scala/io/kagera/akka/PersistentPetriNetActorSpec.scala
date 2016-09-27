@@ -70,7 +70,7 @@ class PersistentPetriNetActorSpec
     state: S,
     actorName: String = UUID.randomUUID().toString
   ) =
-    system.actorOf(Props(new PetriNetProcess[S](petriNet, initialMarking, state)), actorName)
+    system.actorOf(PetriNetProcess.props(petriNet, initialMarking, state), actorName)
 
   val integerSetEventSource: Set[Int] => Event => Set[Int] = set => {
     case Added(c) => set + c
@@ -151,9 +151,16 @@ class PersistentPetriNetActorSpec
 
       actor ! FireTransition(t1, ())
 
+      // expect 3 failure messages
       expectMsgClass(classOf[TransitionFailed])
       expectMsgClass(classOf[TransitionFailed])
       expectMsgClass(classOf[TransitionFailed])
+
+      // attempt to fire t1 explicitely
+      actor ! FireTransition(t1, ())
+
+      // expect the transition to be not enabled
+      expectMsgClass(classOf[TransitionNotEnabled])
     }
 
     "Be able to restore it's state after termination" in new StateTransitionNet[Set[Int], Event] {

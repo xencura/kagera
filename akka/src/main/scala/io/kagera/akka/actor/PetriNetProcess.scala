@@ -92,14 +92,17 @@ object PetriNetProcess {
 
   case class ExceptionState(consumed: Marking, exceptionStrategy: ExceptionStrategy, consecutiveFailureCount: Int)
 
-  def props[S](process: ExecutablePetriNet[S], initialMarking: Marking, initialState: S) =
-    Props(new PetriNetProcess[S](process, initialMarking, initialState))
+  def props[S](process: ExecutablePetriNet[S], initialStateProvider: String => (Marking, S)): Props =
+    Props(new PetriNetProcess[S](process, initialStateProvider))
+
+  def props[S](process: ExecutablePetriNet[S], initialMarking: Marking, initialState: S): Props =
+    props(process, id => (initialMarking, initialState))
 }
 
 /**
  * This actor is responsible for maintaining the state of a single petri net instance.
  */
-class PetriNetProcess[S](process: ExecutablePetriNet[S], initialMarking: Marking, initialState: S)
+class PetriNetProcess[S](process: ExecutablePetriNet[S], initialState: String => (Marking, S))
     extends PersistentActor
     with ActorLogging
     with PetriNetEventAdapter[S] {
@@ -113,8 +116,7 @@ class PetriNetProcess[S](process: ExecutablePetriNet[S], initialMarking: Marking
   def currentTime(): Long = System.currentTimeMillis()
 
   // state
-  var currentMarking: Marking = initialMarking
-  var state: S = initialState
+  var (currentMarking, state) = initialState(processId)
   val runningJobs: mutable.Map[Long, Job] = mutable.Map.empty
   val failures: mutable.Map[Long, ExceptionState] = mutable.Map.empty
 
@@ -194,7 +196,17 @@ class PetriNetProcess[S](process: ExecutablePetriNet[S], initialMarking: Marking
       log.warning(s"Transition '${process.getTransitionById(e.transition_id)}' failed: {}", e)
       sender() ! e
 
-    case FireTransition(id, input) => fire(process.getTransitionById(id), input)
+    case FireTransition(id, input) =>
+      log.debug(s"Received message to fire transition $id with input: $input")
+
+      process.findTransitionById(id) match {
+        case Some(transition) =>
+          fire(process.getTransitionById(id), input)
+        case None =>
+          val msg = s"No transition exists with id: $id"
+          sender() ! TransitionNotEnabled(id, msg)
+          log.warning(msg)
+      }
   }
 
   /**

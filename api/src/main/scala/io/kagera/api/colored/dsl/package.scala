@@ -29,6 +29,9 @@ package object dsl {
 
   def constantTransition[I, O, S](id: Long, label: String, isManaged: Boolean = false, constant: O) =
     new AbstractTransition[I, O, S](id, label, isManaged, Duration.Undefined) {
+
+      override val toString = label
+
       override def apply(inAdjacent: MultiSet[Place[_]], outAdjacent: MultiSet[Place[_]])(implicit
         executor: ExecutionContext
       ): (Marking, S, I) => Future[(Marking, O)] = { (marking, state, input) =>

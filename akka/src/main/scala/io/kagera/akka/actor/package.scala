@@ -6,7 +6,9 @@ import io.kagera.api.colored._
 package object actor {
   implicit class ProcessFns[S](process: ExecutablePetriNet[S]) {
 
-    def getTransitionById(id: Long): Transition[Any, Any, S] =
-      process.transitions.getById(id).asInstanceOf[Transition[Any, Any, S]]
+    def findTransitionById(id: Long): Option[Transition[Any, Any, S]] =
+      process.transitions.findById(id).asInstanceOf[Option[Transition[Any, Any, S]]]
+
+    def getTransitionById(id: Long): Transition[Any, Any, S] = findTransitionById(id).get
   }
 }
