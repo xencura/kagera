@@ -26,6 +26,13 @@ object PetriNetProcess {
    */
   case object GetState extends Command
 
+  object FireTransition {
+
+    def apply[I](t: Transition[I, _, _], input: I): FireTransition = FireTransition(t.id, input)
+
+    def apply(t: Transition[Unit, _, _]): FireTransition = FireTransition(t.id, ())
+  }
+
   /**
    * Command to fire a specific transition with input.
    */

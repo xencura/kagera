@@ -2,22 +2,17 @@ package io.kagera.akka
 
 import java.util.UUID
 
-import akka.actor.{ ActorSystem, PoisonPill, Props, Terminated }
+import akka.actor.{ ActorSystem, PoisonPill, Terminated }
 import akka.testkit.{ ImplicitSender, TestKit }
 import com.typesafe.config.ConfigFactory
 import io.kagera.akka.PersistentPetriNetActorSpec._
 import io.kagera.akka.actor.PetriNetProcess
 import io.kagera.akka.actor.PetriNetProcess._
-import io.kagera.api.colored.ExceptionStrategy.{ BlockSelf, Fatal, RetryWithDelay }
+import io.kagera.api.colored.ExceptionStrategy.{ Fatal, RetryWithDelay }
 import io.kagera.api.colored._
 import io.kagera.api.colored.dsl._
-import io.kagera.api.colored.transitions.UncoloredTransition
 import org.scalatest.WordSpecLike
 import org.scalatest.time.{ Milliseconds, Span }
-
-import scala.concurrent.duration.Duration
-import scala.concurrent.{ ExecutionContext, Future }
-import scala.util.Random
 
 object PersistentPetriNetActorSpec {
 
@@ -121,7 +116,7 @@ class PersistentPetriNetActorSpec
       val actor = createPetriNetActor[Set[Int]](petriNet, initialMarking, Set.empty)
 
       // attempt to fire the second transition
-      actor ! FireTransition(t2, ())
+      actor ! FireTransition(t2)
 
       // expect a failure message
       expectMsgPF() { case TransitionNotEnabled(t2.id, _) => }
@@ -149,7 +144,7 @@ class PersistentPetriNetActorSpec
 
       val actor = createPetriNetActor[Set[Int]](petriNet, initialMarking, Set.empty)
 
-      actor ! FireTransition(t1, ())
+      actor ! FireTransition(t1)
 
       // expect 3 failure messages
       expectMsgClass(classOf[TransitionFailed])
@@ -157,7 +152,7 @@ class PersistentPetriNetActorSpec
       expectMsgClass(classOf[TransitionFailed])
 
       // attempt to fire t1 explicitely
-      actor ! FireTransition(t1, ())
+      actor ! FireTransition(t1)
 
       // expect the transition to be not enabled
       expectMsgClass(classOf[TransitionNotEnabled])
@@ -189,7 +184,7 @@ class PersistentPetriNetActorSpec
       expectMsg(State[Set[Int]](initialMarking, Set.empty))
 
       // fire the first transition (t1) manually
-      actor ! FireTransition(t1, ())
+      actor ! FireTransition(t1)
 
       // expect the next marking: p2 -> 1
       expectMsgPF() { case TransitionFired(t1.id, _, _, result, _) if result == Marking(p2 -> 1) => }
@@ -230,7 +225,7 @@ class PersistentPetriNetActorSpec
       val actor = createPetriNetActor(petriNet, initialMarking, ())
 
       // fire the first transition manually
-      actor ! FireTransition(1, ())
+      actor ! FireTransition(t1)
 
       expectMsgPF() { case TransitionFired(t1.id, _, _, result, _) => }
 
