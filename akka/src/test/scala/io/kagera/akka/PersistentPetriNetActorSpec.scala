@@ -22,15 +22,6 @@ object PersistentPetriNetActorSpec {
       |
       |  persistence.journal.plugin = "akka.persistence.journal.inmem"
       |  persistence.snapshot-store.plugin = "akka.persistence.snapshot-store.local"
-      |  actor.provider = "akka.actor.LocalActorRefProvider"
-      |
-      |  actor.serializers {
-      |    scalapb = "io.kagera.akka.actor.ScalaPBSerializer"
-      |  }
-      |
-      |  actor.serialization-bindings {
-      |    "com.trueaccord.scalapb.GeneratedMessage" = scalapb
-      |  }
       |}
       |
       |logging.root.level = WARN
