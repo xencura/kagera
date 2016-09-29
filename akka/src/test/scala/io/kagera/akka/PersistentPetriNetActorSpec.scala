@@ -147,9 +147,9 @@ class PersistentPetriNetActorSpec
       actor ! FireTransition(t1)
 
       // expect 3 failure messages
-      expectMsgClass(classOf[TransitionFailed])
-      expectMsgClass(classOf[TransitionFailed])
-      expectMsgClass(classOf[TransitionFailed])
+      expectMsgPF() { case TransitionFailed(t1.id, _, _, _, RetryWithDelay(20)) => }
+      expectMsgPF() { case TransitionFailed(t1.id, _, _, _, RetryWithDelay(40)) => }
+      expectMsgPF() { case TransitionFailed(t1.id, _, _, _, Fatal) => }
 
       // attempt to fire t1 explicitely
       actor ! FireTransition(t1)
