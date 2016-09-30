@@ -172,7 +172,7 @@ class PersistentPetriNetActorSpec
       // assert that the actor is in the initial state
       actor ! GetState
 
-      expectMsg(State[Set[Int]](initialMarking, Set.empty))
+      expectMsg(State[Set[Int]](initialMarking, 1, Set.empty))
 
       // fire the first transition (t1) manually
       actor ! FireTransition(t1)
@@ -194,7 +194,7 @@ class PersistentPetriNetActorSpec
       newActor ! GetState
 
       // assert that the marking is the same as before termination
-      expectMsg(State[Set[Int]](Marking(p3 -> 1), Set(1, 2)))
+      expectMsg(State[Set[Int]](Marking(p3 -> 1), 3, Set(1, 2)))
     }
 
     "fire automatic transitions in parallel when possible" in new StateTransitionNet[Unit, Unit] {
