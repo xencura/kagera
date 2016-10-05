@@ -71,13 +71,23 @@ object Build extends Build {
       )
     )
 
+  val cytoscapeVersion = "2.7.9"
+
   lazy val demo = (crossProject.crossType(CrossType.Full) in file("demo"))
     .settings(defaultProjectSettings: _*)
     .settings(
       unmanagedSourceDirectories in Compile += baseDirectory.value / "shared" / "main" / "scala",
       libraryDependencies ++= Seq("com.lihaoyi" %%% "scalatags" % "0.4.6")
     )
-    .jsSettings(libraryDependencies ++= Seq("org.scala-js" %%% "scalajs-dom" % "0.8.0"))
+    .jsSettings(
+      jsDependencies ++= Seq(
+        "org.webjars.bower" % "cytoscape" % cytoscapeVersion
+          / s"$cytoscapeVersion/dist/cytoscape.js"
+          minified s"$cytoscapeVersion/dist/cytoscape.min.js"
+          commonJSName "cytoscape"
+      ),
+      libraryDependencies ++= Seq("org.scala-js" %%% "scalajs-dom" % "0.8.0")
+    )
     .jvmSettings(
       libraryDependencies ++= Seq(akkaHttp, akkaPersistenceQuery, akkaPersistenceCassandra),
       name := "demo-app",
@@ -88,8 +98,10 @@ object Build extends Build {
   lazy val demoJvm = demo.jvm
     .dependsOn(api, visualization, akka, analyse)
     .settings(
-      // include javascript compiled resources from js module
-      (resources in Compile) += (fastOptJS in (demoJs, Compile)).value.data
+      // include the compiled javascript result from js module
+      (resources in Compile) += (fastOptJS in (demoJs, Compile)).value.data,
+      // include the javascript dependencies
+      (resources in Compile) += (packageJSDependencies in (demoJs, Compile)).value
     )
 
   lazy val root = Project("kagera", file("."))
