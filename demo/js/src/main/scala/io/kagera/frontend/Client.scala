@@ -5,13 +5,45 @@ import scalajs.concurrent.JSExecutionContext.Implicits.runNow
 import org.scalajs.dom
 import dom.html
 import dom.ext.Ajax
-import io.kagera.frontend.cytoscape.{ CytoScape, CytoscapeData, Edge, Node }
+import io.kagera.frontend.cytoscape._
 
 import scala.scalajs.js
 import scalajs.js.annotation.JSExport
 
 @JSExport
 object Client extends {
+
+  def drawGraph(graphContainer: html.Element, nodes: Set[Node], edges: Set[Edge]) = {
+    val data = new js.Object {
+
+      val nodeElements: Seq[js.Object] = nodes
+        .map(n =>
+          new js.Object {
+            val data = new js.Object {
+              val id = n.id
+            }
+          }
+        )
+        .toSeq
+
+      val edgeElements: Seq[js.Object] = edges
+        .map(e =>
+          new js.Object {
+            val data = new js.Object {
+              val id = e.id
+              val source = e.source
+              val target = e.target
+            }
+          }
+        )
+        .toSeq
+
+      val container = graphContainer
+      val elements: js.Array[js.Object] = js.Array((nodeElements ++ edgeElements): _*)
+    }
+
+    CytoScape(data)
+  }
 
   @JSExport
   def main(container: html.Div) = {
@@ -23,14 +55,11 @@ object Client extends {
     //      outputBox.appendChild(p(xhr.responseText).render)
     //    }
 
-    val n1 = new Node("n1")
-    val n2 = new Node("n2")
-    val e = new Edge("e1", "n1", "n2")
-
     container.appendChild(graphContainer)
 
-    val data = new CytoscapeData(graphContainer, js.Array(n1, n2, e))
+    val nodes = Set(Node("n1"), Node("n2"))
+    val edges = Set(Edge("e", "n1", "n2"))
 
-    val cs = CytoScape(n1)
+    drawGraph(graphContainer, nodes, edges)
   }
 }
