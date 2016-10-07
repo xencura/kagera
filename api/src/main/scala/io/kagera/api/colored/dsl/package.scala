@@ -1,6 +1,7 @@
 package io.kagera.api.colored
 
 import io.kagera.api._
+import io.kagera.api.multiset._
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{ ExecutionContext, Future }
@@ -9,53 +10,57 @@ import scalax.collection.edge.WLDiEdge
 
 package object dsl {
 
-  implicit val ec: ExecutionContext = ExecutionContext.global
-
-  implicit class TransitionDSL(t: Transition) {
-    def ~>(p: Place, weight: Long = 1): Arc = arc(t, p, weight)
+  implicit class TransitionDSL(t: Transition[_, _, _]) {
+    def ~>[C](p: Place[C], weight: Long = 1): Arc = arc(t, p, weight)
   }
 
-  implicit class PlaceDSL[C](p: Place { type Color = C }) {
-    def ~>(t: Transition, weight: Long = 1, filter: C => Boolean = token => true): Arc = arc[C](p, t, weight, filter)
+  implicit class PlaceDSL[C](p: Place[C]) {
+    def ~>(t: Transition[C, _, _], weight: Long = 1, filter: C => Boolean = token => true): Arc =
+      arc[C](p, t, weight, filter)
   }
 
-  def arc(t: Transition, p: Place, weight: Long): Arc =
+  def arc(t: Transition[_, _, _], p: Place[_], weight: Long): Arc =
     WLDiEdge[Node, String](Right(t), Left(p))(weight, "")
 
-  def arc[C](p: Place, t: Transition, weight: Long, filter: C => Boolean = (token: C) => true): Arc = {
+  def arc[C](p: Place[C], t: Transition[_, _, _], weight: Long, filter: C => Boolean = (token: C) => true): Arc = {
     val innerEdge = new PTEdgeImpl[C](weight, filter)
     WLDiEdge[Node, PTEdge[C]](Left(p), Right(t))(weight, innerEdge)
   }
 
-  def nullPlace(id: Long, label: String) = Place[Null](id, label)
+  def constantTransition[I, O, S](id: Long, label: String, isManaged: Boolean = false, constant: O) =
+    new AbstractTransition[I, O, S](id, label, isManaged, Duration.Undefined) {
 
-  def constantTransition[I, O](id: Long, label: String, isManaged: Boolean = false, constant: O) =
-    new AbstractTransition[Null, O](id, label, isManaged, Duration.Undefined) {
+      override val toString = label
 
-      override def createOutput(output: Output, outAdjacent: Seq[(WLDiEdge[Node], Place)]): ColoredMarking =
-        outAdjacent.map { case (arc, place) =>
-          place -> List.fill(arc.weight.toInt)(output)
-        }.toMap
+      override def apply(inAdjacent: MultiSet[Place[_]], outAdjacent: MultiSet[Place[_]])(implicit
+        executor: ExecutionContext
+      ): (Marking, S, I) => Future[(Marking, O)] = { (marking, state, input) =>
+        {
+          val produced = outAdjacent.map { case (place, weight) =>
+            place -> produceTokens(place, weight.toInt)
+          }.toMarking
 
-      override def createInput(
-        inAdjacent: Seq[(Place, WLDiEdge[Node], Seq[Any])],
-        data: Option[Any],
-        context: TransitionContext
-      ): Input = null
+          Future.successful(produced -> constant)
+        }
+      }
 
-      override def apply(input: Input)(implicit executor: scala.concurrent.ExecutionContext): Future[Output] =
-        Future.successful(constant)
+      def produceTokens[C](place: Place[C], count: Int): MultiSet[C] =
+        MultiSet.empty[C] + (constant.asInstanceOf[C] -> count)
+
+      override def updateState = s => e => s
     }
 
-  def nullTransition(id: Long, label: String, isManaged: Boolean = false) =
-    constantTransition[Null, Null](id, label, isManaged, null)
+  def nullTransition[S](id: Long, label: String, isManaged: Boolean = false) =
+    constantTransition[Unit, Unit, S](id, label, isManaged, ())
 
-  def process(params: Arc*): PetriNetProcess[Place, Transition, ColoredMarking] =
-    new ScalaGraphPetriNet(Graph(params: _*)) with ColoredPetriNetProcess
+  def process[S](params: Arc*)(implicit ec: ExecutionContext): ExecutablePetriNet[S] = {
+    val petriNet = new ScalaGraphPetriNet(Graph(params: _*)) with ColoredTokenGame with TransitionExecutor[S] {
+      override lazy implicit val executionContext = ec
+    }
 
-  def processInstance(
-    process: PetriNetProcess[Place, Transition, ColoredMarking],
-    initialMarking: ColoredMarking = Map.empty,
-    id: java.util.UUID
-  ): ColoredPetriNetInstance = new ColoredPetriNetInstance(process, initialMarking, id)
+    requireUniqueElements(petriNet.places.toSeq.map(_.id), "Place identifier")
+    requireUniqueElements(petriNet.transitions.toSeq.map(_.id), "Transition identifier")
+
+    petriNet
+  }
 }

@@ -1,13 +1,13 @@
 import sbt._
 import sbt.Keys._
-import sbtassembly.AssemblyKeys
 import spray.revolver.RevolverPlugin.Revolver
+import com.trueaccord.scalapb.{ ScalaPbPlugin => PB }
+import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport._
 
 object Build extends Build {
 
   import Dependencies._
   import Formatting._
-  import AssemblyKeys._
 
   val commonScalacOptions = Seq(
     "-encoding",
@@ -23,66 +23,89 @@ object Build extends Build {
 
   lazy val basicSettings = Seq(
     organization := "io.kagera",
-    version := "0.1.0-SNAPSHOT",
     scalaVersion := "2.11.8",
     scalacOptions := commonScalacOptions,
     incOptions := incOptions.value.withNameHashing(true)
   )
 
-  lazy val defaultProjectSettings = basicSettings ++ formattingSettings ++ Revolver.settings
+  lazy val scalaPBSettings = PB.protobufSettings ++ Seq(
+    PB.runProtoc in PB.protobufConfig := (args => com.github.os72.protocjar.Protoc.runProtoc("-v261" +: args.toArray))
+  )
 
-  //  lazy val common = (crossProject.crossType(CrossType.Pure) in file("common"))
-  //    .settings(defaultProjectSettings: _*)
-  //    .settings(name := "kagera-common")
-  //    .jvmSettings(libraryDependencies += scalazCore)
-  //    .jsSettings(libraryDependencies += "com.github.japgolly.fork.scalaz" %%% "scalaz-core" % "7.1.3")
-
-  //  lazy val commonJs = common.js
-  //  lazy val commonJvm = common.jvm
+  lazy val defaultProjectSettings =
+    basicSettings ++ formattingSettings ++ Revolver.settings ++ Sonatype.settings ++ scalaPBSettings
 
   lazy val api = Project("api", file("api"))
     .settings(defaultProjectSettings: _*)
-    .settings(
-      name := "kagera-api",
-      libraryDependencies ++= Seq(graph, shapeless, scalaReflect, scalazCore, scalazConcurrent, scalatest % "test")
-    )
+    .settings(name := "kagera-api", libraryDependencies ++= Seq(graph, shapeless, scalatest % "test"))
 
   lazy val visualization = Project("visualization", file("visualization"))
     .dependsOn(api)
     .settings(defaultProjectSettings: _*)
     .settings(name := "kagera-visualization", libraryDependencies ++= Seq(graph, graphDot))
 
-  //  lazy val frontend = Project("frontend", file("frontend"))
-  //    .dependsOn(commonJs)
-  //    .enablePlugins(ScalaJSPlugin)
-  //    .settings(defaultProjectSettings ++ Seq(
-  //      persistLauncher in Compile := true,
-  //      libraryDependencies ++= Seq(
-  //      "org.scala-js"                    %%% "scalajs-dom" % "0.8.1",
-  //      "com.github.japgolly.fork.scalaz" %%% "scalaz-core" % "7.1.3",
-  //      "com.lihaoyi"                     %%% "scalatags"   % "0.5.1")
-  //    ))
-
-  lazy val akkaImplementation = Project("akka", file("akka"))
+  lazy val akka = Project("akka", file("akka"))
     .dependsOn(api)
     .settings(
       defaultProjectSettings ++ Seq(
         name := "kagera-akka",
-        mainClass := Some("io.kagera.akka.Main"),
         libraryDependencies ++= Seq(
+          scalaReflect,
           akkaActor,
           akkaPersistence,
           akkaSlf4j,
-          akkaHttp,
-          ficus,
           graph,
-          logback,
           akkaTestkit % "test",
           scalatest % "test"
         )
       )
     )
 
-  lazy val root =
-    Project("kagera", file(".")).aggregate(api, visualization).settings(defaultProjectSettings).settings(publish := {})
+  lazy val analyse = Project("analyse", file("analyse"))
+    .dependsOn(akka)
+    .settings(
+      defaultProjectSettings ++ Seq(
+        resolvers += "krasserm at bintray" at "http://dl.bintray.com/krasserm/maven",
+        name := "kagera-analyse",
+        libraryDependencies ++= Seq(akkaAnalyticsCassandra, akkaHttp)
+      )
+    )
+
+  val cytoscapeVersion = "2.7.9"
+
+  lazy val demo = (crossProject.crossType(CrossType.Full) in file("demo"))
+    .settings(defaultProjectSettings: _*)
+    .settings(
+      unmanagedSourceDirectories in Compile += baseDirectory.value / "shared" / "main" / "scala",
+      libraryDependencies ++= Seq("com.lihaoyi" %%% "scalatags" % "0.4.6")
+    )
+    .jsSettings(
+      jsDependencies ++= Seq(
+        "org.webjars.bower" % "cytoscape" % cytoscapeVersion
+          / s"$cytoscapeVersion/dist/cytoscape.js"
+          minified s"$cytoscapeVersion/dist/cytoscape.min.js"
+          commonJSName "cytoscape"
+      ),
+      libraryDependencies ++= Seq("org.scala-js" %%% "scalajs-dom" % "0.8.0")
+    )
+    .jvmSettings(
+      libraryDependencies ++= Seq(akkaHttp, akkaPersistenceQuery, akkaPersistenceCassandra),
+      name := "demo-app",
+      mainClass := Some("io.kagera.demo.Main")
+    )
+
+  lazy val demoJs = demo.js
+  lazy val demoJvm = demo.jvm
+    .dependsOn(api, visualization, akka, analyse)
+    .settings(
+      // include the compiled javascript result from js module
+      (resources in Compile) += (fastOptJS in (demoJs, Compile)).value.data,
+      // include the javascript dependencies
+      (resources in Compile) += (packageJSDependencies in (demoJs, Compile)).value
+    )
+
+  lazy val root = Project("kagera", file("."))
+    .aggregate(api, akka, visualization)
+    .settings(defaultProjectSettings)
+    .settings(publish := {})
 }

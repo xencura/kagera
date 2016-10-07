@@ -1,5 +1,6 @@
 package io.kagera.dot
 
+import scala.language.higherKinds
 import scalax.collection.GraphPredef.EdgeLikeIn
 import scalax.collection.io.dot._
 import scalax.collection.io.dot.implicits._

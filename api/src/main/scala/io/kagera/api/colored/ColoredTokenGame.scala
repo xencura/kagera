@@ -1,37 +1,45 @@
 package io.kagera.api.colored
 
 import io.kagera.api._
+import io.kagera.api.multiset._
 
-trait ColoredTokenGame extends TokenGame[Place, Transition, ColoredMarking] {
-  this: PetriNet[Place, Transition] =>
+trait ColoredTokenGame extends TokenGame[Place[_], Transition[_, _, _], Marking] {
+  this: PetriNet[Place[_], Transition[_, _, _]] =>
 
-  override def enabledParameters(m: ColoredMarking): Map[Transition, Iterable[ColoredMarking]] =
+  override def enabledParameters(m: Marking): Map[Transition[_, _, _], Iterable[Marking]] =
     enabledTransitions(m).view.map(t => t -> consumableMarkings(m)(t)).toMap
 
-  def consumableMarkings(marking: ColoredMarking)(t: Transition): Iterable[ColoredMarking] = {
-
+  def consumableMarkings(marking: Marking)(t: Transition[_, _, _]): Iterable[Marking] = {
     // TODO this is not the most efficient, should break early when consumable tokens < edge weight
     val consumable = inMarking(t).map { case (place, count) =>
-      (place, count, consumeableTokens(marking, place, t))
+      (place, count, consumableTokens(marking, place, t))
     }
 
     // check if any
-    if (consumable.exists { case (place, count, tokens) => tokens.size < count })
+    if (consumable.exists { case (place, count, tokens) => tokens.multisetSize < count })
       Seq.empty
-    else
-      Seq(consumable.map { case (place, count, tokens) => place -> tokens.take(count.toInt) }.toMap)
-  }
+    else {
+      val consume = consumable.map { case (place, count, tokens) =>
+        place -> MultiSet.from(tokens.allElements.take(count))
+      }.toMarking
 
-  def consumeableTokens(marking: ColoredMarking, p: Place, t: Transition) = {
-    val edge = innerGraph.findPTEdge(p, t).get.label.asInstanceOf[PTEdge[Any]]
-    marking.get(p) match {
-      case None => Seq.empty
-      case Some(tokens) =>
-        tokens.filter(edge.filter)
+      // TODO lazily compute all permutations instead of only providing the first result
+      Seq(consume)
     }
   }
 
-  override def enabledTransitions(marking: ColoredMarking): Set[Transition] =
-    // TODO optimize, no need to process all transitions
+  def consumableTokens[C](marking: Marking, p: Place[C], t: Transition[_, _, _]): MultiSet[C] = {
+
+    val pn = this
+    val edge = pn.getEdge(p, t).get
+
+    marking.get(p) match {
+      case None => MultiSet.empty
+      case Some(tokens) => tokens.filter { case (e, count) => edge.filter(e) }
+    }
+  }
+
+  // TODO optimize, no need to process all transitions
+  override def enabledTransitions(marking: Marking): Set[Transition[_, _, _]] =
     transitions.filter(t => consumableMarkings(marking)(t).nonEmpty)
 }

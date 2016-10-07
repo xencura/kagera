@@ -1,11 +1,13 @@
 package io.kagera.api
 
+import io.kagera.api.multiset.MultiSet
+
 import scalax.collection.edge.WLDiEdge
 
 /**
  * Petri net interface.
  *
- * TODO enrich this interface with more convenient functions
+ * TODO also incorporate the edge types, P -> T and T -> P
  */
 trait PetriNet[P, T] {
 
@@ -39,7 +41,7 @@ trait PetriNet[P, T] {
    *   transition
    * @return
    */
-  def outAdjacentPlaces(t: T): Set[P]
+  def outgoingPlaces(t: T): Set[P]
 
   /**
    * The out-adjacent transitions of a place.
@@ -48,7 +50,7 @@ trait PetriNet[P, T] {
    *   place
    * @return
    */
-  def outAdjacentTransitions(p: P): Set[T]
+  def outgoingTransitions(p: P): Set[T]
 
   /**
    * The in-adjacent places of a transition.
@@ -57,7 +59,7 @@ trait PetriNet[P, T] {
    *   transition
    * @return
    */
-  def inAdjacentPlaces(t: T): Set[P]
+  def incomingPlaces(t: T): Set[P]
 
   /**
    * The in-adjacent transitions of a place.
@@ -66,7 +68,7 @@ trait PetriNet[P, T] {
    *   place
    * @return
    */
-  def inAdjacentTransitions(p: P): Set[T]
+  def incomingTransitions(p: P): Set[T]
 
   /**
    * Returns the in-marking of a transition. That is; a map of place -> arc weight
@@ -75,7 +77,7 @@ trait PetriNet[P, T] {
    *   transition
    * @return
    */
-  def inMarking(t: T): Marking[P]
+  def inMarking(t: T): MultiSet[P]
 
   /**
    * The out marking of a transition. That is; a map of place -> arc weight
@@ -84,7 +86,7 @@ trait PetriNet[P, T] {
    *   transition
    * @return
    */
-  def outMarking(t: T): Marking[P]
+  def outMarking(t: T): MultiSet[P]
 
   /**
    * The set of nodes (places + transitions) in the petri net.

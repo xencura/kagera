@@ -1,16 +1,15 @@
 package io.kagera
 
+import io.kagera.api.multiset.MultiSet
+
 import scala.PartialFunction._
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.language.higherKinds
 import scalax.collection.Graph
 import scalax.collection.GraphPredef._
 import scalax.collection.edge.WLDiEdge
-import scalaz.@@
-import scala.language.higherKinds
+import shapeless.tag._
 
 package object api {
-
-  type Marking[P] = Map[P, Long]
 
   object tags {
     trait Id
@@ -18,64 +17,54 @@ package object api {
     trait Label
   }
 
-  // TODO decide, shapeless or scalaz tags?
   type Identifiable[T] = T => Long @@ tags.Id
   type Labeled[T] = T => String @@ tags.Label
 
   implicit class LabeledFn[T : Labeled](seq: Iterable[T]) {
-    def findByLabel(label: String) = seq.find(e => implicitly[Labeled[T]].apply(e) == label)
+    def findByLabel(label: String): Option[T] = seq.find(e => implicitly[Labeled[T]].apply(e) == label)
+    def getByLabel(label: String): T = findByLabel(label).getOrElse {
+      throw new IllegalStateException(s"No element found with label: $label")
+    }
   }
 
   implicit class IdFn[T : Identifiable](seq: Iterable[T]) {
-    def findById(id: String) = seq.find(e => implicitly[Identifiable[T]].apply(e) == id)
+    def findById(id: Long): Option[T] = seq.find(e => implicitly[Identifiable[T]].apply(e) == id)
+    def getById(id: Long): T = findById(id).getOrElse {
+      throw new IllegalStateException(s"No element found with id: $id")
+    }
   }
 
-  /**
-   * Type alias for a petri net with token game and executor. This makes an executable process.
-   *
-   * @tparam P
-   *   The place type
-   * @tparam T
-   *   The transition type
-   * @tparam M
-   *   The marking type
-   */
-  trait PetriNetProcess[P, T, M] extends PetriNet[P, T] with TokenGame[P, T, M] with TransitionExecutor[P, T, M]
-
-  implicit class MarkingLikeApi[M, P](val m: M)(implicit val markingLike: MarkingLike[M, P]) {
-
-    def multiplicity = markingLike.multiplicity(m)
-
-    def consume(other: M) = markingLike.consume(m, other)
-
-    def remove(other: M) = markingLike.remove(m, other)
-
-    def produce(other: M) = markingLike.produce(m, other)
-
-    def isEmpty = markingLike.multiplicity(m).isEmpty
-
-    def isSubMarking(other: M) = markingLike.isSubMarking(m, other)
+  implicit class OptionOps(check: Boolean) {
+    def option[A](provider: => A): Option[A] =
+      if (check)
+        Some(provider)
+      else
+        None
   }
 
-  trait TransitionExecutor[P, T, M] {
-
-    this: PetriNet[P, T] =>
-
-    def fireTransition(marking: M, id: java.util.UUID)(transition: T, data: Option[Any] = None)(implicit
-      ec: ExecutionContext
-    ): Future[M]
+  def requireUniqueElements[T](i: Iterable[T], name: String = "Element"): Unit = {
+    (Set.empty[T] /: i) { (set, e) =>
+      if (set.contains(e))
+        throw new IllegalArgumentException(s"$name '$e' is not unique!")
+      else
+        set + e
+    }
   }
 
   type BiPartiteGraph[P, T, E[X] <: EdgeLikeIn[X]] = Graph[Either[P, T], E]
 
+  /**
+   * TODO; can we remove this wrapper? It seems only needed because we need to mix in other traits with PetriNet which
+   * cannot be done with Graph.apply
+   */
   class ScalaGraphPetriNet[P, T](val innerGraph: BiPartiteGraph[P, T, WLDiEdge]) extends PetriNet[P, T] {
 
-    override def inMarking(t: T): Marking[P] = innerGraph.get(t).incoming.map(e => e.source.asPlace -> e.weight).toMap
-    override def outMarking(t: T): Marking[P] = innerGraph.get(t).outgoing.map(e => e.target.asPlace -> e.weight).toMap
-    override def outAdjacentPlaces(t: T): Set[P] = innerGraph.outgoingPlaces(t)
-    override def outAdjacentTransitions(p: P): Set[T] = innerGraph.outgoingTransitions(p)
-    override def inAdjacentPlaces(t: T): Set[P] = innerGraph.incomingPlaces(t)
-    override def inAdjacentTransitions(p: P): Set[T] = innerGraph.incomingTransitions(p)
+    override def inMarking(t: T): MultiSet[P] = innerGraph.inMarking(t)
+    override def outMarking(t: T): MultiSet[P] = innerGraph.outMarking(t)
+    override def outgoingPlaces(t: T): Set[P] = innerGraph.outgoingPlaces(t)
+    override def outgoingTransitions(p: P): Set[T] = innerGraph.outgoingTransitions(p)
+    override def incomingPlaces(t: T): Set[P] = innerGraph.incomingPlaces(t)
+    override def incomingTransitions(p: P): Set[T] = innerGraph.incomingTransitions(p)
 
     override lazy val places = innerGraph.places().toSet
     override lazy val transitions = innerGraph.transitions().toSet
@@ -86,7 +75,7 @@ package object api {
   implicit def placeToNode[P, T](p: P): Either[P, T] = Left(p)
   implicit def transitionToNode[P, T](t: T): Either[P, T] = Right(t)
 
-  implicit class DirectedBiPartiteNodeTAdditions[A, B](val node: BiPartiteGraph[A, B, WLDiEdge]#NodeT) {
+  implicit class PetriNetGraphNodeTAdditions[A, B](val node: BiPartiteGraph[A, B, WLDiEdge]#NodeT) {
 
     def asPlace: A = node.value match {
       case Left(p) => p
@@ -114,7 +103,10 @@ package object api {
     def isTransition = cond(node.value) { case Right(n) => true }
   }
 
-  implicit class DirectedBiPartiteGraphAdditions[P, T](val graph: BiPartiteGraph[P, T, WLDiEdge]) {
+  implicit class PetriNetGraphAdditions[P, T](val graph: BiPartiteGraph[P, T, WLDiEdge]) {
+
+    def inMarking(t: T): MultiSet[P] = graph.get(t).incoming.map(e => e.source.asPlace -> e.weight.toInt).toMap
+    def outMarking(t: T): MultiSet[P] = graph.get(t).outgoing.map(e => e.target.asPlace -> e.weight.toInt).toMap
 
     def findPTEdge(from: P, to: T): Option[WLDiEdge[Either[P, T]]] =
       graph.get(Left(from)).outgoing.find(_.target.value == Right(to)).map(_.toOuter)
