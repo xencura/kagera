@@ -4,7 +4,7 @@ import akka.actor.ActorSystem
 import akka.serialization.SerializationExtension
 import com.google.protobuf.ByteString
 import io.kagera.akka.actor.PetriNetEventAdapter._
-import io.kagera.akka.actor.PetriNetProcess.TransitionFiredEvent
+import io.kagera.akka.actor.PetriNetProcessProtocol.TransitionFiredEvent
 import io.kagera.akka.persistence.{ ConsumedToken, ProducedToken, SerializedData }
 import io.kagera.api._
 import io.kagera.api.colored.{ Marking, _ }
@@ -132,10 +132,14 @@ trait PetriNetEventAdapter[S] {
 
     val data = deserializeObject(e.data)
 
-    val timeStarted = e.timeStarted.getOrElse(throw new IllegalStateException("Missing field timeStarted"))
+    def missingFieldException(field: String) = throw new IllegalStateException(
+      s"Missing field in serialized data: $field"
+    )
 
-    val timeCompleted = e.timeCompleted.getOrElse(throw new IllegalStateException("Missing field timeCompleted"))
+    val jobId = e.jobId.getOrElse(missingFieldException("job_id"))
+    val timeStarted = e.timeStarted.getOrElse(missingFieldException("time_started"))
+    val timeCompleted = e.timeCompleted.getOrElse(missingFieldException("time_completed"))
 
-    TransitionFiredEvent(transition, timeStarted, timeCompleted, consumed, produced, data)
+    TransitionFiredEvent(jobId, transition, timeStarted, timeCompleted, consumed, produced, data)
   }
 }

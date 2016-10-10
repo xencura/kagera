@@ -33,12 +33,13 @@ message ProducedToken {
 }
 
 message TransitionFired {
-   optional int64 transition_id = 1;
-   optional int64 time_started = 2;
-   optional int64 time_completed = 3;
-   repeated ConsumedToken consumed = 4;
-   repeated ProducedToken produced = 5;
-   optional SerializedData data = 6;
+   optional int64 job_id = 1;
+   optional int64 transition_id = 2;
+   optional int64 time_started = 3;
+   optional int64 time_completed = 4;
+   repeated ConsumedToken consumed = 5;
+   repeated ProducedToken produced = 6;
+   optional SerializedData data = 7;
 }
 
 message TransitionFailed {
