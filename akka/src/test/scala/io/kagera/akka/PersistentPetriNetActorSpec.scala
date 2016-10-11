@@ -90,9 +90,33 @@ class PersistentPetriNetActorSpec
       expectMsgClass(classOf[TransitionFailed])
     }
 
-    "Respond with a TransitionNotEnabled message if a transition is not enabled" in new StateTransitionNet[Set[
-      Int
-    ], Event] {
+    "Respond with a TransitionNotEnabled message if a transition is not enabled because of a previous failure" in new StateTransitionNet[
+      Set[Int],
+      Event
+    ] {
+      override val eventSourcing = integerSetEventSource
+
+      val t1 = transition(id = 1)(set => throw new RuntimeException("something went wrong"))
+
+      val petriNet = createPetriNet(p1 ~> t1, t1 ~> p2)
+
+      val initialMarking = Marking(p1 -> 1)
+      val actor = createPetriNetActor[Set[Int]](petriNet, initialMarking, Set.empty)
+
+      actor ! FireTransition(t1, ())
+
+      expectMsgClass(classOf[TransitionFailed])
+
+      actor ! FireTransition(t1, ())
+
+      // expect a failure message
+      expectMsgPF() { case TransitionNotEnabled(t1.id, msg) => println(msg) }
+    }
+
+    "Respond with a TransitionNotEnabled message if a transition is not enabled because of not enough consumable tokens" in new StateTransitionNet[
+      Set[Int],
+      Event
+    ] {
 
       override val eventSourcing = integerSetEventSource
 
@@ -147,7 +171,6 @@ class PersistentPetriNetActorSpec
 
       // expect the transition to be not enabled
       val msg = expectMsgClass(classOf[TransitionNotEnabled])
-      println(s"msg: $msg")
     }
 
     "Be able to restore it's state after termination" in new StateTransitionNet[Set[Int], Event] {

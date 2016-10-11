@@ -1,14 +1,12 @@
 package io.kagera.frontend
 
-import scalatags.JsDom.all._
-import scalajs.concurrent.JSExecutionContext.Implicits.runNow
-import org.scalajs.dom
-import dom.html
-import dom.ext.Ajax
 import io.kagera.frontend.cytoscape._
+import org.scalajs.dom
+import org.scalajs.dom.html
 
 import scala.scalajs.js
-import scalajs.js.annotation.JSExport
+import scala.scalajs.js.annotation.{ JSExport, JSName }
+import scalatags.JsDom.all._
 
 @JSExport
 object Client extends {
@@ -40,6 +38,22 @@ object Client extends {
 
       val container = graphContainer
       val elements: js.Array[js.Object] = js.Array((nodeElements ++ edgeElements): _*)
+      val style: js.Array[js.Object] = js.Array(new js.Object {
+        val selector = "edge"
+        val style = new js.Object {
+          val width = 2
+          @JSName("line-color")
+          val lineColor = "#00f"
+          @JSName("target-arrow-color")
+          val targetArrowColor = "#444"
+          @JSName("target-arrow-shape")
+          val targetArrowShape = "triangle"
+        }
+      });
+      val layout = new js.Object {
+        val name = "grid"
+        val rows = 1
+      }
     }
 
     CytoScape(data)
@@ -48,7 +62,7 @@ object Client extends {
   @JSExport
   def main(container: html.Div) = {
 
-    val graphContainer = div(id := "graph", width := 600, height := 800).render
+    val graphContainer = div(id := "graph", height := 800, width := 600).render
 
     //    def refreshIndex() = Ajax.get("/process/dot").foreach { xhr =>
     //      outputBox.innerHTML = ""
