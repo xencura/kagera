@@ -159,7 +159,7 @@ class PersistentPetriNetActorSpec
       val t1 = transition(id = 1) { set =>
         Added(1)
       }
-      val t2 = transition(id = 2, isManaged = true) { set =>
+      val t2 = transition(id = 2, automated = true) { set =>
         Added(2)
       }
 
@@ -205,9 +205,9 @@ class PersistentPetriNetActorSpec
       val p1 = Place[Unit](1, "p1")
       val p2 = Place[Unit](2, "p2")
 
-      val t1 = nullTransition(1, "t1", isManaged = false)
-      val t2 = transition(id = 2, isManaged = true)(unit => Thread.sleep(500))
-      val t3 = transition(id = 3, isManaged = true)(unit => Thread.sleep(500))
+      val t1 = nullTransition(1, "t1", automated = false)
+      val t2 = transition(id = 2, automated = true)(unit => Thread.sleep(500))
+      val t3 = transition(id = 3, automated = true)(unit => Thread.sleep(500))
 
       val petriNet = createPetriNet(t1 ~> p1, t1 ~> p2, p1 ~> t2, p2 ~> t3)
 

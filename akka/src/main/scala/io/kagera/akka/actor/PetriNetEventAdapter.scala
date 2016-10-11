@@ -4,7 +4,7 @@ import akka.actor.ActorSystem
 import akka.serialization.SerializationExtension
 import com.google.protobuf.ByteString
 import io.kagera.akka.actor.PetriNetEventAdapter._
-import io.kagera.akka.actor.PetriNetProcessProtocol.TransitionFiredEvent
+import io.kagera.akka.actor.PetriNetProcess.TransitionFiredEvent
 import io.kagera.akka.persistence.{ ConsumedToken, ProducedToken, SerializedData }
 import io.kagera.api._
 import io.kagera.api.colored.{ Marking, _ }
@@ -95,6 +95,7 @@ trait PetriNetEventAdapter[S] {
     }
 
     val protobufEvent = io.kagera.akka.persistence.TransitionFired(
+      jobId = Some(e.job_id),
       transitionId = Some(e.transition_id),
       timeStarted = Some(e.time_started),
       timeCompleted = Some(e.time_completed),

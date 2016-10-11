@@ -15,10 +15,10 @@ trait StateTransitionNet[S, E] {
   def transition(
     id: Long = Math.abs(Random.nextLong),
     label: Option[String] = None,
-    isManaged: Boolean = false,
+    automated: Boolean = false,
     exceptionStrategy: TransitionExceptionHandler = (e, n) => BlockSelf
   )(fn: S => E): Transition[Unit, E, S] =
-    new AbstractTransition[Unit, E, S](id, label.getOrElse(s"t$id"), isManaged, Duration.Undefined, exceptionStrategy)
+    new AbstractTransition[Unit, E, S](id, label.getOrElse(s"t$id"), automated, Duration.Undefined, exceptionStrategy)
       with UncoloredTransition[Unit, E, S] {
       override val toString = label
       override val updateState = eventSourcing

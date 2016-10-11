@@ -2,17 +2,6 @@ syntax = "proto2";
 
 option java_package = "io.kagera.akka";
 
-message Edge {
-    optional int32 from = 1;
-    optional int32 to = 2;
-    optional int32 weight = 3;
-}
-
-message ProcessCreated {
-    repeated Edge place_transition_edges = 1;
-    repeated Edge transition_place_edges = 2;
-}
-
 message SerializedData {
    optional int32 serializer_id = 1;
    optional bytes manifest = 2;

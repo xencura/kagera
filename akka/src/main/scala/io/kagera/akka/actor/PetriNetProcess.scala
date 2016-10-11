@@ -22,6 +22,32 @@ object PetriNetProcess {
   def props[S](process: ExecutablePetriNet[S], initialMarking: Marking, initialState: S): Props =
     props(process, id => (initialMarking, initialState))
 
+  /**
+   * An event describing the fact that a transition has fired in the petri net process.
+   */
+  case class TransitionFiredEvent(
+    job_id: Long,
+    transition_id: Long,
+    time_started: Long,
+    time_completed: Long,
+    consumed: Marking,
+    produced: Marking,
+    out: Any
+  )
+
+  /**
+   * An event describing the fact that a transition failed to fire.
+   */
+  case class TransitionFailedEvent(
+    job_id: Long,
+    transition_id: Long,
+    time_started: Long,
+    time_failed: Long,
+    consume: Marking,
+    input: Any,
+    exceptionStrategy: ExceptionStrategy
+  )
+
   case class Job[S](
     id: Long,
     process: ExecutablePetriNet[S],
@@ -52,10 +78,6 @@ object PetriNetProcess {
         )
       }
   }
-
-  case class ExceptionState(consumed: Marking, exceptionStrategy: ExceptionStrategy, consecutiveFailureCount: Int)
-
-  protected case class JobCompleted(id: Long)
 
   protected case class ExecutionState[S](
     process: ExecutablePetriNet[S],
