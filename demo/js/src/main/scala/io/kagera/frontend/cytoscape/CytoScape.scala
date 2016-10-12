@@ -1,7 +1,5 @@
 package io.kagera.frontend.cytoscape
 
-import org.scalajs.dom.html
-
 import scala.scalajs.js
 import scala.scalajs.js.annotation.JSName
 

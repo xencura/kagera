@@ -77,7 +77,7 @@ object Build extends Build {
     .settings(defaultProjectSettings: _*)
     .settings(
       unmanagedSourceDirectories in Compile += baseDirectory.value / "shared" / "main" / "scala",
-      libraryDependencies ++= Seq("com.lihaoyi" %%% "scalatags" % "0.4.6")
+      libraryDependencies ++= Seq("com.lihaoyi" %%% "scalatags" % "0.4.6", "com.lihaoyi" %%% "upickle" % "0.4.2")
     )
     .jsSettings(
       jsDependencies ++= Seq(
