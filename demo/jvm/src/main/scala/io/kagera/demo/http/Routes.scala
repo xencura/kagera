@@ -6,9 +6,9 @@ import akka.pattern.ask
 import akka.util.{ ByteString, Timeout }
 import io.kagera.akka.actor.PetriNetProcess._
 import io.kagera.api.colored.{ ExecutablePetriNet, Generators }
-import io.kagera.demo.{ ConfiguredActorSystem, TestProcess }
+import io.kagera.demo.ConfiguredActorSystem
 
-trait Routes extends Directives with TestProcess {
+trait Routes extends Directives {
 
   this: ConfiguredActorSystem =>
 
@@ -18,13 +18,18 @@ trait Routes extends Directives with TestProcess {
 
   val repository: Map[String, ExecutablePetriNet[_]] = Map("test" -> Generators.uncoloredSequential(5))
 
-  val repositoryRoutes = path("process" / Segment) { id =>
-    get {
-      repository.get(id) match {
-        case None => complete(StatusCodes.NotFound -> s"no such process: $id")
-        case Some(process) => complete(upickle.default.write(Util.toModel(process)))
+  val repositoryRoutes = pathPrefix("process") {
+    path("_index") {
+      complete(upickle.default.write(repository.keySet))
+    } ~
+      path(Segment) { id =>
+        get {
+          repository.get(id) match {
+            case None => complete(StatusCodes.NotFound -> s"no such process: $id")
+            case Some(process) => complete(upickle.default.write(Util.toModel(process)))
+          }
+        }
       }
-    }
   }
 
   val dashBoardRoute = path("dashboard") {
@@ -46,7 +51,6 @@ trait Routes extends Directives with TestProcess {
     } ~
       path(Segment) { id =>
         {
-
           val actorSelection = system.actorSelection(s"/user/$id")
 
           pathEndOrSingleSlash {
