@@ -5,6 +5,7 @@ import shapeless.tag
 import shapeless.tag._
 
 import scala.language.existentials
+import scalax.collection.Graph
 import scalax.collection.edge.WLDiEdge
 
 package object colored {
@@ -60,4 +61,6 @@ package object colored {
    * @tparam S
    */
   type ExecutablePetriNet[S] = PetriNet[Place[_], Transition[_, _, _]] with ColoredTokenGame with TransitionExecutor[S]
+
+  type ColoredPetriNetGraph = Graph[Node, WLDiEdge]
 }

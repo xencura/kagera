@@ -1,7 +1,7 @@
 package io.kagera.demo
 
 import akka.NotUsed
-import akka.actor.{ Actor, ActorSystem }
+import akka.actor.Actor
 import akka.persistence.cassandra.query.scaladsl.CassandraReadJournal
 import akka.persistence.query.PersistenceQuery
 import akka.stream.scaladsl.Source
