@@ -1,11 +1,9 @@
 package io.kagera.frontend
 
-import io.kagera.demo.model.PetriNetModel
 import io.kagera.frontend.cytoscape._
-import org.scalajs.dom.ext.Ajax
 import org.scalajs.dom.html
 
-import scala.scalajs.concurrent.JSExecutionContext.Implicits.runNow
+import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scala.scalajs.js.annotation.JSExport
 import scalatags.JsDom.all._
 
@@ -15,11 +13,18 @@ object Client extends {
   @JSExport
   def main(container: html.Div) = {
 
-    val graphContainer = div(id := "graph", width := 1024, height := 768).render
+    val graphContainer = div(
+      id := "graph",
+      `class` := "graph",
+      width := 1024,
+      height := 512,
+      backgroundColor := "#fafaff",
+      borderWidth := "2px",
+      borderStyle := "solid",
+      borderColor := "#0000cc"
+    ).render
 
-    def getTestProcess() = Ajax.get("/process/test").foreach { xhr =>
-      val pn = upickle.default.read[PetriNetModel](xhr.responseText)
-
+    def getTestProcess() = Api.getProcess("test").foreach { pn =>
       val nodes = pn.nodes.map {
         case Left(p) =>
           Node(p.label, NodeStyle(width = 30, height = 30, shape = NodeShape.Ellipse, backgroundColor = "blue"))

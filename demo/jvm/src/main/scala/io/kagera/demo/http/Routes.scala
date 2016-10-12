@@ -4,7 +4,7 @@ import akka.http.scaladsl.model.{ ContentTypes, HttpEntity, HttpResponse, Status
 import akka.http.scaladsl.server.Directives
 import akka.pattern.ask
 import akka.util.{ ByteString, Timeout }
-import io.kagera.akka.actor.PetriNetProcess._
+import io.kagera.akka.actor.PetriNetProcessProtocol._
 import io.kagera.api.colored.{ ExecutablePetriNet, Generators }
 import io.kagera.demo.ConfiguredActorSystem
 
@@ -16,7 +16,7 @@ trait Routes extends Directives {
 
   implicit val timeout = Timeout(2 seconds)
 
-  val repository: Map[String, ExecutablePetriNet[_]] = Map("test" -> Generators.uncoloredSequential(5))
+  val repository: Map[String, ExecutablePetriNet[_]] = Map("test" -> Generators.Uncolored.sequence(5))
 
   val repositoryRoutes = pathPrefix("process") {
     path("_index") {
@@ -56,7 +56,7 @@ trait Routes extends Directives {
           pathEndOrSingleSlash {
             get {
               // should return the current state (marking) of the process
-              val futureResult = actorSelection.ask(GetState).mapTo[State[_]].map { state =>
+              val futureResult = actorSelection.ask(GetState).mapTo[ProcessState[_]].map { state =>
                 state.marking.toString
               }
               complete(futureResult)

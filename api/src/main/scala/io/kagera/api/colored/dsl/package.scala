@@ -50,8 +50,8 @@ package object dsl {
       override def updateState = s => e => s
     }
 
-  def nullTransition[S](id: Long, label: String, isManaged: Boolean = false) =
-    constantTransition[Unit, Unit, S](id, label, isManaged, ())
+  def nullTransition[S](id: Long, label: String, automated: Boolean = false) =
+    constantTransition[Unit, Unit, S](id, label, automated, ())
 
   def process[S](params: Arc*)(implicit ec: ExecutionContext): ExecutablePetriNet[S] = {
     val petriNet = new ScalaGraphPetriNet(Graph(params: _*)) with ColoredTokenGame with TransitionExecutor[S] {
