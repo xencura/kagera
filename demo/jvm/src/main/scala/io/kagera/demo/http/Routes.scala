@@ -1,18 +1,14 @@
 package io.kagera.demo.http
 
-import akka.http.scaladsl.model.{ ContentTypes, HttpEntity, HttpResponse, MediaTypes }
-import akka.http.scaladsl.marshalling
+import akka.http.scaladsl.model.{ ContentTypes, HttpEntity, HttpResponse, StatusCodes }
 import akka.http.scaladsl.server.Directives
 import akka.pattern.ask
 import akka.util.{ ByteString, Timeout }
-import demo.http.StaticPages
-import io.kagera.akka.actor.PetriNetProcess
-import io.kagera.akka.actor.PetriNetProcess._
-import io.kagera.api.colored.{ ExecutablePetriNet, Generators, Marking, Place, Transition }
-import io.kagera.demo.{ ConfiguredActorSystem, TestProcess }
-import io.kagera.dot.GraphDot
+import io.kagera.akka.actor.PetriNetProcessProtocol._
+import io.kagera.api.colored.{ ExecutablePetriNet, Generators }
+import io.kagera.demo.ConfiguredActorSystem
 
-trait Routes extends Directives with TestProcess {
+trait Routes extends Directives {
 
   this: ConfiguredActorSystem =>
 
@@ -20,18 +16,20 @@ trait Routes extends Directives with TestProcess {
 
   implicit val timeout = Timeout(2 seconds)
 
-  val repository: Map[String, ExecutablePetriNet[_]] = Map(
-    "test" -> Generators.sequential(length = 5, automated = false)
-  )
-
-  import io.kagera.dot.PetriNetDot._
-
-  val dot = GraphDot.generateDot(repository.head._2.innerGraph, petriNetTheme[Place[_], Transition[_, _, _]])
+  val repository: Map[String, ExecutablePetriNet[_]] = Map("test" -> Generators.Uncolored.sequence(5))
 
   val repositoryRoutes = pathPrefix("process") {
-    path("test") {
-      get { complete(dot) }
-    }
+    path("_index") {
+      complete(upickle.default.write(repository.keySet))
+    } ~
+      path(Segment) { id =>
+        get {
+          repository.get(id) match {
+            case None => complete(StatusCodes.NotFound -> s"no such process: $id")
+            case Some(process) => complete(upickle.default.write(Util.toModel(process)))
+          }
+        }
+      }
   }
 
   val dashBoardRoute = path("dashboard") {
@@ -48,23 +46,17 @@ trait Routes extends Directives with TestProcess {
 
     path("_create") {
       post {
-
-        val id = java.util.UUID.randomUUID().toString
-        val props = PetriNetProcess.props(sequentialProcess, Marking.empty, ())
-        system.actorOf(props, id).path.name
-
-        complete(id)
+        complete("foo")
       }
     } ~
       path(Segment) { id =>
         {
-
           val actorSelection = system.actorSelection(s"/user/$id")
 
           pathEndOrSingleSlash {
             get {
               // should return the current state (marking) of the process
-              val futureResult = actorSelection.ask(GetState).mapTo[State[_]].map { state =>
+              val futureResult = actorSelection.ask(GetState).mapTo[ProcessState[_]].map { state =>
                 state.marking.toString
               }
               complete(futureResult)

@@ -171,6 +171,7 @@ class PersistentPetriNetActorSpec
 
       // expect the transition to be not enabled
       val msg = expectMsgClass(classOf[TransitionNotEnabled])
+      println(s"msg: $msg")
     }
 
     "Be able to restore it's state after termination" in new StateTransitionNet[Set[Int], Event] {
@@ -182,7 +183,7 @@ class PersistentPetriNetActorSpec
       val t1 = transition(id = 1) { set =>
         Added(1)
       }
-      val t2 = transition(id = 2, automated = true) { set =>
+      val t2 = transition(id = 2, isManaged = true) { set =>
         Added(2)
       }
 

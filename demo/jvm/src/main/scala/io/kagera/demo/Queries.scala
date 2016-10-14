@@ -1,7 +1,7 @@
 package io.kagera.demo
 
 import akka.NotUsed
-import akka.actor.{ Actor, ActorSystem }
+import akka.actor.Actor
 import akka.persistence.cassandra.query.scaladsl.CassandraReadJournal
 import akka.persistence.query.PersistenceQuery
 import akka.stream.scaladsl.Source
@@ -28,7 +28,7 @@ class AggregateMarking[S](topology: ExecutablePetriNet[S]) extends Actor {
 
   def updateMarking(aggregateMarking: MultiSet[Long]): Receive = {
 
-    case TransitionFired(Some(tid), Some(started), Some(completed), consumed, produced, data) =>
+    case TransitionFired(_, Some(tid), Some(started), Some(completed), consumed, produced, data) =>
       val minusConsumed = consumed.foldLeft(aggregateMarking) { case (aggregate, token) =>
         aggregate.multisetDecrement(token.placeId.get, token.count.get)
       }

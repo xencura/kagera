@@ -1,4 +1,4 @@
-package demo.http
+package io.kagera.demo.http
 
 import scalatags.Text.all._
 
