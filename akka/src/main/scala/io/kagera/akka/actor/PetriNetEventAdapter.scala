@@ -95,10 +95,10 @@ trait PetriNetEventAdapter[S] {
     }
 
     val protobufEvent = io.kagera.akka.persistence.TransitionFired(
-      jobId = Some(e.job_id),
-      transitionId = Some(e.transition_id),
-      timeStarted = Some(e.time_started),
-      timeCompleted = Some(e.time_completed),
+      jobId = Some(e.jobId),
+      transitionId = Some(e.transitionId),
+      timeStarted = Some(e.timeStarted),
+      timeCompleted = Some(e.timeCompleted),
       consumed = consumedTokens,
       produced = producedTokens,
       data = serializeObject(e.out.asInstanceOf[AnyRef])

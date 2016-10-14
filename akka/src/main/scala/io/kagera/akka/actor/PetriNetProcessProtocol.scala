@@ -27,7 +27,7 @@ object PetriNetProcessProtocol {
   /**
    * Command to fire a specific transition with input.
    */
-  case class FireTransition(transition_id: Long, input: Any, correlationId: Option[Long] = None) extends Command
+  case class FireTransition(transitionId: Long, input: Any, correlationId: Option[Long] = None) extends Command
 
   // responses
   sealed trait TransitionResult
@@ -35,14 +35,14 @@ object PetriNetProcessProtocol {
   /**
    * Response indicating that a transition has fired successfully
    */
-  case class TransitionFired[S](transition_id: Long, consumed: Marking, produced: Marking, marking: Marking, state: S)
+  case class TransitionFired[S](transitionId: Long, consumed: Marking, produced: Marking, marking: Marking, state: S)
       extends TransitionResult
 
   /**
    * Response indicating that a transition has failed.
    */
   case class TransitionFailed(
-    transition_id: Long,
+    transitionId: Long,
     consume: Marking,
     input: Any,
     reason: String,
@@ -52,7 +52,7 @@ object PetriNetProcessProtocol {
   /**
    * Response indicating that the transition could not be fired because it is not enabled.
    */
-  case class TransitionNotEnabled(transition_id: Long, reason: String) extends TransitionResult
+  case class TransitionNotEnabled(transitionId: Long, reason: String) extends TransitionResult
 
   /**
    * Response containing the state of the process.

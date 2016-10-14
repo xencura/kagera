@@ -110,7 +110,7 @@ class PersistentPetriNetActorSpec
       actor ! FireTransition(t1, ())
 
       // expect a failure message
-      expectMsgPF() { case TransitionNotEnabled(t1.id, msg) => println(msg) }
+      expectMsgPF() { case TransitionNotEnabled(t1.id, msg) => }
     }
 
     "Respond with a TransitionNotEnabled message if a transition is not enabled because of not enough consumable tokens" in new StateTransitionNet[
@@ -183,11 +183,11 @@ class PersistentPetriNetActorSpec
       val t1 = transition(id = 1) { set =>
         Added(1)
       }
-      val t2 = transition(id = 2, isManaged = true) { set =>
+      val t2 = transition(id = 2, automated = true) { set =>
         Added(2)
       }
 
-      val petriNet = process[Set[Int]](p1 ~> t1, t1 ~> p2, p2 ~> t2, t2 ~> p3)
+      val petriNet = createPetriNet(p1 ~> t1, t1 ~> p2, p2 ~> t2, t2 ~> p3)
 
       // creates a petri net actor with initial marking: p1 -> 1
       val initialMarking = Marking(p1 -> 1)
