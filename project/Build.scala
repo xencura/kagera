@@ -77,7 +77,12 @@ object Build extends Build {
       libraryDependencies ++= Seq("org.scala-js" %%% "scalajs-dom" % "0.8.0")
     )
     .jvmSettings(
-      libraryDependencies ++= Seq(akkaHttp, akkaPersistenceQuery, akkaPersistenceCassandra),
+      libraryDependencies ++= Seq(
+        "de.heikoseeberger" %% "akka-http-upickle" % "1.10.1",
+        akkaHttp,
+        akkaPersistenceQuery,
+        akkaPersistenceCassandra
+      ),
       name := "demo-app",
       mainClass := Some("io.kagera.demo.Main")
     )

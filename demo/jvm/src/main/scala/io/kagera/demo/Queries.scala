@@ -14,12 +14,16 @@ trait Queries {
   this: ConfiguredActorSystem =>
 
   // obtain read journal
-  val queries = PersistenceQuery(system).readJournalFor[CassandraReadJournal](CassandraReadJournal.Identifier)
+  val readJournal = PersistenceQuery(system).readJournalFor[CassandraReadJournal](CassandraReadJournal.Identifier)
 
-  // obtain all persistence ids
-  val persistenceIds: Source[String, NotUsed] = queries.allPersistenceIds()
+  def allProcessIds: Source[String, NotUsed] = readJournal.allPersistenceIds()
 
-  persistenceIds.runForeach { id => println("id: " + id) }
+  def journalFor(id: String): Source[String, NotUsed] = {
+    readJournal.currentEventsByPersistenceId(s"process-$id", 0, Long.MaxValue).map { e =>
+      e.event.toString
+    }
+  }
+
 }
 
 class AggregateMarking[S](topology: ExecutablePetriNet[S]) extends Actor {
