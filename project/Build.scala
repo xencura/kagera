@@ -37,12 +37,12 @@ object Build extends Build {
 
   lazy val api = Project("api", file("api"))
     .settings(defaultProjectSettings: _*)
-    .settings(name := "kagera-api", libraryDependencies ++= Seq(graph, shapeless, scalatest % "test"))
+    .settings(name := "kagera-api", libraryDependencies ++= Seq(scalaGraph, shapeless, scalatest % "test"))
 
   lazy val visualization = Project("visualization", file("visualization"))
     .dependsOn(api)
     .settings(defaultProjectSettings: _*)
-    .settings(name := "kagera-visualization", libraryDependencies ++= Seq(graph, graphDot))
+    .settings(name := "kagera-visualization", libraryDependencies ++= Seq(scalaGraph, scalaGraphDot))
 
   lazy val akka = Project("akka", file("akka"))
     .dependsOn(api)
@@ -54,24 +54,12 @@ object Build extends Build {
           akkaActor,
           akkaPersistence,
           akkaSlf4j,
-          graph,
+          scalaGraph,
           akkaTestkit % "test",
           scalatest % "test"
         )
       )
     )
-
-  lazy val analyse = Project("analyse", file("analyse"))
-    .dependsOn(akka)
-    .settings(
-      defaultProjectSettings ++ Seq(
-        resolvers += "krasserm at bintray" at "http://dl.bintray.com/krasserm/maven",
-        name := "kagera-analyse",
-        libraryDependencies ++= Seq(akkaAnalyticsCassandra, akkaHttp)
-      )
-    )
-
-  val cytoscapeVersion = "2.7.9"
 
   lazy val demo = (crossProject.crossType(CrossType.Full) in file("demo"))
     .settings(defaultProjectSettings: _*)
@@ -96,7 +84,7 @@ object Build extends Build {
 
   lazy val demoJs = demo.js
   lazy val demoJvm = demo.jvm
-    .dependsOn(api, visualization, akka, analyse)
+    .dependsOn(api, visualization, akka)
     .settings(
       // include the compiled javascript result from js module
       (resources in Compile) += (fastOptJS in (demoJs, Compile)).value.data,
