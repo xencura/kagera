@@ -8,11 +8,6 @@ object PetriNetProcessProtocol {
   trait Command
 
   /**
-   * Command to request the next enabled transition to be fired.
-   */
-  case object Step extends Command
-
-  /**
    * Command to request the current state of the process.
    */
   case object GetState extends Command

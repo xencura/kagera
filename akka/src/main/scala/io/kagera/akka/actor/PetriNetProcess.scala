@@ -121,12 +121,12 @@ object PetriNetProcess {
 
     def isBlockedReason(transitionId: Long): Option[String] = failedJobs
       .map {
-        case ExceptionState(tid, reason, ExceptionStrategy.Fatal) =>
-          Some(s"Transition '${process.getTransitionById(tid)}' caused a Fatal exception")
         case ExceptionState(`transitionId`, reason, _) =>
           Some(
             s"Transition '${process.getTransitionById(transitionId)}' is blocked because it failed previously with: $reason"
           )
+        case ExceptionState(tid, reason, ExceptionStrategy.Fatal) =>
+          Some(s"Transition '${process.getTransitionById(tid)}' caused a Fatal exception")
         case _ => None
       }
       .find(_.isDefined)
