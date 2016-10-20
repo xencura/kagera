@@ -33,7 +33,7 @@ object Build extends Build {
   )
 
   lazy val defaultProjectSettings =
-    basicSettings ++ formattingSettings ++ Revolver.settings ++ Sonatype.settings ++ scalaPBSettings
+    basicSettings ++ formattingSettings ++ Revolver.settings ++ SonatypePublish.settings ++ scalaPBSettings
 
   lazy val api = Project("api", file("api"))
     .settings(defaultProjectSettings: _*)

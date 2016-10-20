@@ -3,7 +3,7 @@ import Keys._
 import sbtrelease.ReleasePlugin.autoImport._
 import sbtrelease.ReleaseStateTransformations._
 
-object Sonatype {
+object SonatypePublish {
 
   protected def isSnapshot(s: String) = s.trim endsWith "SNAPSHOT"
 
