@@ -1,54 +1,20 @@
 package io.kagera.akka.actor
 
 import akka.actor.{ ActorLogging, ActorRef, Props }
-import akka.persistence.{ PersistentActor, RecoveryCompleted }
 import akka.pattern.pipe
+import akka.persistence.PersistentActor
+import io.kagera.akka.actor.PetriNetEventSourcing._
 import io.kagera.akka.actor.PetriNetExecution.{ ExecutionState, Job }
-import io.kagera.akka.actor.PetriNetProcess._
 import io.kagera.akka.actor.PetriNetProcessProtocol._
 import io.kagera.api.colored.ExceptionStrategy.RetryWithDelay
 import io.kagera.api.colored._
 
-import scala.collection._
 import scala.concurrent.duration._
 import scala.language.existentials
 
 object PetriNetProcess {
 
   def props[S](process: ExecutablePetriNet[S]): Props = Props(new PetriNetProcess[S](process))
-
-  sealed trait Event
-
-  sealed trait TransitionEvent extends Event
-
-  /**
-   * An event describing the fact that a transition has fired in the petri net process.
-   */
-  case class TransitionFiredEvent(
-    jobId: Long,
-    transitionId: Long,
-    timeStarted: Long,
-    timeCompleted: Long,
-    consumed: Marking,
-    produced: Marking,
-    out: Any
-  ) extends TransitionEvent
-
-  /**
-   * An event describing the fact that a transition failed to fire.
-   */
-  case class TransitionFailedEvent(
-    jobId: Long,
-    transitionId: Long,
-    timeStarted: Long,
-    timeFailed: Long,
-    consume: Marking,
-    input: Any,
-    failureReason: String,
-    exceptionStrategy: ExceptionStrategy
-  ) extends TransitionEvent
-
-  case class InitializedEvent[S](marking: Marking, state: S) extends Event
 }
 
 /**

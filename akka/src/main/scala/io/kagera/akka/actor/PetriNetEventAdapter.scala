@@ -4,8 +4,8 @@ import akka.actor.ActorSystem
 import akka.serialization.SerializationExtension
 import com.google.protobuf.ByteString
 import io.kagera.akka.actor.PetriNetEventAdapter._
+import io.kagera.akka.actor.PetriNetEventSourcing._
 import io.kagera.akka.actor.PetriNetExecution.ExecutionState
-import io.kagera.akka.actor.PetriNetProcess.{ InitializedEvent, TransitionFiredEvent }
 import io.kagera.akka.persistence.{ ConsumedToken, ProducedToken, SerializedData }
 import io.kagera.api._
 import io.kagera.api.colored._
@@ -36,7 +36,17 @@ trait PetriNetEventAdapter[S] {
 
   private lazy val serialization = SerializationExtension.get(system)
 
-  def process: ExecutablePetriNet[S]
+  def deserializeEvent(state: ExecutionState[S]): AnyRef => PetriNetEventSourcing.Event = {
+    case e: io.kagera.akka.persistence.Initialized => deserialize(state, e)
+    case e: io.kagera.akka.persistence.TransitionFired => deserialize(state, e)
+    case e: io.kagera.akka.persistence.TransitionFailed => null
+  }
+
+  def serializeEvent(state: ExecutionState[S]): PetriNetEventSourcing.Event => AnyRef = {
+    case e: InitializedEvent[_] => serialize(e.asInstanceOf[InitializedEvent[S]])
+    case e: TransitionFiredEvent => serialize(e)
+    case e: TransitionFailedEvent => null
+  }
 
   private def serializeObject(obj: AnyRef): Option[SerializedData] = {
     // no need to serialize unit
@@ -58,10 +68,13 @@ trait PetriNetEventAdapter[S] {
     }
   }
 
-  private def deserializeProducedMarking(produced: Seq[io.kagera.akka.persistence.ProducedToken]): Marking = {
+  private def deserializeProducedMarking(
+    state: ExecutionState[S],
+    produced: Seq[io.kagera.akka.persistence.ProducedToken]
+  ): Marking = {
     produced.foldLeft(Marking.empty) {
       case (accumulated, ProducedToken(Some(placeId), Some(tokenId), Some(count), data)) =>
-        val place = process.places.getById(placeId)
+        val place = state.process.places.getById(placeId)
         val value = deserializeObject(data)
         accumulated.add(place.asInstanceOf[Place[Any]], value, count)
       case _ => throw new IllegalStateException("Missing data in persisted ProducedToken")
@@ -96,8 +109,8 @@ trait PetriNetEventAdapter[S] {
       .getOrElse(BoxedUnit.UNIT)
   }
 
-  def deserialize(e: io.kagera.akka.persistence.Initialized): InitializedEvent[S] = {
-    val initialMarking = deserializeProducedMarking(e.initialMarking)
+  def deserialize(state: ExecutionState[S], e: io.kagera.akka.persistence.Initialized): InitializedEvent[S] = {
+    val initialMarking = deserializeProducedMarking(state, e.initialMarking)
     val initialState = deserializeObject(e.initialState).asInstanceOf[S]
     InitializedEvent(initialMarking, initialState)
   }
@@ -147,7 +160,7 @@ trait PetriNetEventAdapter[S] {
       case _ => throw new IllegalStateException("Missing data in persisted ConsumedToken")
     }
 
-    val produced = deserializeProducedMarking(e.produced)
+    val produced = deserializeProducedMarking(state, e.produced)
 
     val data = deserializeObject(e.data)
 

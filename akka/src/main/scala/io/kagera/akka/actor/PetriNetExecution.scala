@@ -1,6 +1,6 @@
 package io.kagera.akka.actor
 
-import io.kagera.akka.actor.PetriNetProcess._
+import io.kagera.akka.actor.PetriNetEventSourcing._
 import io.kagera.akka.actor.PetriNetProcessProtocol.ProcessState
 import io.kagera.api.colored._
 
@@ -9,24 +9,6 @@ import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.Random
 
 object PetriNetExecution {
-
-  def eventSource[S]: ExecutionState[S] => Event => ExecutionState[S] = state =>
-    e =>
-      e match {
-        case e: InitializedEvent[_] =>
-          ExecutionState[S](state.process, 1, e.marking, e.state.asInstanceOf[S], Map.empty)
-        case e: TransitionFiredEvent =>
-          val t = state.process.getTransitionById(e.transitionId)
-          val newState = t.updateState(state.state)(e.out)
-          state.copy(
-            sequenceNr = state.sequenceNr + 1,
-            marking = state.marking -- e.consumed ++ e.produced,
-            state = newState,
-            jobs = state.jobs - e.jobId
-          )
-        case e: TransitionFailedEvent =>
-          state
-      }
 
   case class Job[S, E](
     id: Long,
