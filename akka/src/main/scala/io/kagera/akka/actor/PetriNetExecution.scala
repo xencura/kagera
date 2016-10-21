@@ -2,13 +2,31 @@ package io.kagera.akka.actor
 
 import io.kagera.akka.actor.PetriNetProcess._
 import io.kagera.akka.actor.PetriNetProcessProtocol.ProcessState
-import io.kagera.api.colored.{ ExceptionStrategy, Marking, Transition, _ }
+import io.kagera.api.colored._
 
 import scala.collection.{ Iterable, Map, Set }
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.Random
 
 object PetriNetExecution {
+
+  def eventSource[S]: ExecutionState[S] => Event => ExecutionState[S] = state =>
+    e =>
+      e match {
+        case e: InitializedEvent[_] =>
+          ExecutionState[S](state.process, 1, e.marking, e.state.asInstanceOf[S], Map.empty)
+        case e: TransitionFiredEvent =>
+          val t = state.process.getTransitionById(e.transitionId)
+          val newState = t.updateState(state.state)(e.out)
+          state.copy(
+            sequenceNr = state.sequenceNr + 1,
+            marking = state.marking -- e.consumed ++ e.produced,
+            state = newState,
+            jobs = state.jobs - e.jobId
+          )
+        case e: TransitionFailedEvent =>
+          state
+      }
 
   case class Job[S, E](
     id: Long,
@@ -59,6 +77,11 @@ object PetriNetExecution {
 
   case class ExceptionState(transitionId: Long, failureReason: String, failureStrategy: ExceptionStrategy)
 
+  object ExecutionState {
+    def uninitialized[S](process: ExecutablePetriNet[S]): ExecutionState[S] =
+      ExecutionState[S](process, 0, Marking.empty, null.asInstanceOf[S], Map.empty)
+  }
+
   case class ExecutionState[S](
     process: ExecutablePetriNet[S],
     sequenceNr: BigInt,
@@ -95,17 +118,6 @@ object PetriNetExecution {
 
     protected def nextJobId(): Long = Random.nextLong()
 
-    def apply(e: TransitionFiredEvent) = {
-      val t = process.getTransitionById(e.transitionId)
-      val newState = t.updateState(state)(e.out)
-      copy(
-        sequenceNr = this.sequenceNr + 1,
-        marking = this.marking -- e.consumed ++ e.produced,
-        state = newState,
-        jobs = this.jobs - e.jobId
-      )
-    }
-
     /**
      * Fires a specific transition with input, computes the marking it should consume
      */
@@ -130,7 +142,7 @@ object PetriNetExecution {
     /**
      * Creates a job for a specific input & marking. Does not do any validation on the parameters
      */
-    protected def createJob[E](
+    def createJob[E](
       transition: Transition[Any, E, S],
       consume: Marking,
       input: Any

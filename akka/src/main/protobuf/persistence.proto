@@ -21,6 +21,11 @@ message ProducedToken {
     optional SerializedData token_data = 4;
 }
 
+message Initialized {
+   repeated ProducedToken initial_marking = 1;
+   optional SerializedData initial_state = 2;
+}
+
 message TransitionFired {
     optional int64 job_id = 1;
     optional int64 correlation_id = 2;
