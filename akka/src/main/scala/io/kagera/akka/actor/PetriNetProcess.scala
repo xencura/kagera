@@ -1,89 +1,55 @@
 package io.kagera.akka.actor
 
 import akka.actor.{ ActorLogging, ActorRef, Props }
-import akka.persistence.{ PersistentActor, RecoveryCompleted }
 import akka.pattern.pipe
+import akka.persistence.PersistentActor
+import io.kagera.akka.actor.PetriNetEventSourcing._
 import io.kagera.akka.actor.PetriNetExecution.{ ExecutionState, Job }
-import io.kagera.akka.actor.PetriNetProcess._
 import io.kagera.akka.actor.PetriNetProcessProtocol._
 import io.kagera.api.colored.ExceptionStrategy.RetryWithDelay
 import io.kagera.api.colored._
 
-import scala.collection._
 import scala.concurrent.duration._
 import scala.language.existentials
 
 object PetriNetProcess {
 
-  def props[S](process: ExecutablePetriNet[S], initialStateProvider: String => (Marking, S)): Props =
-    Props(new PetriNetProcess[S](process, initialStateProvider))
-
-  def props[S](process: ExecutablePetriNet[S], initialMarking: Marking, initialState: S): Props =
-    props(process, id => (initialMarking, initialState))
-
-  sealed trait TransitionEvent
-
-  /**
-   * An event describing the fact that a transition has fired in the petri net process.
-   */
-  case class TransitionFiredEvent(
-    jobId: Long,
-    transitionId: Long,
-    timeStarted: Long,
-    timeCompleted: Long,
-    consumed: Marking,
-    produced: Marking,
-    out: Any
-  ) extends TransitionEvent
-
-  /**
-   * An event describing the fact that a transition failed to fire.
-   */
-  case class TransitionFailedEvent(
-    jobId: Long,
-    transitionId: Long,
-    timeStarted: Long,
-    timeFailed: Long,
-    consume: Marking,
-    input: Any,
-    failureReason: String,
-    exceptionStrategy: ExceptionStrategy
-  ) extends TransitionEvent
+  def props[S](process: ExecutablePetriNet[S]): Props = Props(new PetriNetProcess[S](process))
 }
 
 /**
  * This actor is responsible for maintaining the state of a single petri net instance.
  */
-class PetriNetProcess[S](process: ExecutablePetriNet[S], initialStateFn: String => (Marking, S))
+class PetriNetProcess[S](override val process: ExecutablePetriNet[S])
     extends PersistentActor
     with ActorLogging
-    with PetriNetEventAdapter[S] {
+    with PetriNetActorRecovery[S] {
 
   val processId = context.self.path.name
 
   override def persistenceId: String = s"process-$processId"
 
-  override implicit val system = context.system
-
-  def currentTime(): Long = System.currentTimeMillis()
-
   import context.dispatcher
 
-  override def receiveCommand = Map.empty
+  override def receiveCommand = uninitialized
+
+  def uninitialized: Receive = { case Initialize(marking, state) =>
+    persistEvent(ExecutionState.uninitialized(process), InitializedEvent(marking, state.asInstanceOf[S])) {
+      (updatedState, e) =>
+        executeAllEnabledTransitions(updatedState)
+        sender() ! Initialized(marking, state)
+    }
+  }
 
   def running(state: ExecutionState[S]): Receive = {
     case GetState =>
       sender() ! state.processState
 
     case e @ TransitionFiredEvent(jobId, transitionId, timeStarted, timeCompleted, consumed, produced, output) =>
-      persist(writeEvent(e)) { persisted =>
+      persistEvent(state, e) { (updatedState, e) =>
         log.debug(s"Transition fired ${transitionId}")
-        val (newState, jobs) = state.apply(e).fireAllEnabledTransitions()
-
-        jobs.foreach(job => executeJob(job, sender()))
-
-        context become running(newState)
-        sender() ! TransitionFired[S](transitionId, e.consumed, e.produced, newState.marking, newState.state)
+        executeAllEnabledTransitions(updatedState)
+        sender() ! TransitionFired[S](transitionId, e.consumed, e.produced, updatedState.marking, updatedState.state)
       }
 
     case e @ TransitionFailedEvent(
@@ -127,21 +93,13 @@ class PetriNetProcess[S](process: ExecutablePetriNet[S], initialStateFn: String 
       }
   }
 
-  def executeJob[E](job: Job[S, E], originalSender: ActorRef): Unit = job.run().pipeTo(context.self)(originalSender)
-
-  def applyEvent(state: ExecutionState[S]): Any => ExecutionState[S] = event =>
-    event match {
-      case e: TransitionFiredEvent => state.apply(e)
-    }
-
-  val (initialMarking, initialProcessState) = initialStateFn(processId)
-  private var recoveringState: ExecutionState[S] =
-    ExecutionState[S](process, 1, initialMarking, initialProcessState, Map.empty)
-
-  override def receiveRecover: Receive = {
-    case e: io.kagera.akka.persistence.TransitionFired =>
-      recoveringState = applyEvent(recoveringState)(readEvent(process, recoveringState.marking, e))
-    case RecoveryCompleted =>
-      context.become(running(recoveringState))
+  def executeAllEnabledTransitions(state: ExecutionState[S]) = {
+    val (newState, jobs) = state.fireAllEnabledTransitions()
+    jobs.foreach(job => executeJob(job, sender()))
+    context become running(newState)
   }
+
+  def executeJob[E](job: Job[S, E], originalSender: ActorRef) = job.run().pipeTo(context.self)(originalSender)
+
+  override def onRecoveryCompleted(state: ExecutionState[S]) = executeAllEnabledTransitions(state)
 }

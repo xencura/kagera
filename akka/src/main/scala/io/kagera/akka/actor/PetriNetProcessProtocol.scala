@@ -12,6 +12,8 @@ object PetriNetProcessProtocol {
    */
   case object GetState extends Command
 
+  case class Initialize[S](marking: Marking, state: S) extends Command
+
   object FireTransition {
 
     def apply[I](t: Transition[I, _, _], input: I): FireTransition = FireTransition(t.id, input, None)
@@ -25,6 +27,8 @@ object PetriNetProcessProtocol {
   case class FireTransition(transitionId: Long, input: Any, correlationId: Option[Long] = None) extends Command
 
   // responses
+  case class Initialized[S](marking: Marking, state: S)
+
   sealed trait TransitionResult
 
   /**
