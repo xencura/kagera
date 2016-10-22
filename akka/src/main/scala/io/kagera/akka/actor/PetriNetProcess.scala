@@ -4,7 +4,7 @@ import akka.actor.{ ActorLogging, ActorRef, Props }
 import akka.pattern.pipe
 import akka.persistence.PersistentActor
 import io.kagera.akka.actor.PetriNetEventSourcing._
-import io.kagera.akka.actor.PetriNetExecution.{ ExecutionState, Job }
+import io.kagera.akka.actor.PetriNetExecution._
 import io.kagera.akka.actor.PetriNetProcessProtocol._
 import io.kagera.api.colored.ExceptionStrategy.RetryWithDelay
 import io.kagera.api.colored._
@@ -34,22 +34,28 @@ class PetriNetProcess[S](override val process: ExecutablePetriNet[S])
   override def receiveCommand = uninitialized
 
   def uninitialized: Receive = { case Initialize(marking, state) =>
-    persistEvent(ExecutionState.uninitialized(process), InitializedEvent(marking, state.asInstanceOf[S])) {
+    persistEvent(Instance.uninitialized(process), InitializedEvent(marking, state.asInstanceOf[S])) {
       (updatedState, e) =>
         executeAllEnabledTransitions(updatedState)
         sender() ! Initialized(marking, state)
     }
   }
 
-  def running(state: ExecutionState[S]): Receive = {
+  def running(instance: Instance[S]): Receive = {
     case GetState =>
-      sender() ! state.processState
+      sender() ! instance.processState
 
     case e @ TransitionFiredEvent(jobId, transitionId, timeStarted, timeCompleted, consumed, produced, output) =>
-      persistEvent(state, e) { (updatedState, e) =>
+      persistEvent(instance, e) { (updateInstance, e) =>
         log.debug(s"Transition fired ${transitionId}")
-        executeAllEnabledTransitions(updatedState)
-        sender() ! TransitionFired[S](transitionId, e.consumed, e.produced, updatedState.marking, updatedState.state)
+        executeAllEnabledTransitions(updateInstance)
+        sender() ! TransitionFired[S](
+          transitionId,
+          e.consumed,
+          e.produced,
+          updateInstance.marking,
+          updateInstance.state
+        )
       }
 
     case e @ TransitionFailedEvent(
@@ -62,24 +68,31 @@ class PetriNetProcess[S](override val process: ExecutablePetriNet[S])
           reason,
           strategy @ RetryWithDelay(delay)
         ) =>
+      val updatedInstance = applyEvent(e)(instance)._1
+
       log.warning(s"Transition '${transitionId}' failed: {}", reason)
 
       log.info(s"Scheduling a retry of transition ${transitionId} in $delay milliseconds")
       val originalSender = sender()
-      system.scheduler.scheduleOnce(delay milliseconds) { executeJob(state.jobs(jobId), originalSender) }
+      system.scheduler.scheduleOnce(delay milliseconds) { executeJob(updatedInstance.jobs(jobId), originalSender) }
 
       sender() ! TransitionFailed(transitionId, consume, input, reason, strategy)
+      context become running(updatedInstance)
 
     case e @ TransitionFailedEvent(jobId, transitionId, timeStarted, timeFailed, consume, input, reason, strategy) =>
+      val updatedInstance = applyEvent(e)(instance)._1
+
       log.warning(s"Transition '${transitionId}' failed: {}", reason)
       sender() ! TransitionFailed(transitionId, consume, input, reason, strategy)
+
+      context become running(updatedInstance)
 
     case FireTransition(id, input, correlationId) =>
       log.debug(s"Received message to fire transition $id with input: $input")
 
       process.findTransitionById(id) match {
         case Some(transition) =>
-          state.fireTransition(transition, input) match {
+          fireTransition(transition, input)(instance) match {
             case (_, Right(notEnabledReason)) =>
               sender() ! TransitionNotEnabled(transition, notEnabledReason)
             case (newState, Left(job)) =>
@@ -93,13 +106,13 @@ class PetriNetProcess[S](override val process: ExecutablePetriNet[S])
       }
   }
 
-  def executeAllEnabledTransitions(state: ExecutionState[S]) = {
-    val (newState, jobs) = state.fireAllEnabledTransitions()
+  def executeAllEnabledTransitions(instance: Instance[S]) = {
+    val (updatedInstance, jobs) = fireAllEnabledTransitions(instance)
     jobs.foreach(job => executeJob(job, sender()))
-    context become running(newState)
+    context become running(updatedInstance)
   }
 
-  def executeJob[E](job: Job[S, E], originalSender: ActorRef) = job.run().pipeTo(context.self)(originalSender)
+  def executeJob[E](job: Job[S, E], originalSender: ActorRef) = runJob(job).pipeTo(context.self)(originalSender)
 
-  override def onRecoveryCompleted(state: ExecutionState[S]) = executeAllEnabledTransitions(state)
+  override def onRecoveryCompleted(instance: Instance[S]) = executeAllEnabledTransitions(instance)
 }

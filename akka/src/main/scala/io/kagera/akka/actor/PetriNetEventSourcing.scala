@@ -1,6 +1,6 @@
 package io.kagera.akka.actor
 
-import io.kagera.akka.actor.PetriNetExecution.ExecutionState
+import io.kagera.akka.actor.PetriNetExecution.{ ExceptionState, Instance, InstanceState }
 import io.kagera.api.colored.{ ExceptionStrategy, Marking }
 
 import scala.collection.Map
@@ -40,20 +40,26 @@ object PetriNetEventSourcing {
 
   case class InitializedEvent[S](marking: Marking, state: S) extends Event
 
-  def apply[S](e: Event): ExecutionState[S] => ExecutionState[S] = state =>
+  def applyEvent[S](e: Event): InstanceState[S, Unit] = state =>
     e match {
       case e: InitializedEvent[_] =>
-        ExecutionState[S](state.process, 1, e.marking, e.state.asInstanceOf[S], Map.empty)
+        (Instance[S](state.process, 1, e.marking, e.state.asInstanceOf[S], Map.empty), ())
       case e: TransitionFiredEvent =>
         val t = state.process.getTransitionById(e.transitionId)
         val newState = t.updateState(state.state)(e.out)
-        state.copy(
+        val updatedInstance = state.copy(
           sequenceNr = state.sequenceNr + 1,
           marking = state.marking -- e.consumed ++ e.produced,
           state = newState,
           jobs = state.jobs - e.jobId
         )
+        (updatedInstance, ())
       case e: TransitionFailedEvent =>
-        state
+        val job = state.jobs(e.jobId)
+        val failureCount = job.failureCount + 1
+        val updatedJob =
+          job.copy(failure = Some(ExceptionState(e.transitionId, failureCount, e.failureReason, e.exceptionStrategy)))
+        val updatedInstance = state.copy(jobs = state.jobs + (job.id -> updatedJob))
+        (updatedInstance, ())
     }
 }

@@ -10,6 +10,92 @@ import scala.util.Random
 
 object PetriNetExecution {
 
+  type InstanceState[S, T] = Instance[S] => (Instance[S], T)
+
+  /**
+   * Fires a specific transition with input, computes the marking it should consume
+   */
+  def fireTransition[E, S](transition: Transition[Any, E, S], input: Any): InstanceState[S, Either[Job[S, E], String]] =
+    s => {
+      s.isBlockedReason(transition.id) match {
+        case Some(reason) =>
+          (s, Right(reason))
+        case None =>
+          s.process.enabledParameters(s.availableMarking).get(transition) match {
+            case None =>
+              (s, Right(s"Not enough consumable tokens"))
+            case Some(params) =>
+              val (updatedState, job) = fireUnsafe(transition, params.head, input)(s)
+              (updatedState, Left(job))
+          }
+      }
+    }
+
+  /**
+   * Creates a job for a specific input & marking. Does not do any validation on the parameters
+   */
+  def fireUnsafe[E, S](transition: Transition[Any, E, S], consume: Marking, input: Any): InstanceState[S, Job[S, E]] =
+    s => {
+      val job = Job[S, E](s.nextJobId(), s.process, s.state, transition, consume, input)
+      val newState = s.copy(jobs = s.jobs + (job.id -> job))
+      (newState, job)
+    }
+
+  def fireAllEnabledTransitions[S]: InstanceState[S, Set[Job[S, _]]] = s => {
+    val enabled = s.process.enabledParameters(s.availableMarking).find { case (t, markings) =>
+      t.isAutomated && !s.isBlockedReason(t).isDefined
+    }
+
+    enabled.headOption
+      .map { case (t, markings) =>
+        val (newState, job) = fireUnsafe(t.asInstanceOf[Transition[Any, Any, S]], markings.head, ())(s)
+        fireAllEnabledTransitions(newState) match { case (state, jobs) => (state, jobs + job) }
+      }
+      .getOrElse((s, Set.empty[Job[S, _]]))
+  }
+
+  /**
+   * Executes a job returning a TransitionEvent
+   */
+  def runJob[S, E](job: Job[S, E])(implicit ec: ExecutionContext): Future[TransitionEvent] = {
+    val startTime = System.currentTimeMillis()
+
+    job.process
+      .fireTransition(job.transition)(job.consume, job.processState, job.input)
+      .map { case (produced, out) =>
+        TransitionFiredEvent(
+          job.id,
+          job.transition.id,
+          startTime,
+          System.currentTimeMillis(),
+          job.consume,
+          produced,
+          out
+        )
+      }
+      .recover { case e: Throwable =>
+        val failureCount = job.failureCount + 1
+        val failureStrategy = job.transition.exceptionStrategy(e, failureCount)
+        TransitionFailedEvent(
+          job.id,
+          job.transition.id,
+          startTime,
+          System.currentTimeMillis(),
+          job.consume,
+          job.input,
+          e.getCause.getMessage,
+          failureStrategy
+        )
+      }
+  }
+
+  case class ExceptionState(
+    transitionId: Long,
+    consecutiveFailureCount: Int,
+    failureReason: String,
+    failureStrategy: ExceptionStrategy
+  )
+
   case class Job[S, E](
     id: Long,
     process: ExecutablePetriNet[S],
@@ -17,54 +103,18 @@ object PetriNetExecution {
     transition: Transition[Any, E, S],
     consume: Marking,
     input: Any,
-    startTime: Long
+    failure: Option[ExceptionState] = None
   ) {
 
-    var failureCount = 0
-    var lastRun: Future[TransitionEvent] = null
-
-    def failure: Option[ExceptionState] = lastRun match {
-      case null => None
-      case future if future.isCompleted =>
-        future.value.get.get match {
-          case e: TransitionFailedEvent => Some(ExceptionState(transition.id, e.failureReason, e.exceptionStrategy))
-          case _ => None
-        }
-      case _ => None
-    }
-
-    def run()(implicit ec: ExecutionContext): Future[TransitionEvent] = {
-
-      lastRun = process
-        .fireTransition(transition)(consume, processState, input)
-        .map { case (produced, out) =>
-          TransitionFiredEvent(id, transition.id, startTime, System.currentTimeMillis(), consume, produced, out)
-        }
-        .recover { case e: Throwable =>
-          failureCount += 1
-          TransitionFailedEvent(
-            id,
-            transition.id,
-            startTime,
-            System.currentTimeMillis(),
-            consume,
-            input,
-            e.getCause.getMessage,
-            transition.exceptionStrategy(e, failureCount)
-          )
-        }
-      lastRun
-    }
+    lazy val failureCount = failure.map(_.consecutiveFailureCount).getOrElse(0)
   }
 
-  case class ExceptionState(transitionId: Long, failureReason: String, failureStrategy: ExceptionStrategy)
-
-  object ExecutionState {
-    def uninitialized[S](process: ExecutablePetriNet[S]): ExecutionState[S] =
-      ExecutionState[S](process, 0, Marking.empty, null.asInstanceOf[S], Map.empty)
+  object Instance {
+    def uninitialized[S](process: ExecutablePetriNet[S]): Instance[S] =
+      Instance[S](process, 0, Marking.empty, null.asInstanceOf[S], Map.empty)
   }
 
-  case class ExecutionState[S](
+  case class Instance[S](
     process: ExecutablePetriNet[S],
     sequenceNr: BigInt,
     marking: Marking,
@@ -78,75 +128,24 @@ object PetriNetExecution {
     lazy val reservedMarking: Marking =
       jobs.map { case (id, job) => job.consume }.reduceOption(_ ++ _).getOrElse(Marking.empty)
 
-    // The marking that is available for new transitions / jobs.
+    // The marking that is available for new jobs
     lazy val availableMarking: Marking = marking -- reservedMarking
 
     def failedJobs: Iterable[ExceptionState] = jobs.values.map(_.failure).flatten
 
     def isBlockedReason(transitionId: Long): Option[String] = failedJobs
       .map {
-        case ExceptionState(`transitionId`, reason, _) =>
+        case ExceptionState(`transitionId`, _, reason, _) =>
           Some(
             s"Transition '${process.getTransitionById(transitionId)}' is blocked because it failed previously with: $reason"
           )
-        case ExceptionState(tid, reason, ExceptionStrategy.Fatal) =>
+        case ExceptionState(tid, _, reason, ExceptionStrategy.Fatal) =>
           Some(s"Transition '${process.getTransitionById(tid)}' caused a Fatal exception")
         case _ => None
       }
       .find(_.isDefined)
       .flatten
 
-    protected def currentTime(): Long = System.currentTimeMillis()
-
-    protected def nextJobId(): Long = Random.nextLong()
-
-    /**
-     * Fires a specific transition with input, computes the marking it should consume
-     */
-    def fireTransition[E](
-      transition: Transition[Any, E, S],
-      input: Any
-    ): (ExecutionState[S], Either[Job[S, E], String]) = {
-      isBlockedReason(transition.id) match {
-        case Some(reason) =>
-          (this, Right(reason))
-        case None =>
-          process.enabledParameters(availableMarking).get(transition) match {
-            case None =>
-              (this, Right(s"Not enough consumable tokens"))
-            case Some(params) =>
-              val (state, job) = createJob(transition, params.head, input)
-              (state, Left(job))
-          }
-      }
-    }
-
-    /**
-     * Creates a job for a specific input & marking. Does not do any validation on the parameters
-     */
-    def createJob[E](
-      transition: Transition[Any, E, S],
-      consume: Marking,
-      input: Any
-    ): (ExecutionState[S], Job[S, E]) = {
-      val job = Job[S, E](nextJobId(), process, state, transition, consume, input, currentTime())
-      val newState = copy(jobs = this.jobs + (job.id -> job))
-      (newState, job)
-    }
-
-    def fireAllEnabledTransitions(): (ExecutionState[S], Set[Job[S, _]]) = {
-      val enabled = process.enabledParameters(availableMarking).find { case (t, markings) =>
-        t.isAutomated && !isBlockedReason(t).isDefined
-      }
-
-      enabled.headOption
-        .map { case (t, markings) =>
-          val (newState, job) = createJob(t.asInstanceOf[Transition[Any, Any, S]], markings.head, ())
-          newState.fireAllEnabledTransitions() match {
-            case (state, jobs) => (state, jobs + job)
-          }
-        }
-        .getOrElse((this, Set.empty[Job[S, _]]))
-    }
+    def nextJobId(): Long = Random.nextLong()
   }
 }

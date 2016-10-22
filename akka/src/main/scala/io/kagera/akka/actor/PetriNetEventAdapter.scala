@@ -5,7 +5,7 @@ import akka.serialization.SerializationExtension
 import com.google.protobuf.ByteString
 import io.kagera.akka.actor.PetriNetEventAdapter._
 import io.kagera.akka.actor.PetriNetEventSourcing._
-import io.kagera.akka.actor.PetriNetExecution.ExecutionState
+import io.kagera.akka.actor.PetriNetExecution.Instance
 import io.kagera.akka.persistence.{ ConsumedToken, ProducedToken, SerializedData }
 import io.kagera.api._
 import io.kagera.api.colored._
@@ -36,13 +36,13 @@ trait PetriNetEventAdapter[S] {
 
   private lazy val serialization = SerializationExtension.get(system)
 
-  def deserializeEvent(state: ExecutionState[S]): AnyRef => PetriNetEventSourcing.Event = {
-    case e: io.kagera.akka.persistence.Initialized => deserialize(state, e)
-    case e: io.kagera.akka.persistence.TransitionFired => deserialize(state, e)
+  def deserializeEvent(instance: Instance[S]): AnyRef => PetriNetEventSourcing.Event = {
+    case e: io.kagera.akka.persistence.Initialized => deserialize(instance, e)
+    case e: io.kagera.akka.persistence.TransitionFired => deserialize(instance, e)
     case e: io.kagera.akka.persistence.TransitionFailed => null
   }
 
-  def serializeEvent(state: ExecutionState[S]): PetriNetEventSourcing.Event => AnyRef = {
+  def serializeEvent(state: Instance[S]): PetriNetEventSourcing.Event => AnyRef = {
     case e: InitializedEvent[_] => serialize(e.asInstanceOf[InitializedEvent[S]])
     case e: TransitionFiredEvent => serialize(e)
     case e: TransitionFailedEvent => null
@@ -69,12 +69,12 @@ trait PetriNetEventAdapter[S] {
   }
 
   private def deserializeProducedMarking(
-    state: ExecutionState[S],
+    instance: Instance[S],
     produced: Seq[io.kagera.akka.persistence.ProducedToken]
   ): Marking = {
     produced.foldLeft(Marking.empty) {
       case (accumulated, ProducedToken(Some(placeId), Some(tokenId), Some(count), data)) =>
-        val place = state.process.places.getById(placeId)
+        val place = instance.process.places.getById(placeId)
         val value = deserializeObject(data)
         accumulated.add(place.asInstanceOf[Place[Any]], value, count)
       case _ => throw new IllegalStateException("Missing data in persisted ProducedToken")
@@ -109,8 +109,8 @@ trait PetriNetEventAdapter[S] {
       .getOrElse(BoxedUnit.UNIT)
   }
 
-  def deserialize(state: ExecutionState[S], e: io.kagera.akka.persistence.Initialized): InitializedEvent[S] = {
-    val initialMarking = deserializeProducedMarking(state, e.initialMarking)
+  def deserialize(instance: Instance[S], e: io.kagera.akka.persistence.Initialized): InitializedEvent[S] = {
+    val initialMarking = deserializeProducedMarking(instance, e.initialMarking)
     val initialState = deserializeObject(e.initialState).asInstanceOf[S]
     InitializedEvent(initialMarking, initialState)
   }
@@ -148,19 +148,19 @@ trait PetriNetEventAdapter[S] {
     protobufEvent
   }
 
-  def deserialize(state: ExecutionState[S], e: io.kagera.akka.persistence.TransitionFired): TransitionFiredEvent = {
+  def deserialize(instance: Instance[S], e: io.kagera.akka.persistence.TransitionFired): TransitionFiredEvent = {
 
-    val transition = state.process.getTransitionById(e.transitionId.get)
+    val transition = instance.process.getTransitionById(e.transitionId.get)
 
     val consumed = e.consumed.foldLeft(Marking.empty) {
       case (accumulated, ConsumedToken(Some(placeId), Some(tokenId), Some(count))) =>
-        val place = state.marking.markedPlaces.getById(placeId)
-        val value = state.marking(place).keySet.find(e => tokenIdentifier(place)(e) == tokenId).get
+        val place = instance.marking.markedPlaces.getById(placeId)
+        val value = instance.marking(place).keySet.find(e => tokenIdentifier(place)(e) == tokenId).get
         accumulated.add(place.asInstanceOf[Place[Any]], value, count)
       case _ => throw new IllegalStateException("Missing data in persisted ConsumedToken")
     }
 
-    val produced = deserializeProducedMarking(state, e.produced)
+    val produced = deserializeProducedMarking(instance, e.produced)
 
     val data = deserializeObject(e.data)
 
