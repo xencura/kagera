@@ -1,5 +1,6 @@
 package io.kagera.akka.actor
 
+import fs2.{ Strategy, Task }
 import io.kagera.akka.actor.PetriNetEventSourcing._
 import io.kagera.akka.actor.PetriNetProcessProtocol.ProcessState
 import io.kagera.api.colored._
@@ -57,7 +58,7 @@ object PetriNetExecution {
   /**
    * Executes a job returning a TransitionEvent
    */
-  def runJob[S, E](job: Job[S, E])(implicit ec: ExecutionContext): Future[TransitionEvent] = {
+  def runJob[S, E](job: Job[S, E])(implicit S: Strategy): Task[TransitionEvent] = {
     val startTime = System.currentTimeMillis()
 
     job.process
@@ -73,7 +74,7 @@ object PetriNetExecution {
           out
         )
       }
-      .recover { case e: Throwable =>
+      .handle { case e: Throwable =>
         val failureCount = job.failureCount + 1
         val failureStrategy = job.transition.exceptionStrategy(e, failureCount)
         TransitionFailedEvent(
@@ -87,6 +88,7 @@ object PetriNetExecution {
           failureStrategy
         )
       }
+      .async
   }
 
   case class ExceptionState(

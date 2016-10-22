@@ -37,7 +37,10 @@ object Build extends Build {
 
   lazy val api = Project("api", file("api"))
     .settings(defaultProjectSettings: _*)
-    .settings(name := "kagera-api", libraryDependencies ++= Seq(scalaGraph, shapeless, scalatest % "test"))
+    .settings(
+      name := "kagera-api",
+      libraryDependencies ++= Seq(scalaGraph, catsCore, fs2Core, shapeless, scalatest % "test")
+    )
 
   lazy val visualization = Project("visualization", file("visualization"))
     .dependsOn(api)

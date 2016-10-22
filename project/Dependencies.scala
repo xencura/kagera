@@ -25,7 +25,8 @@ object Dependencies {
   val scalaGraph = "com.assembla.scala-incubator" %% "graph-core" % "1.10.1"
   val scalaGraphDot = "com.assembla.scala-incubator" %% "graph-dot" % "1.10.1"
 
-  val fs2 = "co.fs2" %% "fs2-core" % "0.9.1"
+  val fs2Core = "co.fs2" %% "fs2-core" % "0.9.1"
+  val catsCore = "org.typelevel" %% "cats-core" % "0.7.2"
 
   val logback = "ch.qos.logback" % "logback-classic" % "1.1.2"
   val ficus = "net.ceedubs" %% "ficus" % "1.1.2"

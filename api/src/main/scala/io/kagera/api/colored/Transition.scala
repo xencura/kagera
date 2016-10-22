@@ -1,5 +1,6 @@
 package io.kagera.api.colored
 
+import fs2.Task
 import io.kagera.api.colored.ExceptionStrategy.BlockSelf
 import io.kagera.api.multiset.MultiSet
 
@@ -78,12 +79,12 @@ trait Transition[Input, Output, State] {
    *
    * @param inAdjacent
    * @param outAdjacent
-   * @param executor
    * @return
    */
-  def apply(inAdjacent: MultiSet[Place[_]], outAdjacent: MultiSet[Place[_]])(implicit
-    executor: scala.concurrent.ExecutionContext
-  ): (Marking, State, Input) => Future[(Marking, Output)]
+  def apply(
+    inAdjacent: MultiSet[Place[_]],
+    outAdjacent: MultiSet[Place[_]]
+  ): (Marking, State, Input) => Task[(Marking, Output)]
 
   /**
    * The state transition function:
