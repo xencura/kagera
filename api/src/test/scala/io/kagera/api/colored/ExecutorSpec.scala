@@ -11,15 +11,13 @@ import scalax.collection.edge.WLDiEdge
 
 class ExecutorSpec extends WordSpec {
 
-  val p1 = Place[Unit](id = 1, label = "p1")
-  val p2 = Place[Unit](id = 2, label = "p2")
+  val p1 = Place[Unit](id = 1)
+  val p2 = Place[Unit](id = 2)
 
-  val mockedTransition = nullTransition(1, "t1", false)
+  val mockedTransition = nullTransition(id = 1, automated = false)
 
   "A colored executor" should {
     "Call the transition with the appropriate parameters" in {
-
-      import scala.concurrent.ExecutionContext.Implicits.global
 
       val p = process(p1 ~> mockedTransition, mockedTransition ~> p2)
 

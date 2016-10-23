@@ -2,10 +2,9 @@ package io.kagera.api.colored.dsl
 
 import fs2.Task
 import io.kagera.api.colored.ExceptionStrategy.BlockSelf
-import io.kagera.api.colored.{ AbstractTransition, Marking, Transition, _ }
 import io.kagera.api.colored.transitions.UncoloredTransition
+import io.kagera.api.colored.{ AbstractTransition, Marking, Transition, _ }
 
-import scala.concurrent.{ ExecutionContext, Future }
 import scala.concurrent.duration.Duration
 import scala.util.Random
 
@@ -26,5 +25,5 @@ trait StateTransitionNet[S, E] {
       override def produceEvent(consume: Marking, state: S, input: Unit): Task[E] = Task.delay { (fn(state)) }
     }
 
-  def createPetriNet(arcs: Arc*)(implicit ec: ExecutionContext) = process[S](arcs: _*)
+  def createPetriNet(arcs: Arc*) = process[S](arcs: _*)
 }

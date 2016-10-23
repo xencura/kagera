@@ -50,15 +50,17 @@ package object colored {
   /**
    * TODO
    *
-   * Incorporate the upper bounds of the
+   * Incorporate the upper bounds of type parameters into this type
    *
-   * place color: C transition input: I transition output: E
+   * Place color: C Transition input: I Transition output: E
    *
-   * Then that we can define:
+   * That way we can define different types of Petri nets:
    *
-   * Uncolored petri nets, where C is Unit Non interactive nets, Where I is Unit
+   * Uncolored petri nets, where C is Unit Non interactive nets, Where I is Unit Nets without State & Event sourcing,
+   * Where S & E are Unit
    *
    * @tparam S
+   *   The 'global' state transitions close over
    */
   type ExecutablePetriNet[S] = PetriNet[Place[_], Transition[_, _, _]] with ColoredTokenGame with TransitionExecutor[S]
 

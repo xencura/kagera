@@ -7,10 +7,10 @@ class ColoredMarkingSpec extends WordSpec {
 
   case class Person(name: String, age: Int)
 
-  val p1 = Place[Int](id = 1, label = "p1")
-  val p2 = Place[String](id = 2, label = "p2")
-  val p3 = Place[Double](id = 3, label = "p3")
-  val p4 = Place[Person](id = 4, label = "p4")
+  val p1 = Place[Int](id = 1)
+  val p2 = Place[String](id = 2)
+  val p3 = Place[Double](id = 3)
+  val p4 = Place[Person](id = 4)
 
   "A Colored Marking" should {
 

@@ -6,13 +6,11 @@ import io.kagera.api.colored.dsl._
 
 class TokenGameSpec extends WordSpec {
 
-  import scala.concurrent.ExecutionContext.Implicits.global
+  val p1 = Place[Int](id = 1)
+  val p2 = Place[Int](id = 2)
 
-  val p1 = Place[Int](id = 1, label = "p1")
-  val p2 = Place[Int](id = 2, label = "p2")
-
-  val t1 = constantTransition[Int, Int, Unit](id = 4, label = "t1", false, 42)
-  val t2 = constantTransition[Int, Int, Unit](id = 5, label = "t2", false, 5)
+  val t1 = constantTransition[Int, Int, Unit](id = 1, automated = false, constant = 42)
+  val t2 = constantTransition[Int, Int, Unit](id = 2, automated = false, constant = 5)
 
   val testProcess = process(p1 ~> (t1, filter = _ > 42), p1 ~> (t2, weight = 3), t1 ~> p2, t2 ~> p2)
 

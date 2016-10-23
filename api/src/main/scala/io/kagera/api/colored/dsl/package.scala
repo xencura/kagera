@@ -2,6 +2,7 @@ package io.kagera.api.colored
 
 import fs2.Task
 import io.kagera.api._
+import io.kagera.api.colored.transitions.IdentityTransition
 import io.kagera.api.multiset._
 
 import scala.concurrent.duration.Duration
@@ -9,6 +10,16 @@ import scala.concurrent.{ ExecutionContext, Future }
 import scalax.collection.Graph
 import scalax.collection.edge.WLDiEdge
 
+/**
+ * TODO:
+ *
+ * This is not much of a DSL yet.
+ *
+ * Insight:
+ *
+ * Since each transition is different in what kind of in/out places & edges it can take we should probably not create a
+ * general connectivity DSL based on the base trait Transition.
+ */
 package object dsl {
 
   implicit class TransitionDSL(t: Transition[_, _, _]) {
@@ -28,8 +39,9 @@ package object dsl {
     WLDiEdge[Node, PTEdge[C]](Left(p), Right(t))(weight, innerEdge)
   }
 
-  def constantTransition[I, O, S](id: Long, label: String, isManaged: Boolean = false, constant: O) =
-    new AbstractTransition[I, O, S](id, label, isManaged, Duration.Undefined) {
+  def constantTransition[I, O, S](id: Long, label: Option[String] = None, automated: Boolean = false, constant: O) =
+    new AbstractTransition[I, O, S](id, label.getOrElse(s"t$id"), automated, Duration.Undefined)
+      with IdentityTransition[I, O, S] {
 
       override val toString = label
 
@@ -37,19 +49,14 @@ package object dsl {
         (marking, state, input) =>
           Task.delay {
             val produced = outAdjacent.map { case (place, weight) =>
-              place -> produceTokens(place, weight.toInt)
+              place -> Map(constant -> weight)
             }.toMarking
 
-            produced -> constant
+            (produced, constant)
           }
-
-      def produceTokens[C](place: Place[C], count: Int): MultiSet[C] =
-        MultiSet.empty[C] + (constant.asInstanceOf[C] -> count)
-
-      override def updateState = s => e => s
     }
 
-  def nullTransition[S](id: Long, label: String, automated: Boolean = false) =
+  def nullTransition[S](id: Long, label: Option[String] = None, automated: Boolean = false): Transition[Unit, Unit, S] =
     constantTransition[Unit, Unit, S](id, label, automated, ())
 
   def process[S](params: Arc*): ExecutablePetriNet[S] = {

@@ -58,11 +58,9 @@ class PersistentPetriNetActorSpec
     case Removed(c) => set - c
   }
 
-  val p1 = Place[Unit](id = 1, label = "p1")
-  val p2 = Place[Unit](id = 2, label = "p2")
-  val p3 = Place[Unit](id = 3, label = "p3")
-
-  import system.dispatcher
+  val p1 = Place[Unit](id = 1)
+  val p2 = Place[Unit](id = 2)
+  val p3 = Place[Unit](id = 3)
 
   "A persistent petri net actor" should {
 
@@ -73,7 +71,7 @@ class PersistentPetriNetActorSpec
 
       override val eventSourcing = integerSetEventSource
 
-      val t1 = transition(id = 1)(set => throw new RuntimeException("something went wrong"))
+      val t1 = transition(id = 1)(_ => throw new RuntimeException("something went wrong"))
 
       val petriNet = createPetriNet(p1 ~> t1, t1 ~> p2)
 
@@ -95,7 +93,7 @@ class PersistentPetriNetActorSpec
     ] {
       override val eventSourcing = integerSetEventSource
 
-      val t1 = transition(id = 1)(set => throw new RuntimeException("something went wrong"))
+      val t1 = transition(id = 1)(_ => throw new RuntimeException("something went wrong"))
 
       val petriNet = createPetriNet(p1 ~> t1, t1 ~> p2)
 
@@ -241,10 +239,10 @@ class PersistentPetriNetActorSpec
 
       override val eventSourcing: Unit => Unit => Unit = s => e => s
 
-      val p1 = Place[Unit](1, "p1")
-      val p2 = Place[Unit](2, "p2")
+      val p1 = Place[Unit](id = 1)
+      val p2 = Place[Unit](id = 2)
 
-      val t1 = nullTransition(1, "t1", automated = false)
+      val t1 = nullTransition(id = 1, automated = false)
       val t2 = transition(id = 2, automated = true)(unit => Thread.sleep(500))
       val t3 = transition(id = 3, automated = true)(unit => Thread.sleep(500))
 

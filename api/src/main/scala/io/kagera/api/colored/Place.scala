@@ -3,7 +3,10 @@ package io.kagera.api.colored
 import io.kagera.api.multiset._
 
 object Place {
-  def apply[C](id: Long, label: String): Place[C] = PlaceImpl[C](id, label)
+  def apply[C](id: Long, label: Option[String] = None): Place[C] = {
+
+    PlaceImpl[C](id, label.getOrElse(s"p$id"))
+  }
 }
 
 /**
