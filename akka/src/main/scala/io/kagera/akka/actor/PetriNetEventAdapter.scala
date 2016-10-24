@@ -181,6 +181,6 @@ trait PetriNetEventAdapter[S] {
     val timeStarted = e.timeStarted.getOrElse(missingFieldException("time_started"))
     val timeCompleted = e.timeCompleted.getOrElse(missingFieldException("time_completed"))
 
-    TransitionFiredEvent(jobId, transition, timeStarted, timeCompleted, consumed, produced, data)
+    TransitionFiredEvent(jobId, transition.id, timeStarted, timeCompleted, consumed, produced, data)
   }
 }

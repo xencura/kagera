@@ -44,7 +44,7 @@ object PetriNetExecution {
 
   def fireAllEnabledTransitions[S]: InstanceState[S, Set[Job[S, _]]] = s => {
     val enabled = s.process.enabledParameters(s.availableMarking).find { case (t, markings) =>
-      t.isAutomated && !s.isBlockedReason(t).isDefined
+      t.isAutomated && !s.isBlockedReason(t.id).isDefined
     }
 
     enabled.headOption

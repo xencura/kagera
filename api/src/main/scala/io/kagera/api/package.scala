@@ -7,28 +7,24 @@ import scala.language.higherKinds
 import scalax.collection.Graph
 import scalax.collection.GraphPredef._
 import scalax.collection.edge.WLDiEdge
-import shapeless.tag._
 
 package object api {
 
-  object tags {
-    trait Id
-    trait Weight
-    trait Label
-  }
+  case class Id(value: Long) extends AnyVal
+  case class Label(value: String) extends AnyVal
 
-  type Identifiable[T] = T => Long @@ tags.Id
-  type Labeled[T] = T => String @@ tags.Label
+  type Identifiable[T] = T => Id
+  type Labeled[T] = T => Label
 
   implicit class LabeledFn[T : Labeled](seq: Iterable[T]) {
-    def findByLabel(label: String): Option[T] = seq.find(e => implicitly[Labeled[T]].apply(e) == label)
+    def findByLabel(label: String): Option[T] = seq.find(e => implicitly[Labeled[T]].apply(e).value == label)
     def getByLabel(label: String): T = findByLabel(label).getOrElse {
       throw new IllegalStateException(s"No element found with label: $label")
     }
   }
 
   implicit class IdFn[T : Identifiable](seq: Iterable[T]) {
-    def findById(id: Long): Option[T] = seq.find(e => implicitly[Identifiable[T]].apply(e) == id)
+    def findById(id: Long): Option[T] = seq.find(e => implicitly[Identifiable[T]].apply(e).value == id)
     def getById(id: Long): T = findById(id).getOrElse {
       throw new IllegalStateException(s"No element found with id: $id")
     }

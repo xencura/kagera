@@ -1,8 +1,6 @@
 package io.kagera.api
 
 import io.kagera.api.multiset.MultiSet
-import shapeless.tag
-import shapeless.tag._
 
 import scala.language.existentials
 import scalax.collection.Graph
@@ -37,13 +35,13 @@ package object colored {
 
   implicit def toMarking(map: Map[Place[_], MultiSet[_]]): Marking = Marking(map)
 
-  implicit def placeLabel[C](p: Place[C]): String @@ tags.Label = tag[tags.Label](p.label)
+  implicit def placeLabel[C](p: Place[C]): Label = Label(p.label)
 
-  implicit def placeIdentifier(p: Place[_]): Long @@ tags.Id = tag[tags.Id](p.id)
+  implicit def placeIdentifier(p: Place[_]): Id = Id(p.id)
 
-  implicit def transitionLabeler(t: Transition[_, _, _]): String @@ tags.Label = tag[tags.Label](t.label)
+  implicit def transitionLabeler(t: Transition[_, _, _]): Label = Label(t.label)
 
-  implicit def transitionIdentifier(t: Transition[_, _, _]): Long @@ tags.Id = tag[tags.Id](t.id)
+  implicit def transitionIdentifier(t: Transition[_, _, _]): Id = Id(t.id)
 
   type ExceptionHandler = Throwable => ExceptionStrategy
 

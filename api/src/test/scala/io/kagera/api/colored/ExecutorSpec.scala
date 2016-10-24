@@ -1,13 +1,8 @@
 package io.kagera.api.colored
 
 import io.kagera.api.colored
-import io.kagera.api._
-import io.kagera.api.colored._
-import colored.dsl._
+import io.kagera.api.colored.dsl._
 import org.scalatest.WordSpec
-
-import scala.concurrent.{ ExecutionContext, Future }
-import scalax.collection.edge.WLDiEdge
 
 class ExecutorSpec extends WordSpec {
 

@@ -32,5 +32,4 @@ object Dependencies {
   val ficus = "net.ceedubs" %% "ficus" % "1.1.2"
   val scalaReflect = "org.scala-lang" % "scala-reflect" % "2.11.8"
   val scalatest = "org.scalatest" %% "scalatest" % "2.2.1"
-  val shapeless = "com.chuusai" %% "shapeless" % "2.3.0"
 }
