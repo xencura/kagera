@@ -1,18 +1,12 @@
-package io.kagera.akka.actor
+package io.kagera.persistence
 
-import akka.actor.ActorSystem
-import akka.serialization.SerializationExtension
-import com.google.protobuf.ByteString
-import io.kagera.akka.actor.PetriNetEventAdapter._
-import io.kagera.akka.actor.PetriNetEventSourcing._
-import io.kagera.akka.actor.PetriNetExecution.Instance
-import io.kagera.akka.persistence.{ ConsumedToken, ProducedToken, SerializedData }
 import io.kagera.api._
 import io.kagera.api.colored._
+import io.kagera.execution.EventSourcing._
+import io.kagera.execution.{ EventSourcing, Instance }
+import io.kagera.persistence.EventSerializer._
 
-import scala.runtime.BoxedUnit
-
-object PetriNetEventAdapter {
+object EventSerializer {
 
   /**
    * TODO:
@@ -39,47 +33,25 @@ object PetriNetEventAdapter {
  * This should not be a trait, the mix in pattern is not optimally reusable. A more functional approach would be better.
  * Additionally the (de)serialization should not depend on akka per se.
  */
-trait PetriNetEventAdapter[S] {
+trait EventSerializer[S] {
 
-  def system: ActorSystem
+  this: ObjectSerializer =>
 
-  private lazy val serialization = SerializationExtension.get(system)
-
-  def deserializeEvent(instance: Instance[S]): AnyRef => PetriNetEventSourcing.Event = {
-    case e: io.kagera.akka.persistence.Initialized => deserialize(instance, e)
-    case e: io.kagera.akka.persistence.TransitionFired => deserialize(instance, e)
-    case e: io.kagera.akka.persistence.TransitionFailed => null
+  def deserializeEvent(instance: Instance[S]): AnyRef => EventSourcing.Event = {
+    case e: io.kagera.persistence.Initialized => deserialize(instance, e)
+    case e: io.kagera.persistence.TransitionFired => deserialize(e)(instance)
+    case e: io.kagera.persistence.TransitionFailed => null
   }
 
-  def serializeEvent(state: Instance[S]): PetriNetEventSourcing.Event => AnyRef = {
+  def serializeEvent(state: Instance[S]): EventSourcing.Event => AnyRef = {
     case e: InitializedEvent[_] => serialize(e.asInstanceOf[InitializedEvent[S]])
     case e: TransitionFiredEvent => serialize(e)
     case e: TransitionFailedEvent => null
   }
 
-  private def serializeObject(obj: AnyRef): Option[SerializedData] = {
-    // no need to serialize unit
-    if (obj.isInstanceOf[Unit]) {
-      None
-    } else {
-      // for now we re-use akka Serialization extension for pluggable serializers
-      val serializer = serialization.findSerializerFor(obj)
-      val bytes = serializer.toBinary(obj)
-
-      // we should not have to copy the bytes
-      Some(
-        SerializedData(
-          serializerId = Some(serializer.identifier),
-          manifest = None,
-          data = Some(ByteString.copyFrom(bytes))
-        )
-      )
-    }
-  }
-
   private def deserializeProducedMarking(
     instance: Instance[S],
-    produced: Seq[io.kagera.akka.persistence.ProducedToken]
+    produced: Seq[io.kagera.persistence.ProducedToken]
   ): Marking = {
     produced.foldLeft(Marking.empty) {
       case (accumulated, ProducedToken(Some(placeId), Some(tokenId), Some(count), data)) =>
@@ -90,7 +62,7 @@ trait PetriNetEventAdapter[S] {
     }
   }
 
-  private def serializeProducedMarking(produced: Marking): Seq[io.kagera.akka.persistence.ProducedToken] = {
+  private def serializeProducedMarking(produced: Marking): Seq[io.kagera.persistence.ProducedToken] = {
     produced.data.toSeq.flatMap { case (place, tokens) =>
       tokens.toSeq.map { case (value, count) =>
         ProducedToken(
@@ -103,34 +75,19 @@ trait PetriNetEventAdapter[S] {
     }
   }
 
-  private def deserializeObject(obj: Option[SerializedData]): AnyRef = {
-    obj
-      .map {
-        case SerializedData(None, _, Some(data)) =>
-          throw new IllegalStateException(s"Missing serializer id")
-        case SerializedData(Some(serializerId), _, Some(data)) =>
-          val serializer = serialization.serializerByIdentity.getOrElse(
-            serializerId,
-            throw new IllegalStateException(s"No serializer found with id $serializerId")
-          )
-          serializer.fromBinary(data.toByteArray)
-      }
-      .getOrElse(BoxedUnit.UNIT)
-  }
-
-  def deserialize(instance: Instance[S], e: io.kagera.akka.persistence.Initialized): InitializedEvent[S] = {
+  def deserialize(instance: Instance[S], e: io.kagera.persistence.Initialized): InitializedEvent[S] = {
     val initialMarking = deserializeProducedMarking(instance, e.initialMarking)
     val initialState = deserializeObject(e.initialState).asInstanceOf[S]
     InitializedEvent(initialMarking, initialState)
   }
 
-  def serialize(e: InitializedEvent[S]): io.kagera.akka.persistence.Initialized = {
+  def serialize(e: InitializedEvent[S]): io.kagera.persistence.Initialized = {
     val initialMarking = serializeProducedMarking(e.marking)
     val initialState = serializeObject(e.state.asInstanceOf[AnyRef])
-    io.kagera.akka.persistence.Initialized(initialMarking, initialState)
+    io.kagera.persistence.Initialized(initialMarking, initialState)
   }
 
-  def serialize(e: TransitionFiredEvent): io.kagera.akka.persistence.TransitionFired = {
+  def serialize(e: TransitionFiredEvent): io.kagera.persistence.TransitionFired = {
 
     val consumedTokens: Seq[ConsumedToken] = e.consumed.data.toSeq.flatMap { case (place, tokens) =>
       tokens.toSeq.map { case (value, count) =>
@@ -144,7 +101,7 @@ trait PetriNetEventAdapter[S] {
 
     val producedTokens = serializeProducedMarking(e.produced)
 
-    val protobufEvent = io.kagera.akka.persistence.TransitionFired(
+    val protobufEvent = io.kagera.persistence.TransitionFired(
       jobId = Some(e.jobId),
       transitionId = Some(e.transitionId),
       timeStarted = Some(e.timeStarted),
@@ -157,9 +114,9 @@ trait PetriNetEventAdapter[S] {
     protobufEvent
   }
 
-  def deserialize(instance: Instance[S], e: io.kagera.akka.persistence.TransitionFired): TransitionFiredEvent = {
+  def deserialize(e: io.kagera.persistence.TransitionFired): Instance[S] => TransitionFiredEvent = instance => {
 
-    val transition = instance.process.getTransitionById(e.transitionId.get)
+    val transition = instance.process.transitions.getById(e.transitionId.get)
 
     val consumed = e.consumed.foldLeft(Marking.empty) {
       case (accumulated, ConsumedToken(Some(placeId), Some(tokenId), Some(count))) =>

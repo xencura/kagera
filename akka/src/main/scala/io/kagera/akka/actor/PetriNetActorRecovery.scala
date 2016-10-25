@@ -1,11 +1,12 @@
 package io.kagera.akka.actor
 
 import akka.persistence.{ PersistentActor, RecoveryCompleted }
-import io.kagera.akka.actor.PetriNetEventSourcing._
-import io.kagera.akka.actor.PetriNetExecution.Instance
 import io.kagera.api.colored.ExecutablePetriNet
+import io.kagera.execution.Instance
+import io.kagera.execution.EventSourcing._
+import io.kagera.persistence.EventSerializer
 
-trait PetriNetActorRecovery[S] extends PetriNetEventAdapter[S] {
+trait PetriNetActorRecovery[S] extends EventSerializer[S] with AkkaObjectSerializer {
 
   this: PersistentActor =>
 
@@ -26,10 +27,10 @@ trait PetriNetActorRecovery[S] extends PetriNetEventAdapter[S] {
   private var recoveringState: Instance[S] = Instance.uninitialized[S](process)
 
   override def receiveRecover: Receive = {
-    case e: io.kagera.akka.persistence.Initialized =>
+    case e: io.kagera.persistence.Initialized =>
       val deserializedEvent = deserializeEvent(recoveringState)(e)
       recoveringState = applyEvent(deserializedEvent)(recoveringState)._1
-    case e: io.kagera.akka.persistence.TransitionFired =>
+    case e: io.kagera.persistence.TransitionFired =>
       val deserializedEvent = deserializeEvent(recoveringState)(e)
       recoveringState = applyEvent(deserializedEvent)(recoveringState)._1
     case RecoveryCompleted =>

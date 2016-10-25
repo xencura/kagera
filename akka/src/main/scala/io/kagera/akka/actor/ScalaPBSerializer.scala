@@ -8,7 +8,7 @@ import akka.actor.ExtendedActorSystem
 import akka.serialization.SerializerWithStringManifest
 import com.trueaccord.scalapb.{ GeneratedMessage, GeneratedMessageCompanion, Message }
 import io.kagera.akka.actor.ScalaPBSerializer._
-import io.kagera.akka.persistence.TransitionFired
+import io.kagera.persistence.{ Initialized, TransitionFailed, TransitionFired }
 
 object ScalaPBSerializer {
   import scala.reflect.runtime.{ universe => ru }
@@ -31,7 +31,9 @@ object ScalaPBSerializer {
 class ScalaPBSerializer(system: ExtendedActorSystem) extends SerializerWithStringManifest {
 
   def manifests: Map[String, (Class[_ <: AnyRef], GeneratedMessageCompanion[_ <: GeneratedMessage])] = Map(
-    "TransitionFired" -> scalaPBType[TransitionFired]
+    "TransitionFired" -> scalaPBType[TransitionFired],
+    "TransitionFailed" -> scalaPBType[TransitionFailed],
+    "Initialized" -> scalaPBType[Initialized]
   )
 
   private val class2ManifestMap: Map[Class[_ <: AnyRef], String] = manifests.map { case (key, value) =>

@@ -1,6 +1,6 @@
 syntax = "proto2";
 
-option java_package = "io.kagera.akka";
+option java_package = "io.kagera";
 
 message SerializedData {
     optional int32 serializer_id = 1;

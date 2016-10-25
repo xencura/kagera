@@ -1,11 +1,11 @@
-package io.kagera.akka.actor
+package io.kagera.execution
 
-import io.kagera.akka.actor.PetriNetExecution.{ ExceptionState, Instance, InstanceState }
-import io.kagera.api.colored.{ ExceptionStrategy, Marking }
+import io.kagera.api._
+import io.kagera.api.colored.{ ExceptionStrategy, Marking, Transition }
 
 import scala.collection.Map
 
-object PetriNetEventSourcing {
+object EventSourcing {
 
   sealed trait Event
 
@@ -45,7 +45,7 @@ object PetriNetEventSourcing {
       case e: InitializedEvent[_] =>
         (Instance[S](state.process, 1, e.marking, e.state.asInstanceOf[S], Map.empty), ())
       case e: TransitionFiredEvent =>
-        val t = state.process.getTransitionById(e.transitionId)
+        val t = state.process.transitions.getById(e.transitionId).asInstanceOf[Transition[_, Any, S]]
         val newState = t.updateState(state.state)(e.out)
         val updatedInstance = state.copy(
           sequenceNr = state.sequenceNr + 1,

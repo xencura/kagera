@@ -1,14 +1,14 @@
 package io.kagera.akka.actor
 
 import akka.actor.{ ActorLogging, ActorRef, Props }
-import akka.pattern.pipe
 import akka.persistence.PersistentActor
+import akka.pattern.pipe
 import fs2.Strategy
-import io.kagera.akka.actor.PetriNetEventSourcing._
-import io.kagera.akka.actor.PetriNetExecution._
 import io.kagera.akka.actor.PetriNetProcessProtocol._
 import io.kagera.api.colored.ExceptionStrategy.RetryWithDelay
 import io.kagera.api.colored._
+import io.kagera.execution._
+import io.kagera.execution.EventSourcing._
 
 import scala.concurrent.duration._
 import scala.language.existentials
@@ -32,6 +32,9 @@ class PetriNetProcess[S](override val process: ExecutablePetriNet[S])
 
   import context.dispatcher
 
+  def processState(instance: Instance[S]): ProcessState[S] =
+    ProcessState[S](instance.sequenceNr, instance.marking, instance.state)
+
   override def receiveCommand = uninitialized
 
   def uninitialized: Receive = { case Initialize(marking, state) =>
@@ -44,7 +47,7 @@ class PetriNetProcess[S](override val process: ExecutablePetriNet[S])
 
   def running(instance: Instance[S]): Receive = {
     case GetState =>
-      sender() ! instance.processState
+      sender() ! processState(instance)
 
     case e @ TransitionFiredEvent(jobId, transitionId, timeStarted, timeCompleted, consumed, produced, output) =>
       persistEvent(instance, e) { (updateInstance, e) =>

@@ -1,15 +1,12 @@
-package io.kagera.akka.actor
+package io.kagera
 
 import fs2.{ Strategy, Task }
-import io.kagera.akka.actor.PetriNetEventSourcing._
-import io.kagera.akka.actor.PetriNetProcessProtocol.ProcessState
-import io.kagera.api.colored._
+import io.kagera.api.colored.{ Marking, Transition }
+import io.kagera.execution.EventSourcing.{ TransitionEvent, TransitionFailedEvent, TransitionFiredEvent }
 
-import scala.collection.{ Iterable, Map, Set }
-import scala.concurrent.{ ExecutionContext, Future }
-import scala.util.Random
+import scala.collection.Set
 
-object PetriNetExecution {
+package object execution {
 
   type InstanceState[S, T] = Instance[S] => (Instance[S], T)
 
@@ -89,65 +86,5 @@ object PetriNetExecution {
         )
       }
       .async
-  }
-
-  case class ExceptionState(
-    transitionId: Long,
-    consecutiveFailureCount: Int,
-    failureReason: String,
-    failureStrategy: ExceptionStrategy
-  )
-
-  case class Job[S, E](
-    id: Long,
-    process: ExecutablePetriNet[S],
-    processState: S,
-    transition: Transition[Any, E, S],
-    consume: Marking,
-    input: Any,
-    failure: Option[ExceptionState] = None
-  ) {
-
-    lazy val failureCount = failure.map(_.consecutiveFailureCount).getOrElse(0)
-  }
-
-  object Instance {
-    def uninitialized[S](process: ExecutablePetriNet[S]): Instance[S] =
-      Instance[S](process, 0, Marking.empty, null.asInstanceOf[S], Map.empty)
-  }
-
-  case class Instance[S](
-    process: ExecutablePetriNet[S],
-    sequenceNr: BigInt,
-    marking: Marking,
-    state: S,
-    jobs: Map[Long, Job[S, _]]
-  ) {
-
-    lazy val processState: ProcessState[S] = ProcessState[S](sequenceNr, marking, state)
-
-    // The marking that is already used by running jobs
-    lazy val reservedMarking: Marking =
-      jobs.map { case (id, job) => job.consume }.reduceOption(_ ++ _).getOrElse(Marking.empty)
-
-    // The marking that is available for new jobs
-    lazy val availableMarking: Marking = marking -- reservedMarking
-
-    def failedJobs: Iterable[ExceptionState] = jobs.values.map(_.failure).flatten
-
-    def isBlockedReason(transitionId: Long): Option[String] = failedJobs
-      .map {
-        case ExceptionState(`transitionId`, _, reason, _) =>
-          Some(
-            s"Transition '${process.getTransitionById(transitionId)}' is blocked because it failed previously with: $reason"
-          )
-        case ExceptionState(tid, _, reason, ExceptionStrategy.Fatal) =>
-          Some(s"Transition '${process.getTransitionById(tid)}' caused a Fatal exception")
-        case _ => None
-      }
-      .find(_.isDefined)
-      .flatten
-
-    def nextJobId(): Long = Random.nextLong()
   }
 }
