@@ -3,6 +3,7 @@ package io.kagera.akka.actor
 import akka.actor.{ ActorLogging, ActorRef, Props }
 import akka.persistence.PersistentActor
 import akka.pattern.pipe
+import cats.data.State
 import fs2.Strategy
 import io.kagera.akka.actor.PetriNetProcessProtocol._
 import io.kagera.api.colored.ExceptionStrategy.RetryWithDelay
@@ -94,26 +95,22 @@ class PetriNetProcess[S](override val process: ExecutablePetriNet[S])
     case FireTransition(id, input, correlationId) =>
       log.debug(s"Received message to fire transition $id with input: $input")
 
-      process.findTransitionById(id) match {
-        case Some(transition) =>
-          fireTransition(transition, input)(instance) match {
-            case (_, Right(notEnabledReason)) =>
-              sender() ! TransitionNotEnabled(transition.id, notEnabledReason)
-            case (newState, Left(job)) =>
-              executeJob(job, sender())
-              context become running(newState)
-          }
-        case None =>
-          val msg = s"No transition exists with id: $id"
-          sender() ! TransitionNotEnabled(id, msg)
-          log.warning(msg)
+      fireTransitionById[S](id, input).run(instance).value match {
+        case (updatedInstance, Right(job)) =>
+          executeJob(job, sender())
+          context become running(updatedInstance)
+        case (_, Left(reason)) =>
+          log.warning(reason)
+          sender() ! TransitionNotEnabled(id, reason)
       }
   }
 
   def executeAllEnabledTransitions(instance: Instance[S]) = {
-    val (updatedInstance, jobs) = fireAllEnabledTransitions(instance)
-    jobs.foreach(job => executeJob(job, sender()))
-    context become running(updatedInstance)
+    fireAllEnabledTransitions.run(instance).value match {
+      case (updatedInstance, jobs) =>
+        jobs.foreach(job => executeJob(job, sender()))
+        context become running(updatedInstance)
+    }
   }
 
   // TODO: best to use another thread pool
