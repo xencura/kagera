@@ -5,16 +5,16 @@ import java.util.UUID
 import akka.actor.{ ActorSystem, PoisonPill, Terminated }
 import akka.testkit.{ ImplicitSender, TestKit }
 import com.typesafe.config.ConfigFactory
-import io.kagera.akka.PersistentPetriNetActorSpec._
-import io.kagera.akka.actor.PetriNetProcess
-import io.kagera.akka.actor.PetriNetProcessProtocol._
+import io.kagera.akka.PetriNetInstanceSpec._
+import io.kagera.akka.actor.PetriNetInstance
+import io.kagera.akka.actor.PetriNetInstanceProtocol._
 import io.kagera.api.colored.ExceptionStrategy.{ Fatal, RetryWithDelay }
 import io.kagera.api.colored._
 import io.kagera.api.colored.dsl._
 import org.scalatest.WordSpecLike
 import org.scalatest.time.{ Milliseconds, Span }
 
-object PersistentPetriNetActorSpec {
+object PetriNetInstanceSpec {
 
   val config = ConfigFactory.parseString("""
       |akka {
@@ -32,8 +32,8 @@ object PersistentPetriNetActorSpec {
   case class Removed(n: Int) extends Event
 }
 
-class PersistentPetriNetActorSpec
-    extends TestKit(ActorSystem("test", PersistentPetriNetActorSpec.config))
+class PetriNetInstanceSpec
+    extends TestKit(ActorSystem("test", PetriNetInstanceSpec.config))
     with WordSpecLike
     with ImplicitSender {
 
@@ -51,7 +51,7 @@ class PersistentPetriNetActorSpec
   }
 
   def createPetriNetActor[S](petriNet: ExecutablePetriNet[S], actorName: String = UUID.randomUUID().toString) =
-    system.actorOf(PetriNetProcess.props(petriNet), actorName)
+    system.actorOf(PetriNetInstance.props(petriNet), actorName)
 
   val integerSetEventSource: Set[Int] => Event => Set[Int] = set => {
     case Added(c) => set + c

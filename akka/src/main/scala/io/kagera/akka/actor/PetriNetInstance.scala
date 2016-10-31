@@ -1,31 +1,30 @@
 package io.kagera.akka.actor
 
 import akka.actor.{ ActorLogging, ActorRef, Props }
-import akka.persistence.PersistentActor
 import akka.pattern.pipe
-import cats.data.State
+import akka.persistence.PersistentActor
 import fs2.Strategy
-import io.kagera.akka.actor.PetriNetProcessProtocol._
+import io.kagera.akka.actor.PetriNetInstanceProtocol._
 import io.kagera.api.colored.ExceptionStrategy.RetryWithDelay
 import io.kagera.api.colored._
-import io.kagera.execution._
 import io.kagera.execution.EventSourcing._
+import io.kagera.execution._
 
 import scala.concurrent.duration._
 import scala.language.existentials
 
-object PetriNetProcess {
+object PetriNetInstance {
 
-  def props[S](process: ExecutablePetriNet[S]): Props = Props(new PetriNetProcess[S](process))
+  def props[S](process: ExecutablePetriNet[S]): Props = Props(new PetriNetInstance[S](process))
 }
 
 /**
  * This actor is responsible for maintaining the state of a single petri net instance.
  */
-class PetriNetProcess[S](override val process: ExecutablePetriNet[S])
+class PetriNetInstance[S](override val process: ExecutablePetriNet[S])
     extends PersistentActor
     with ActorLogging
-    with PetriNetActorRecovery[S] {
+    with PetriNetInstanceRecovery[S] {
 
   val processId = context.self.path.name
 

@@ -2,7 +2,7 @@ package io.kagera.akka.actor
 
 import io.kagera.api.colored.{ ExceptionStrategy, Marking, Transition }
 
-object PetriNetProcessProtocol {
+object PetriNetInstanceProtocol {
 
   // commands
   trait Command

@@ -6,7 +6,7 @@ import io.kagera.execution.Instance
 import io.kagera.execution.EventSourcing._
 import io.kagera.persistence.EventSerializer
 
-trait PetriNetActorRecovery[S] extends EventSerializer[S] with AkkaObjectSerializer {
+trait PetriNetInstanceRecovery[S] extends EventSerializer[S] with AkkaObjectSerializer {
 
   this: PersistentActor =>
 
