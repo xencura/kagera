@@ -3,7 +3,8 @@ import sbt._
 
 object Dependencies {
 
-  val akkaVersion = "2.4.11"
+  val akkaVersion = "2.4.12"
+  val akkaHttpVersion = "2.4.11"
   val sprayVersion = "1.3.2"
   val scalazVersion = "7.1.3"
   val cytoscapeVersion = "2.7.9"
@@ -12,7 +13,9 @@ object Dependencies {
   val akkaPersistence = "com.typesafe.akka" %% "akka-persistence" % akkaVersion
   val akkaTestkit = "com.typesafe.akka" %% "akka-testkit" % akkaVersion
   val akkaSlf4j = "com.typesafe.akka" %% "akka-slf4j" % akkaVersion
-  val akkaHttp = "com.typesafe.akka" %% "akka-http-experimental" % akkaVersion
+  val akkaStream = "com.typesafe.akka" %% "akka-stream" % akkaVersion
+  val akkaQuery = "com.typesafe.akka" %% "akka-persistence-query-experimental" % akkaVersion
+  val akkaHttp = "com.typesafe.akka" %% "akka-http-experimental" % akkaHttpVersion
 
   val akkaAnalyticsCassandra = "com.github.krasserm" %% "akka-analytics-cassandra" % "0.3.1"
   val akkaAnalyticsKafka = "com.github.krasserm" %% "akka-analytics-kafka" % "0.3.1"
