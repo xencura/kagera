@@ -16,9 +16,11 @@ trait PetriNetInstanceRecovery[S] extends EventSerializer[S] with AkkaObjectSeri
 
   def onRecoveryCompleted(state: Instance[S])
 
-  def persistEvent[T, E <: Event](state: Instance[S], e: E)(fn: (Instance[S], E) => T): Unit = {
-    val serializedEvent = serializeEvent(state)(e)
-    val updatedState = applyEvent(e)(state)._1
+  def updateInstance(i: Instance[S])(e: Event): Instance[S] = applyEvent(e).runS(i).value
+
+  def persistEvent[T, E <: Event](instance: Instance[S], e: E)(fn: (Instance[S], E) => T): Unit = {
+    val serializedEvent = serializeEvent(instance)(e)
+    val updatedState = updateInstance(instance)(e)
     persist(serializedEvent) { persisted =>
       fn.apply(updatedState, e)
     }
@@ -29,10 +31,10 @@ trait PetriNetInstanceRecovery[S] extends EventSerializer[S] with AkkaObjectSeri
   override def receiveRecover: Receive = {
     case e: io.kagera.persistence.Initialized =>
       val deserializedEvent = deserializeEvent(recoveringState)(e)
-      recoveringState = applyEvent(deserializedEvent)(recoveringState)._1
+      recoveringState = updateInstance(recoveringState)(deserializedEvent)
     case e: io.kagera.persistence.TransitionFired =>
       val deserializedEvent = deserializeEvent(recoveringState)(e)
-      recoveringState = applyEvent(deserializedEvent)(recoveringState)._1
+      recoveringState = updateInstance(recoveringState)(deserializedEvent)
     case RecoveryCompleted =>
       if (recoveringState.sequenceNr > 0)
         onRecoveryCompleted(recoveringState)
