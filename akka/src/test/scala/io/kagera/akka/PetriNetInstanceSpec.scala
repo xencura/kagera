@@ -17,11 +17,13 @@ import org.scalatest.time.{ Milliseconds, Span }
 object PetriNetInstanceSpec {
 
   val config = ConfigFactory.parseString("""
+      |
       |akka {
       |  loggers = ["akka.testkit.TestEventListener"]
-      |
-      |  persistence.journal.plugin = "akka.persistence.journal.inmem"
-      |  persistence.snapshot-store.plugin = "akka.persistence.snapshot-store.local"
+      |  persistence {
+      |    journal.plugin = "inmemory-journal"
+      |    snapshot-store.plugin = "inmemory-snapshot-store"
+      |  }
       |}
       |
       |logging.root.level = WARN
@@ -30,10 +32,15 @@ object PetriNetInstanceSpec {
   sealed trait Event
   case class Added(n: Int) extends Event
   case class Removed(n: Int) extends Event
+
+  def createPetriNetActor[S](petriNet: ExecutablePetriNet[S], processId: String = UUID.randomUUID().toString)(implicit
+    system: ActorSystem
+  ) =
+    system.actorOf(PetriNetInstance.props(petriNet), processId)
 }
 
 class PetriNetInstanceSpec
-    extends TestKit(ActorSystem("test", PetriNetInstanceSpec.config))
+    extends TestKit(ActorSystem("PetriNetInstanceSpec", PetriNetInstanceSpec.config))
     with WordSpecLike
     with ImplicitSender {
 
@@ -49,9 +56,6 @@ class PetriNetInstanceSpec
       }
     }
   }
-
-  def createPetriNetActor[S](petriNet: ExecutablePetriNet[S], actorName: String = UUID.randomUUID().toString) =
-    system.actorOf(PetriNetInstance.props(petriNet), actorName)
 
   val integerSetEventSource: Set[Int] => Event => Set[Int] = set => {
     case Added(c) => set + c

@@ -57,6 +57,7 @@ object Build extends Build {
           akkaStream,
           akkaQuery,
           scalaGraph,
+          akkaInmemoryJournal % "test",
           akkaTestkit % "test",
           scalatest % "test"
         )

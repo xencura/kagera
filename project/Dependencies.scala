@@ -16,6 +16,7 @@ object Dependencies {
   val akkaStream = "com.typesafe.akka" %% "akka-stream" % akkaVersion
   val akkaQuery = "com.typesafe.akka" %% "akka-persistence-query-experimental" % akkaVersion
   val akkaHttp = "com.typesafe.akka" %% "akka-http-experimental" % akkaHttpVersion
+  val akkaInmemoryJournal = "com.github.dnvriend" %% "akka-persistence-inmemory" % "1.3.14"
 
   val akkaAnalyticsCassandra = "com.github.krasserm" %% "akka-analytics-cassandra" % "0.3.1"
   val akkaAnalyticsKafka = "com.github.krasserm" %% "akka-analytics-kafka" % "0.3.1"
