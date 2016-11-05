@@ -53,13 +53,6 @@ trait Transition[Input, Output, State] {
   val maximumOperationTime: Duration
 
   /**
-   * A duration, specifying the delay that the transition, after becoming enabled, may fire.
-   *
-   * @return
-   */
-  def delay: FiniteDuration = Duration.Zero
-
-  /**
    * Indicates a strategy to use when dealing with exceptions.
    *
    * @return

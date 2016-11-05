@@ -2,7 +2,7 @@ package io.kagera.api.colored
 
 import fs2.Task
 import io.kagera.api._
-import io.kagera.api.colored.transitions.IdentityTransition
+import io.kagera.api.colored.transitions.{ AbstractTransition, IdentityTransition }
 import io.kagera.api.multiset._
 
 import scala.concurrent.duration.Duration
