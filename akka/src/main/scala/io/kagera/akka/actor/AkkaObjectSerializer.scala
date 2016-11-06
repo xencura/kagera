@@ -1,7 +1,7 @@
 package io.kagera.akka.actor
 
 import akka.actor.ActorSystem
-import akka.serialization.SerializationExtension
+import akka.serialization.{ SerializationExtension, SerializerWithStringManifest }
 import com.google.protobuf.ByteString
 import io.kagera.api._
 import io.kagera.persistence.SerializedData
@@ -19,12 +19,18 @@ trait AkkaObjectSerializer extends ObjectSerializer {
     (!obj.isInstanceOf[Unit]).option {
       // for now we re-use akka Serialization extension for pluggable serializers
       val serializer = serialization.findSerializerFor(obj)
+
       val bytes = serializer.toBinary(obj)
+
+      val manifest = serializer match {
+        case s: SerializerWithStringManifest => s.manifest(obj)
+        case _ => obj.getClass.getName
+      }
 
       // we should not have to copy the bytes
       SerializedData(
         serializerId = Some(serializer.identifier),
-        manifest = None,
+        manifest = Some(ByteString.copyFrom(manifest.getBytes)),
         data = Some(ByteString.copyFrom(bytes))
       )
     }

@@ -22,13 +22,13 @@ import scalax.collection.edge.WLDiEdge
  */
 package object dsl {
 
-  implicit class TransitionDSL(t: Transition[_, _, _]) {
+  implicit class TransitionDSL[Input, Output, State](t: Transition[Input, Output, State]) {
     def ~>[C](p: Place[C], weight: Long = 1): Arc = arc(t, p, weight)
   }
 
   implicit class PlaceDSL[C](p: Place[C]) {
-    def ~>(t: Transition[C, _, _], weight: Long = 1, filter: C => Boolean = token => true): Arc =
-      arc[C](p, t, weight, filter)
+    def ~>(t: Transition[_, _, _], weight: Long = 1, filter: C => Boolean = token => true): Arc =
+      arc(p, t, weight, filter)
   }
 
   def arc(t: Transition[_, _, _], p: Place[_], weight: Long): Arc =
