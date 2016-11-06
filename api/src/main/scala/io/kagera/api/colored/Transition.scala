@@ -74,10 +74,7 @@ trait Transition[Input, Output, State] {
    * @param outAdjacent
    * @return
    */
-  def apply(
-    inAdjacent: MultiSet[Place[_]],
-    outAdjacent: MultiSet[Place[_]]
-  ): (Marking, State, Input) => Task[(Marking, Output)]
+  def apply(inAdjacent: MultiSet[Place[_]], outAdjacent: MultiSet[Place[_]]): TransitionFunction[Input, Output, State]
 
   /**
    * The state transition function:

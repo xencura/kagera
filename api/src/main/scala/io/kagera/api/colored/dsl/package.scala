@@ -60,7 +60,7 @@ package object dsl {
     constantTransition[Unit, Unit, S](id, label, automated, ())
 
   def process[S](params: Arc*): ExecutablePetriNet[S] = {
-    val petriNet = new ScalaGraphPetriNet(Graph(params: _*)) with ColoredTokenGame with TransitionExecutor[S]
+    val petriNet = new ScalaGraphPetriNet(Graph(params: _*)) with ColoredTokenGame
 
     requireUniqueElements(petriNet.places.toSeq.map(_.id), "Place identifier")
     requireUniqueElements(petriNet.transitions.toSeq.map(_.id), "Transition identifier")

@@ -3,14 +3,23 @@ package io.kagera.api.colored
 import fs2.Task
 import io.kagera.api._
 
-import scala.concurrent.{ ExecutionContext, Future }
+trait TransitionExecutor[State] {
 
-trait TransitionExecutor[S] {
+  /**
+   * Given a transition returns an input output function
+   *
+   * @param t
+   * @tparam Input
+   * @tparam Output
+   * @return
+   */
+  def fireTransition[Input, Output](t: Transition[Input, Output, State]): TransitionFunction[Input, Output, State]
+}
 
-  this: PetriNet[Place[_], Transition[_, _, _]] =>
+class TransitionExecutorImpl[S](topology: PetriNet[Place[_], Transition[_, _, _]]) extends TransitionExecutor[S] {
 
   val transitionFunctions: Map[Transition[_, _, _], _] =
-    transitions.map(t => t -> t.apply(inMarking(t), outMarking(t))).toMap
+    topology.transitions.map(t => t -> t.apply(topology.inMarking(t), topology.outMarking(t))).toMap
 
   def tfn[Input, Output](t: Transition[Input, Output, S]): (Marking, S, Input) => Task[(Marking, Output)] =
     transitionFunctions(t).asInstanceOf[(Marking, S, Input) => Task[(Marking, Output)]]
@@ -21,7 +30,7 @@ trait TransitionExecutor[S] {
         Task.fail(new TransitionFailedException(t, e))
       }
 
-      if (consume.multiplicities != inMarking(t)) {
+      if (consume.multiplicities != topology.inMarking(t)) {
         // TODO make more explicit what is wrong here, mention the first multiplicity that is incorrect.
         Task.fail(new IllegalArgumentException(s"Transition $t may not consume $consume"))
       }

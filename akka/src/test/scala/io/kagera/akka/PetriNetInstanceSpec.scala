@@ -180,7 +180,6 @@ class PetriNetInstanceSpec
 
       // expect the transition to be not enabled
       val msg = expectMsgClass(classOf[TransitionNotEnabled])
-      println(s"msg: $msg")
     }
 
     "Be able to restore it's state after termination" in new StateTransitionNet[Set[Int], Event] {
@@ -242,7 +241,7 @@ class PetriNetInstanceSpec
       val p1 = Place[Unit](id = 1)
       val p2 = Place[Unit](id = 2)
 
-      val t1 = nullTransition(id = 1, automated = false)
+      val t1 = nullTransition[Unit](id = 1, automated = false)
       val t2 = transition(id = 2, automated = true)(unit => Thread.sleep(500))
       val t3 = transition(id = 3, automated = true)(unit => Thread.sleep(500))
 
