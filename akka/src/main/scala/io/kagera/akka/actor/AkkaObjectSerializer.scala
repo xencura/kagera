@@ -24,7 +24,7 @@ trait AkkaObjectSerializer extends ObjectSerializer {
 
       val manifest = serializer match {
         case s: SerializerWithStringManifest => s.manifest(obj)
-        case _ => obj.getClass.getName
+        case _ => if (obj != null) obj.getClass.getName else ""
       }
 
       // we should not have to copy the bytes
