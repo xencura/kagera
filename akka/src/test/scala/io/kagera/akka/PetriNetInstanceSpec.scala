@@ -209,7 +209,7 @@ class PetriNetInstanceSpec
       // assert that the actor is in the initial state
       actor ! GetState
 
-      expectMsg(ProcessState[Set[Int]](1, initialMarking, Set.empty))
+      expectMsg(InstanceState[Set[Int]](1, initialMarking, Set.empty))
 
       // fire the first transition (t1) manually
       actor ! FireTransition(t1)
@@ -231,7 +231,7 @@ class PetriNetInstanceSpec
       newActor ! GetState
 
       // assert that the marking is the same as before termination
-      expectMsg(ProcessState[Set[Int]](3, Marking(p3 -> 1), Set(1, 2)))
+      expectMsg(InstanceState[Set[Int]](3, Marking(p3 -> 1), Set(1, 2)))
     }
 
     "fire automatic transitions in parallel when possible" in new StateTransitionNet[Unit, Unit] {

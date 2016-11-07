@@ -56,5 +56,5 @@ object PetriNetInstanceProtocol {
   /**
    * Response containing the state of the process.
    */
-  case class ProcessState[S](sequenceNr: BigInt, marking: Marking, state: S)
+  case class InstanceState[S](sequenceNr: BigInt, marking: Marking, state: S)
 }
