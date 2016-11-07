@@ -21,13 +21,13 @@ class TransitionExecutorImpl[S](topology: PetriNet[Place[_], Transition[_, _, _]
   val transitionFunctions: Map[Transition[_, _, _], _] =
     topology.transitions.map(t => t -> t.apply(topology.inMarking(t), topology.outMarking(t))).toMap
 
-  def tfn[Input, Output](t: Transition[Input, Output, S]): (Marking, S, Input) => Task[(Marking, Output)] =
-    transitionFunctions(t).asInstanceOf[(Marking, S, Input) => Task[(Marking, Output)]]
+  def tfn[Input, Output](t: Transition[Input, Output, S]): TransitionFunction[Input, Output, S] =
+    transitionFunctions(t).asInstanceOf[TransitionFunction[Input, Output, S]]
 
   def fireTransition[Input, Output](t: Transition[Input, Output, S]): (Marking, S, Input) => Task[(Marking, Output)] = {
     (consume, state, input) =>
       def handleFailure: PartialFunction[Throwable, Task[(Marking, Output)]] = { case e: Throwable =>
-        Task.fail(new TransitionFailedException(t, e))
+        Task.fail(e)
       }
 
       if (consume.multiplicities != topology.inMarking(t)) {

@@ -6,6 +6,7 @@ import akka.persistence.PersistentActor
 import fs2.Strategy
 import io.kagera.akka.actor.PetriNetInstanceProtocol._
 import io.kagera.api.colored.ExceptionStrategy.RetryWithDelay
+import io.kagera.api._
 import io.kagera.api.colored._
 import io.kagera.execution.EventSourcing._
 import io.kagera.execution._
@@ -36,7 +37,8 @@ class PetriNetInstance[S](override val topology: ExecutablePetriNet[S], executor
 
   override def receiveCommand = uninitialized
 
-  def uninitialized: Receive = { case Initialize(marking, state) =>
+  def uninitialized: Receive = { case msg @ Initialize(marking, state) =>
+    log.debug(s"Received message: {}", msg)
     persistEvent(Instance.uninitialized(topology), InitializedEvent(marking, state.asInstanceOf[S])) {
       (updatedState, e) =>
         executeAllEnabledTransitions(updatedState)
@@ -46,11 +48,14 @@ class PetriNetInstance[S](override val topology: ExecutablePetriNet[S], executor
 
   def running(instance: Instance[S]): Receive = {
     case GetState =>
+      log.debug(s"Received message: GetState")
+
       sender() ! InstanceState[S](instance.sequenceNr, instance.marking, instance.state)
 
     case e @ TransitionFiredEvent(jobId, transitionId, timeStarted, timeCompleted, consumed, produced, output) =>
+      log.debug(s"Received message: {}", e)
+
       persistEvent(instance, e) { (updateInstance, e) =>
-        log.debug(s"Transition fired ${transitionId}")
         executeAllEnabledTransitions(updateInstance)
         sender() ! TransitionFired[S](
           transitionId,
@@ -61,37 +66,25 @@ class PetriNetInstance[S](override val topology: ExecutablePetriNet[S], executor
         )
       }
 
-    case e @ TransitionFailedEvent(
-          jobId,
-          transitionId,
-          timeStarted,
-          timeFailed,
-          consume,
-          input,
-          reason,
-          strategy @ RetryWithDelay(delay)
-        ) =>
-      val updatedInstance = updateInstance(instance)(e)
-
-      log.warning(s"Transition '${transitionId}' failed: {}", reason)
-
-      log.info(s"Scheduling a retry of transition ${transitionId} in $delay milliseconds")
-      val originalSender = sender()
-      system.scheduler.scheduleOnce(delay milliseconds) { executeJob(updatedInstance.jobs(jobId), originalSender) }
-
-      sender() ! TransitionFailed(transitionId, consume, input, reason, strategy)
-      context become running(updatedInstance)
-
     case e @ TransitionFailedEvent(jobId, transitionId, timeStarted, timeFailed, consume, input, reason, strategy) =>
+      log.debug(s"Received message: {}", e)
+      log.warning(s"Transition '${topology.transitions.getById(transitionId)}' failed with: {}", reason)
+
       val updatedInstance = updateInstance(instance)(e)
 
-      log.warning(s"Transition '${transitionId}' failed: {}", reason)
-      sender() ! TransitionFailed(transitionId, consume, input, reason, strategy)
+      strategy match {
+        case RetryWithDelay(delay) =>
+          log.warning(s"Scheduling a retry of transition ${transitionId} in $delay milliseconds")
+          val originalSender = sender()
+          system.scheduler.scheduleOnce(delay milliseconds) { executeJob(updatedInstance.jobs(jobId), originalSender) }
+        case _ =>
+      }
 
+      sender() ! TransitionFailed(transitionId, consume, input, reason, strategy)
       context become running(updatedInstance)
 
-    case FireTransition(id, input, correlationId) =>
-      log.debug(s"Received message to fire transition $id with input: $input")
+    case msg @ FireTransition(id, input, correlationId) =>
+      log.debug(s"Received message: {}", msg)
 
       fireTransitionById[S](id, input).run(instance).value match {
         case (updatedInstance, Right(job)) =>

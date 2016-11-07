@@ -1,5 +1,7 @@
 package io.kagera
 
+import java.io.{ PrintWriter, StringWriter }
+
 import cats.data.State
 import fs2.{ Strategy, Task }
 import io.kagera.api._
@@ -109,6 +111,11 @@ package object execution {
       .handle { case e: Throwable =>
         val failureCount = job.failureCount + 1
         val failureStrategy = job.transition.exceptionStrategy(e, failureCount)
+
+        val sw = new StringWriter()
+        e.printStackTrace(new PrintWriter(sw))
+        val stackTraceString = sw.toString
+
         TransitionFailedEvent(
           job.id,
           job.transition.id,
@@ -116,7 +123,7 @@ package object execution {
           System.currentTimeMillis(),
           job.consume,
           job.input,
-          e.getCause.getMessage,
+          stackTraceString,
           failureStrategy
         )
       }
