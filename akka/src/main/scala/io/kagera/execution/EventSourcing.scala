@@ -2,7 +2,7 @@ package io.kagera.execution
 
 import cats.data.State
 import io.kagera.api._
-import io.kagera.api.colored.{ ExceptionStrategy, Marking, Transition }
+import io.kagera.api.colored._
 
 import scala.collection.Map
 
@@ -50,7 +50,7 @@ object EventSourcing {
         val newState = t.updateState(instance.state)(e.out)
         instance.copy(
           sequenceNr = instance.sequenceNr + 1,
-          marking = instance.marking -- e.consumed ++ e.produced,
+          marking = instance.marking |-| e.consumed |+| e.produced,
           state = newState,
           jobs = instance.jobs - e.jobId
         )

@@ -1,7 +1,7 @@
 package io.kagera.api
 
 import fs2.Task
-import io.kagera.api.multiset.MultiSet
+import io.kagera.api.multiset._
 
 import scala.language.existentials
 import scalax.collection.Graph
@@ -49,6 +49,39 @@ package object colored {
    */
   type ColoredPetriNet = PetriNet[Place[_], Transition[_, _, _]]
 
+  type Marking = HMap[Place, MultiSet]
+
+  implicit class MarkingAdditions(marking: Marking) {
+
+    def multiplicities: MultiSet[Place[_]] = marking.data.mapValues(_.multisetSize)
+
+    def add[C](p: Place[C], value: C, count: Int = 1): Marking = {
+      val newTokens = marking.getOrElse(p, MultiSet.empty).multisetIncrement(value, count)
+      marking.+(p -> newTokens)
+    }
+
+    def |-|(other: Marking): Marking = other.keySet.foldLeft(marking) { case (result, place) =>
+      marking.get(place) match {
+        case None => result
+        case Some(tokens) =>
+          val newTokens = tokens.multisetDifference(other(place))
+          if (newTokens.isEmpty)
+            result - place
+          else
+            result + (place -> newTokens)
+      }
+    }
+
+    def |+|(other: Marking): Marking = other.keySet.foldLeft(marking) { case (result, place) =>
+      val newTokens = marking.get(place) match {
+        case None => other(place)
+        case Some(tokens) => tokens.multisetSum(other(place))
+      }
+
+      result + (place -> newTokens)
+    }
+  }
+
   /**
    * TODO
    *
@@ -69,7 +102,7 @@ package object colored {
   implicit def toMarkedPlace(tuple: (Place[Unit], Int)): MarkedPlace[Unit] = tuple._1 -> Map[Unit, Int](() -> tuple._2)
 
   implicit class IterableToMarking(i: Iterable[(Place[_], MultiSet[_])]) {
-    def toMarking: Marking = Marking(i.toMap[Place[_], MultiSet[_]])
+    def toMarking: Marking = HMap[Place, MultiSet](i.toMap[Place[_], MultiSet[_]])
   }
 
   implicit class ColoredPetriNetAdditions(petriNet: ColoredPetriNet) {
@@ -77,7 +110,7 @@ package object colored {
       petriNet.innerGraph.findPTEdge(p, t).map(_.label.asInstanceOf[PTEdge[Any]])
   }
 
-  implicit def toMarking(map: Map[Place[_], MultiSet[_]]): Marking = Marking(map)
+  implicit def toMarking(map: Map[Place[_], MultiSet[_]]): Marking = HMap[Place, MultiSet](map)
 
   implicit def placeLabel[C](p: Place[C]): Label = Label(p.label)
 
