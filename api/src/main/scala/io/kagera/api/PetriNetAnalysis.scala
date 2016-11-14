@@ -37,7 +37,7 @@ object PetriNetAnalysis {
   // should check if each place is 1 bounded
   def is1Safe[P, T](pn: PetriNet[P, T])(m0: MultiSet[P]): Boolean = ???
 
-  def reachable[P, T](pn: PetriNet[P, T])(m0: MultiSet[P], target: Map[P, Long]): Boolean = ???
+  def reachable[P, T](pn: PetriNet[P, T])(m0: MultiSet[P], target: MultiSet[P]): Boolean = ???
 
   def boundedness[P, T](pn: PetriNet[P, T])(m0: MultiSet[P], p: P) = ???
 

@@ -4,7 +4,7 @@ import io.kagera.api._
 import io.kagera.api.multiset._
 
 trait ColoredTokenGame extends TokenGame[Place[_], Transition[_, _, _], Marking] {
-  this: PetriNet[Place[_], Transition[_, _, _]] =>
+  this: ColoredPetriNet =>
 
   override def enabledParameters(m: Marking): Map[Transition[_, _, _], Iterable[Marking]] =
     enabledTransitions(m).view.map(t => t -> consumableMarkings(m)(t)).toMap

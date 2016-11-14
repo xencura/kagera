@@ -25,22 +25,22 @@ class ColoredMarkingSpec extends WordSpec {
 
       val m1 = Marking(p1(1, 2), p2("foo", "bar"))
 
-      m1 ++ Marking.empty shouldBe m1
+      m1 |+| Marking.empty shouldBe m1
 
       val m2 = Marking(p1(3), p2("baz"), p3(1d))
 
-      m1 ++ m2 shouldBe Marking(p1(3, 1, 2), p2("baz", "foo", "bar"), p3(1d))
+      m1 |+| m2 shouldBe Marking(p1(3, 1, 2), p2("baz", "foo", "bar"), p3(1d))
     }
 
     "have correct consume semantics" in {
 
       val m1: Marking = Marking(p1(1, 2, 3), p2("foo", "bar"), p4(Person("Joe", 42)))
 
-      m1 -- Marking.empty shouldBe m1
+      m1 |-| Marking.empty shouldBe m1
 
       val m2 = Marking(p1(2), p4(Person("Joe", 42)))
 
-      m1 -- m2 shouldBe Marking(p1(1, 3), p2("foo", "bar"))
+      m1 |-| m2 shouldBe Marking(p1(1, 3), p2("foo", "bar"))
     }
 
     "in case of token value equality only consume tokens equal to the multiplicity" in {
@@ -48,7 +48,7 @@ class ColoredMarkingSpec extends WordSpec {
       val m1 = Marking(p1(1, 1, 1, 1, 1))
       val m2 = Marking(p1(1, 1))
 
-      m1 -- m2 shouldBe Marking(p1(1, 1, 1))
+      m1 |-| m2 shouldBe Marking(p1(1, 1, 1))
     }
   }
 }

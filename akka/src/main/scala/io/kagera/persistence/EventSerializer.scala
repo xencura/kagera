@@ -120,7 +120,7 @@ trait EventSerializer[S] {
 
     val consumed = e.consumed.foldLeft(Marking.empty) {
       case (accumulated, ConsumedToken(Some(placeId), Some(tokenId), Some(count))) =>
-        val place = instance.marking.markedPlaces.getById(placeId)
+        val place = instance.marking.keySet.getById(placeId)
         val value = instance.marking(place).keySet.find(e => tokenIdentifier(place)(e) == tokenId).get
         accumulated.add(place.asInstanceOf[Place[Any]], value, count)
       case _ => throw new IllegalStateException("Missing data in persisted ConsumedToken")

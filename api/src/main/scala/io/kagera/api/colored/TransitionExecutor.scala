@@ -3,33 +3,39 @@ package io.kagera.api.colored
 import fs2.Task
 import io.kagera.api._
 
-import scala.concurrent.{ ExecutionContext, Future }
+trait TransitionExecutor[State] {
 
-trait TransitionExecutor[S] {
+  /**
+   * Given a transition returns an input output function
+   *
+   * @param t
+   * @tparam Input
+   * @tparam Output
+   * @return
+   */
+  def fireTransition[Input, Output](t: Transition[Input, Output, State]): TransitionFunction[Input, Output, State]
+}
 
-  this: PetriNet[Place[_], Transition[_, _, _]] with TokenGame[Place[_], Transition[_, _, _], Marking] =>
+class TransitionExecutorImpl[S](topology: ColoredPetriNet) extends TransitionExecutor[S] {
 
-  val transitionFunctions: Map[Transition[_, _, _], _] =
-    transitions.map(t => t -> t.apply(inMarking(t), outMarking(t))).toMap
+  val cachedTransitionFunctions: Map[Transition[_, _, _], _] =
+    topology.transitions.map(t => t -> t.apply(topology.inMarking(t), topology.outMarking(t))).toMap
 
-  def tfn[Input, Output](t: Transition[Input, Output, S]): (Marking, S, Input) => Task[(Marking, Output)] =
-    transitionFunctions(t).asInstanceOf[(Marking, S, Input) => Task[(Marking, Output)]]
+  def transitionFunction[Input, Output](t: Transition[Input, Output, S]) =
+    cachedTransitionFunctions(t).asInstanceOf[TransitionFunction[Input, Output, S]]
 
-  def fireTransition[Input, Output](
-    t: Transition[Input, Output, S]
-  )(consume: Marking, state: S, input: Input): Task[(Marking, Output)] = {
+  def fireTransition[Input, Output](t: Transition[Input, Output, S]): (Marking, S, Input) => Task[(Marking, Output)] = {
+    (consume, state, input) =>
+      def handleFailure: PartialFunction[Throwable, Task[(Marking, Output)]] = { case e: Throwable =>
+        Task.fail(e)
+      }
 
-    if (consume.multiplicities != inMarking(t)) {
-      // TODO make more explicit what is wrong here, mention the first multiplicity that is incorrect.
-      Task.fail(new IllegalArgumentException(s"Transition $t may not consume $consume"))
-    }
+      if (consume.multiplicities != topology.inMarking(t)) {
+        Task.fail(new IllegalArgumentException(s"Transition $t may not consume $consume"))
+      }
 
-    def handleFailure: PartialFunction[Throwable, Task[(Marking, Output)]] = { case e: Throwable =>
-      Task.fail(new TransitionFailedException(t, e))
-    }
-
-    try {
-      tfn(t)(consume, state, input).handleWith { handleFailure }
-    } catch { handleFailure }
+      try {
+        transitionFunction(t)(consume, state, input).handleWith { handleFailure }
+      } catch { handleFailure }
   }
 }

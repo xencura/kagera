@@ -10,7 +10,7 @@ trait PetriNetInstanceRecovery[S] extends EventSerializer[S] with AkkaObjectSeri
 
   this: PersistentActor =>
 
-  def process: ExecutablePetriNet[S]
+  def topology: ExecutablePetriNet[S]
 
   override implicit def system = context.system
 
@@ -26,7 +26,7 @@ trait PetriNetInstanceRecovery[S] extends EventSerializer[S] with AkkaObjectSeri
     }
   }
 
-  private var recoveringState: Instance[S] = Instance.uninitialized[S](process)
+  private var recoveringState: Instance[S] = Instance.uninitialized[S](topology)
 
   override def receiveRecover: Receive = {
     case e: io.kagera.persistence.Initialized =>
