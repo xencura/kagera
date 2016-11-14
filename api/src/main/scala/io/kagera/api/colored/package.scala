@@ -49,8 +49,14 @@ package object colored {
    */
   type ColoredPetriNet = PetriNet[Place[_], Transition[_, _, _]]
 
+  /**
+   * Type alias for a marking.
+   */
   type Marking = HMap[Place, MultiSet]
 
+  /**
+   * Some convenience method additions to work with Markings.
+   */
   implicit class MarkingAdditions(marking: Marking) {
 
     def multiplicities: MultiSet[Place[_]] = marking.data.mapValues(_.multisetSize)

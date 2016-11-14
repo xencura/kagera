@@ -2,16 +2,24 @@ package io.kagera.akka.actor
 
 import io.kagera.api.colored.{ ExceptionStrategy, Marking, Transition }
 
+/**
+ * Describes the messages to and from a PetriNetInstance actor.
+ */
 object PetriNetInstanceProtocol {
 
-  // commands
-  trait Command
+  /**
+   * A common trait for all commands to a petri net instance.
+   */
+  sealed trait Command
 
   /**
-   * Command to request the current state of the process.
+   * Command to request the current state of the petri net instance.
    */
   case object GetState extends Command
 
+  /**
+   * Command to initialize a petri net instance.
+   */
   case class Initialize[S](marking: Marking, state: S) extends Command
 
   object FireTransition {
@@ -26,10 +34,17 @@ object PetriNetInstanceProtocol {
    */
   case class FireTransition(transitionId: Long, input: Any, correlationId: Option[Long] = None) extends Command
 
-  // responses
-  case class Initialized[S](marking: Marking, state: S)
+  /**
+   * A common trait for all reponses coming from a petri net instance.
+   */
+  sealed trait Response
 
-  sealed trait TransitionResult
+  /**
+   * A response indicating that the instance has been initialized in a certain state.
+   */
+  case class Initialized[S](marking: Marking, state: S) extends Response
+
+  sealed trait TransitionResult extends Response
 
   /**
    * Response indicating that a transition has fired successfully
