@@ -26,6 +26,14 @@ object PetriNetInstanceSpec {
       |  }
       |}
       |
+      |inmemory-read-journal {
+      |  write-plugin = "inmemory-journal"
+      |  offset-mode = "sequence"
+      |  ask-timeout = "10s"
+      |  refresh-interval = "50ms"
+      |  max-buffer-size = "100"
+      |}
+      |
       |logging.root.level = WARN
     """.stripMargin)
 

@@ -50,7 +50,7 @@ object EventSourcing {
         val newState = t.updateState(instance.state)(e.out)
         instance.copy(
           sequenceNr = instance.sequenceNr + 1,
-          marking = instance.marking |-| e.consumed |+| e.produced,
+          marking = (instance.marking |-| e.consumed) |+| e.produced,
           state = newState,
           jobs = instance.jobs - e.jobId
         )

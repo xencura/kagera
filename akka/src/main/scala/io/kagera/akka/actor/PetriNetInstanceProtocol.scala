@@ -17,6 +17,11 @@ object PetriNetInstanceProtocol {
    */
   case object GetState extends Command
 
+  object Initialize {
+
+    def apply(marking: Marking): Initialize[Unit] = Initialize[Unit](marking, ())
+  }
+
   /**
    * Command to initialize a petri net instance.
    */

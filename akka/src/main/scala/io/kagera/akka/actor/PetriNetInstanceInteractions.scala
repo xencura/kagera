@@ -66,9 +66,7 @@ object PetriNetInstanceInteractions {
     /**
      * Fires a transition and confirms (waits) for the result of that transition firing.
      */
-    def fireAndConfirmFirst[S](topology: ExecutablePetriNet[S], msg: FireTransition)(implicit
-      timeout: Timeout
-    ): Future[S] = {
+    def fireAndConfirmFirst[S](topology: ExecutablePetriNet[S], msg: Any)(implicit timeout: Timeout): Future[S] = {
       actor.ask(msg).map {
         case e: TransitionFired[_] => e.state.asInstanceOf[S]
         case msg @ _ => throw new RuntimeException(s"Unexepected message: $msg")
@@ -78,8 +76,8 @@ object PetriNetInstanceInteractions {
     /**
      * Fires a transition and confirms (waits) for all responses of subsequent automated transitions.
      */
-    def fireAndConfirmAll[S](topology: ExecutablePetriNet[S], msg: FireTransition, waitForRetries: Boolean = false)(
-      implicit timeout: Timeout
+    def fireAndConfirmAll[S](topology: ExecutablePetriNet[S], msg: Any, waitForRetries: Boolean = false)(implicit
+      timeout: Timeout
     ): Future[S] = {
       Future {
         val responses = fireAndCollectResponses(topology, msg, waitForRetries)
@@ -90,11 +88,9 @@ object PetriNetInstanceInteractions {
     /**
      * Collects all the messages from the petri net actor in reponse to a message
      */
-    def fireAndCollectResponses[S](
-      topology: ExecutablePetriNet[S],
-      msg: FireTransition,
-      waitForRetries: Boolean = false
-    )(implicit timeout: Timeout): Seq[Try[TransitionFired[S]]] = {
+    def fireAndCollectResponses[S](topology: ExecutablePetriNet[S], msg: Any, waitForRetries: Boolean = false)(implicit
+      timeout: Timeout
+    ): Seq[Try[TransitionFired[S]]] = {
       responseIterator[Any](msg, takeWhileNotFailed(topology, waitForRetries)).map {
         case TransitionFailed(id, _, _, reason, _) => Failure(new RuntimeException(reason))
         case TransitionNotEnabled(id, reason) => Failure(new RuntimeException(s"Transition disabled: $reason"))
