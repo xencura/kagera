@@ -47,7 +47,7 @@ object PetriNetInstanceInteractions {
 
   def takeWhileNotFailed[S](topology: ExecutablePetriNet[S], waitForRetries: Boolean): Any => Boolean = e =>
     e match {
-      case e: TransitionFired[_] => hasAutomaticTransitions(topology)(e.marking)
+      case e: TransitionFired[_] => hasAutomaticTransitions(topology)(e.result.marking)
       case TransitionFailed(_, _, _, _, RetryWithDelay(delay)) => waitForRetries
       case msg @ _ => false
     }
@@ -68,7 +68,7 @@ object PetriNetInstanceInteractions {
      */
     def fireAndConfirmFirst[S](topology: ExecutablePetriNet[S], msg: Any)(implicit timeout: Timeout): Future[S] = {
       actor.ask(msg).map {
-        case e: TransitionFired[_] => e.state.asInstanceOf[S]
+        case e: TransitionFired[_] => e.result.state.asInstanceOf[S]
         case msg @ _ => throw new RuntimeException(s"Unexepected message: $msg")
       }
     }
@@ -81,7 +81,7 @@ object PetriNetInstanceInteractions {
     ): Future[S] = {
       Future {
         val responses = fireAndCollectResponses(topology, msg, waitForRetries)
-        responses.last.get.state
+        responses.last.get.result.state
       }
     }
 

@@ -18,6 +18,18 @@ object PetriNetInstance {
 
   def petriNetInstancePersistenceId(processId: String): String = s"process-$processId"
 
+  def instanceState[S](instance: Instance[S]): InstanceState[S] = {
+    val failures = instance.failedJobs.map { e =>
+      e.transitionId -> PetriNetInstanceProtocol.ExceptionState(
+        e.consecutiveFailureCount,
+        e.failureReason,
+        e.failureStrategy
+      )
+    }.toMap
+
+    InstanceState[S](instance.sequenceNr, instance.marking, instance.state, failures)
+  }
+
   def props[S](topology: ExecutablePetriNet[S]): Props = Props(
     new PetriNetInstance[S](topology, new TransitionExecutorImpl[S](topology))
   )
@@ -53,21 +65,14 @@ class PetriNetInstance[S](override val topology: ExecutablePetriNet[S], executor
   def running(instance: Instance[S]): Receive = {
     case GetState =>
       log.debug(s"Received message: GetState")
-
-      sender() ! InstanceState[S](instance.sequenceNr, instance.marking, instance.state)
+      sender() ! instanceState(instance)
 
     case e @ TransitionFiredEvent(jobId, transitionId, timeStarted, timeCompleted, consumed, produced, output) =>
       log.debug(s"Received message: {}", e)
 
       persistEvent(instance, e) { (updateInstance, e) =>
         executeAllEnabledTransitions(updateInstance)
-        sender() ! TransitionFired[S](
-          transitionId,
-          e.consumed,
-          e.produced,
-          updateInstance.marking,
-          updateInstance.state
-        )
+        sender() ! TransitionFired[S](transitionId, e.consumed, e.produced, instanceState(updateInstance))
       }
 
     case e @ TransitionFailedEvent(jobId, transitionId, timeStarted, timeFailed, consume, input, reason, strategy) =>

@@ -54,7 +54,7 @@ object PetriNetInstanceProtocol {
   /**
    * Response indicating that a transition has fired successfully
    */
-  case class TransitionFired[S](transitionId: Long, consumed: Marking, produced: Marking, marking: Marking, state: S)
+  case class TransitionFired[S](transitionId: Long, consumed: Marking, produced: Marking, result: InstanceState[S])
       extends TransitionResult
 
   /**
@@ -74,7 +74,12 @@ object PetriNetInstanceProtocol {
   case class TransitionNotEnabled(transitionId: Long, reason: String) extends TransitionResult
 
   /**
+   * The exception state of a transition.
+   */
+  case class ExceptionState(consecutiveFailureCount: Int, failureReason: String, failureStrategy: ExceptionStrategy)
+
+  /**
    * Response containing the state of the process.
    */
-  case class InstanceState[S](sequenceNr: BigInt, marking: Marking, state: S)
+  case class InstanceState[S](sequenceNr: BigInt, marking: Marking, state: S, failures: Map[Long, ExceptionState])
 }
