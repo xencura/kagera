@@ -5,18 +5,21 @@ import java.util.concurrent.{ BlockingQueue, LinkedBlockingQueue, TimeUnit }
 import akka.actor.{ Actor, ActorRef, ActorSystem, Props }
 import akka.pattern.ask
 import akka.util.Timeout
+import cats.data.Xor
 import io.kagera.akka.actor.PetriNetInstanceProtocol._
 import io.kagera.api.colored.ExceptionStrategy.RetryWithDelay
-import io.kagera.api.colored.{ Marking, Transition, _ }
-import io.kagera.api.multiset._
+import io.kagera.api.colored.{ Transition, _ }
 
 import scala.concurrent.Future
-import scala.util.{ Failure, Success, Try }
+
+import Xor._
 
 /**
  * Contains some methods to interact with a petri net instance actor.
  */
 object PetriNetInstanceInteractions {
+
+  case class Error(msg: String)
 
   /**
    * An actor that pushes all received messages on a blocking queue.
@@ -69,10 +72,12 @@ object PetriNetInstanceInteractions {
     /**
      * Fires a transition and confirms (waits) for the result of that transition firing.
      */
-    def fireAndConfirmFirst[S](topology: ExecutablePetriNet[S], msg: Any)(implicit timeout: Timeout): Future[S] = {
+    def fireAndConfirmFirst[S](topology: ExecutablePetriNet[S], msg: Any)(implicit
+      timeout: Timeout
+    ): Future[Xor[Error, S]] = {
       actor.ask(msg).map {
-        case e: TransitionFired[_] => e.result.state.asInstanceOf[S]
-        case msg @ _ => throw new RuntimeException(s"Unexepected message: $msg")
+        case e: TransitionFired[_] => right(e.result.state.asInstanceOf[S])
+        case msg @ _ => left(Error(s"Received unexepected message: $msg"))
       }
     }
 
@@ -81,13 +86,13 @@ object PetriNetInstanceInteractions {
      */
     def fireAndConfirmAll[S](topology: ExecutablePetriNet[S], msg: Any, waitForRetries: Boolean = false)(implicit
       timeout: Timeout
-    ): Future[S] = {
+    ): Future[Xor[Error, S]] = {
       Future {
         val lastResponse = fireAndCollectResponses(topology, msg, waitForRetries).last
 
         lastResponse match {
-          case e: TransitionFired[_] => e.result.state.asInstanceOf[S]
-          case msg @ _ => throw new RuntimeException("Transition failed!")
+          case e: TransitionFired[_] => right(e.result.state.asInstanceOf[S])
+          case msg @ _ => left(Error("Transition failed!"))
         }
       }
     }
