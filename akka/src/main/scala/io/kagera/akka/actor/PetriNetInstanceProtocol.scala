@@ -45,10 +45,22 @@ object PetriNetInstanceProtocol {
   sealed trait Response
 
   /**
+   * Response indicating that the command could not be processed because of the current state of the actor.
+   *
+   * This message is only send in response to Command messages.
+   */
+  case class IllegalCommand(reason: String) extends Response
+
+  /**
    * A response indicating that the instance has been initialized in a certain state.
+   *
+   * This message is only send in response to an Initialize message.
    */
   case class Initialized[S](marking: Marking, state: S) extends Response
 
+  /**
+   * Any message that is a response to a FireTransition command.
+   */
   sealed trait TransitionResponse extends Response
 
   /**

@@ -53,13 +53,16 @@ class PetriNetInstance[S](override val topology: ExecutablePetriNet[S], executor
 
   override def receiveCommand = uninitialized
 
-  def uninitialized: Receive = { case msg @ Initialize(marking, state) =>
-    log.debug(s"Received message: {}", msg)
-    persistEvent(Instance.uninitialized(topology), InitializedEvent(marking, state.asInstanceOf[S])) {
-      (updatedState, e) =>
-        executeAllEnabledTransitions(updatedState)
-        sender() ! Initialized(marking, state)
-    }
+  def uninitialized: Receive = {
+    case msg @ Initialize(marking, state) =>
+      log.debug(s"Received message: {}", msg)
+      persistEvent(Instance.uninitialized(topology), InitializedEvent(marking, state.asInstanceOf[S])) {
+        (updatedState, e) =>
+          executeAllEnabledTransitions(updatedState)
+          sender() ! Initialized(marking, state)
+      }
+    case msg: Command =>
+      sender() ! IllegalCommand("Only accepting Initialize commands in 'uninitialized' state")
   }
 
   def running(instance: Instance[S]): Receive = {
@@ -105,6 +108,8 @@ class PetriNetInstance[S](override val topology: ExecutablePetriNet[S], executor
           log.warning(reason)
           sender() ! TransitionNotEnabled(id, reason)
       }
+    case msg: Initialize[_] =>
+      sender() ! IllegalCommand("Already initialized")
   }
 
   def executeAllEnabledTransitions(instance: Instance[S]) = {
