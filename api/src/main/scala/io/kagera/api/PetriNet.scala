@@ -1,7 +1,6 @@
 package io.kagera.api
 
-import io.kagera.api.multiset.MultiSet
-
+import multiset._
 import scalax.collection.edge.WLDiEdge
 
 /**
@@ -95,4 +94,13 @@ trait PetriNet[P, T] {
    *   The set of nodes.
    */
   def nodes: scala.collection.Set[Either[P, T]]
+
+  /**
+   * Checks whether a transition is 'enabled' in a certain marking.
+   *
+   * @param marking
+   * @param t
+   * @return
+   */
+  def isEnabledInMarking(marking: MultiSet[P])(t: T): Boolean = marking.isSubSet(inMarking(t))
 }

@@ -36,18 +36,21 @@ object PetriNetInstanceInteractions {
     }
   }
 
-  def hasAutomaticTransitions[S](topology: ExecutablePetriNet[S]): Marking => Boolean = marking => {
-    marking.keySet
+  def hasAutomaticTransitions[S](topology: ExecutablePetriNet[S]): InstanceState[S] => Boolean = state => {
+    state.marking.keySet
       .map(p => topology.outgoingTransitions(p))
       .foldLeft(Set.empty[Transition[_, _, _]]) { case (result, transitions) =>
         result ++ transitions
       }
-      .exists { t => t.isAutomated && marking.multiplicities.isSubSet(topology.inMarking(t)) }
+      .exists(isEnabledInState(topology, state))
   }
+
+  def isEnabledInState[S](topology: ExecutablePetriNet[S], state: InstanceState[S])(t: Transition[_, _, _]): Boolean =
+    t.isAutomated && !state.hasFailed(t.id) && topology.isEnabledInMarking(state.marking.multiplicities)(t)
 
   def takeWhileNotFailed[S](topology: ExecutablePetriNet[S], waitForRetries: Boolean): Any => Boolean = e =>
     e match {
-      case e: TransitionFired[_] => hasAutomaticTransitions(topology)(e.result.marking)
+      case e: TransitionFired[S] => hasAutomaticTransitions(topology)(e.result)
       case TransitionFailed(_, _, _, _, RetryWithDelay(delay)) => waitForRetries
       case msg @ _ => false
     }
@@ -80,8 +83,12 @@ object PetriNetInstanceInteractions {
       timeout: Timeout
     ): Future[S] = {
       Future {
-        val responses = fireAndCollectResponses(topology, msg, waitForRetries)
-        responses.last.get.result.state
+        val lastResponse = fireAndCollectResponses(topology, msg, waitForRetries).last
+
+        lastResponse match {
+          case e: TransitionFired[_] => e.result.state.asInstanceOf[S]
+          case msg @ _ => throw new RuntimeException("Transition failed!")
+        }
       }
     }
 
@@ -90,12 +97,10 @@ object PetriNetInstanceInteractions {
      */
     def fireAndCollectResponses[S](topology: ExecutablePetriNet[S], msg: Any, waitForRetries: Boolean = false)(implicit
       timeout: Timeout
-    ): Seq[Try[TransitionFired[S]]] = {
+    ): Seq[TransitionResponse] = {
       responseIterator[Any](msg, takeWhileNotFailed(topology, waitForRetries)).map {
-        case TransitionFailed(id, _, _, reason, _) => Failure(new RuntimeException(reason))
-        case TransitionNotEnabled(id, reason) => Failure(new RuntimeException(s"Transition disabled: $reason"))
-        case e: TransitionFired[_] => Success(e.asInstanceOf[TransitionFired[S]])
-        case msg @ _ => Failure(new RuntimeException(s"Unexepected message: $msg"))
+        case e: TransitionResponse => e
+        case msg @ _ => throw new RuntimeException(s"Unexepected message: $msg")
       }.toSeq
     }
   }
