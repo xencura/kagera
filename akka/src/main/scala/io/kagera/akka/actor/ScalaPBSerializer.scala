@@ -8,7 +8,7 @@ import akka.actor.ExtendedActorSystem
 import akka.serialization.SerializerWithStringManifest
 import com.trueaccord.scalapb.{ GeneratedMessage, GeneratedMessageCompanion, Message }
 import io.kagera.akka.actor.ScalaPBSerializer._
-import io.kagera.persistence.{ Initialized, TransitionFailed, TransitionFired }
+import io.kagera.persistence.messages._
 
 object ScalaPBSerializer {
   import scala.reflect.runtime.{ universe => ru }

@@ -8,7 +8,8 @@ import io.kagera.akka.actor.{ AkkaObjectSerializer, PetriNetInstance }
 import io.kagera.api.colored.ExecutablePetriNet
 import io.kagera.execution.EventSourcing._
 import io.kagera.execution._
-import io.kagera.persistence.EventSerializer
+import io.kagera.persistence.Serialization
+import io.kagera.persistence.Serialization._
 
 trait PetriNetQuery[S] {
 
@@ -18,9 +19,7 @@ trait PetriNetQuery[S] {
     actorSystem: ActorSystem
   ): (Source[(Instance[S], Event), NotUsed]) = {
 
-    val eventSerializer = new EventSerializer[S] with AkkaObjectSerializer {
-      override def system: ActorSystem = actorSystem
-    }
+    val serializer = new Serialization(new AkkaObjectSerializer(actorSystem))
 
     val persistentId = PetriNetInstance.petriNetInstancePersistenceId(instanceId)
     val src = readJournal.currentEventsByPersistenceId(persistentId, 0, Long.MaxValue)
@@ -28,7 +27,8 @@ trait PetriNetQuery[S] {
     src
       .scan[(Instance[S], Event)]((Instance.uninitialized(topology), null.asInstanceOf[Event])) {
         case ((instance, prev), e) =>
-          val deserializedEvent = eventSerializer.deserializeEvent(instance)(e.event.asInstanceOf[AnyRef])
+          val event = e.event.asInstanceOf[AnyRef]
+          val deserializedEvent = serializer.deserializeEvent(event)(instance)
           val updatedInstance = applyEvent(deserializedEvent).runS(instance).value
           (updatedInstance, deserializedEvent)
       }

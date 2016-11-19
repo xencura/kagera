@@ -42,7 +42,7 @@ package object execution {
     consume: Marking,
     input: Any
   ): Instance[S] => (Instance[S], Job[S, E]) = s => {
-    val job = Job[S, E](s.nextJobId(), s.process, s.state, transition, consume, input)
+    val job = Job[S, E](s.nextJobId(), s.state, transition, consume, input)
     val newState = s.copy(jobs = s.jobs + (job.id -> job))
     (newState, job)
   }
@@ -57,14 +57,8 @@ package object execution {
         t.isAutomated && !instance.isBlockedReason(t.id).isDefined
       }
       .map { case (t, markings) =>
-        val job = Job[S, Any](
-          instance.nextJobId(),
-          instance.process,
-          instance.state,
-          t.asInstanceOf[Transition[Any, Any, S]],
-          markings.head,
-          ()
-        )
+        val job =
+          Job[S, Any](instance.nextJobId(), instance.state, t.asInstanceOf[Transition[Any, Any, S]], markings.head, ())
         (instance.copy(jobs = instance.jobs + (job.id -> job)), Some(job))
       }
       .getOrElse((instance, None))
@@ -105,7 +99,7 @@ package object execution {
           System.currentTimeMillis(),
           job.consume,
           produced,
-          out
+          Some(out)
         )
       }
       .handle { case e: Throwable =>
@@ -122,7 +116,7 @@ package object execution {
           startTime,
           System.currentTimeMillis(),
           job.consume,
-          job.input,
+          Some(job.input),
           stackTraceString,
           failureStrategy
         )

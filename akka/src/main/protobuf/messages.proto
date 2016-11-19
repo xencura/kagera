@@ -1,6 +1,6 @@
 syntax = "proto2";
 
-option java_package = "io.kagera";
+option java_package = "io.kagera.persistence";
 
 message SerializedData {
     optional int32 serializer_id = 1;
@@ -37,11 +37,24 @@ message TransitionFired {
     optional SerializedData data = 8;
 }
 
+message FailureStrategy {
+    enum StrategyType {
+        BLOCK_TRANSITION = 0;
+        BLOCK_ALL = 1;
+        RETRY = 2;
+    }
+
+    optional StrategyType strategy_type = 1;
+    optional int64 retry_delay = 2;
+}
+
 message TransitionFailed {
-    optional int64 transition_id = 1;
+    optional int64 job_id = 1;
     optional int64 correlation_id = 2;
-    optional int64 time_started = 3;
-    optional int64 time_failed = 4;
-    optional int32 failure_strategy = 5;
-    optional string failure_reason = 6;
+    optional int64 transition_id = 3;
+    optional int64 time_started = 4;
+    optional int64 time_failed = 5;
+    optional SerializedData input_data = 6;
+    optional string failure_reason = 7;
+    optional FailureStrategy failure_strategy = 8;
 }
