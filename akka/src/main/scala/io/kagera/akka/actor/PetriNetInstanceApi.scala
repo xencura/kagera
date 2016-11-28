@@ -2,22 +2,24 @@ package io.kagera.akka.actor
 
 import java.util.concurrent.{ BlockingQueue, LinkedBlockingQueue, TimeUnit }
 
+import akka.NotUsed
 import akka.actor.{ Actor, ActorRef, ActorSystem, Props }
 import akka.pattern.ask
+import akka.stream.Materializer
+import akka.stream.scaladsl.{ Sink, Source }
 import akka.util.Timeout
 import cats.data.Xor
 import io.kagera.akka.actor.PetriNetInstanceProtocol._
 import io.kagera.api.colored.ExceptionStrategy.RetryWithDelay
 import io.kagera.api.colored.{ Transition, _ }
 
-import scala.concurrent.Future
-
-import Xor._
+import scala.collection.immutable.Seq
+import scala.concurrent.{ Await, Future }
 
 /**
  * Contains some methods to interact with a petri net instance actor.
  */
-object PetriNetInstanceInteractions {
+object PetriNetInstanceApi {
 
   case class Error(msg: String)
 
@@ -58,7 +60,7 @@ object PetriNetInstanceInteractions {
       case msg @ _ => false
     }
 
-  implicit class ActorRefAdditions(actor: ActorRef)(implicit actorSystem: ActorSystem) {
+  implicit class ActorRefAdditions(actor: ActorRef)(implicit actorSystem: ActorSystem, materializer: Materializer) {
 
     import actorSystem.dispatcher
 
@@ -69,16 +71,26 @@ object PetriNetInstanceInteractions {
       Iterator.continually(queue.poll(timeout.duration.toMillis, TimeUnit.MILLISECONDS)).takeWhileInclusive(takeWhile)
     }
 
+    def responseSource[E](msg: Any, takeWhile: Any => Boolean)(implicit timeout: Timeout): Source[E, NotUsed] = {
+      Source.fromIterator(() => responseIterator(msg, takeWhile))
+    }
+
     /**
      * Fires a transition and confirms (waits) for the result of that transition firing.
      */
     def fireAndConfirmFirst[S](topology: ExecutablePetriNet[S], msg: Any)(implicit
       timeout: Timeout
-    ): Future[Xor[Error, S]] = {
+    ): Future[Xor[Error, InstanceState[S]]] = {
       actor.ask(msg).map {
-        case e: TransitionFired[_] => right(e.result.state.asInstanceOf[S])
-        case msg @ _ => left(Error(s"Received unexepected message: $msg"))
+        case e: TransitionFired[_] => Xor.Right(e.result.asInstanceOf[InstanceState[S]])
+        case msg @ _ => Xor.Left(Error(s"Received unexepected message: $msg"))
       }
+    }
+
+    def fireAndConfirmFirstSync[S](topology: ExecutablePetriNet[S], msg: Any)(implicit
+      timeout: Timeout
+    ): Xor[Error, InstanceState[S]] = {
+      Await.result(fireAndConfirmFirst(topology, msg), timeout.duration)
     }
 
     /**
@@ -86,27 +98,38 @@ object PetriNetInstanceInteractions {
      */
     def fireAndConfirmAll[S](topology: ExecutablePetriNet[S], msg: Any, waitForRetries: Boolean = false)(implicit
       timeout: Timeout
-    ): Future[Xor[Error, S]] = {
-      Future {
-        val lastResponse = fireAndCollectResponses(topology, msg, waitForRetries).last
+    ): Future[Xor[Error, InstanceState[S]]] = {
 
-        lastResponse match {
-          case e: TransitionFired[_] => right(e.result.state.asInstanceOf[S])
-          case msg @ _ => left(Error("Transition failed!"))
+      val futureMessages = fireAndCollectAll(topology, msg, waitForRetries).runWith(Sink.seq)
+
+      futureMessages.map {
+        _.last match {
+          case e: TransitionFired[_] => Xor.Right(e.result.asInstanceOf[InstanceState[S]])
+          case msg @ _ => Xor.Left(Error(s"Received unexpected message: $msg"))
         }
       }
     }
 
     /**
-     * Collects all the messages from the petri net actor in reponse to a message
+     * Collects
      */
-    def fireAndCollectResponses[S](topology: ExecutablePetriNet[S], msg: Any, waitForRetries: Boolean = false)(implicit
+    def fireAndCollectAllSync[S](topology: ExecutablePetriNet[S], msg: Any, waitForRetries: Boolean = false)(implicit
       timeout: Timeout
     ): Seq[TransitionResponse] = {
-      responseIterator[Any](msg, takeWhileNotFailed(topology, waitForRetries)).map {
+      val futureResult = fireAndCollectAll(topology, msg, waitForRetries).runWith(Sink.seq)
+      Await.result(futureResult, timeout.duration)
+    }
+
+    /**
+     * Collects all the messages from the petri net actor in reponse to a message
+     */
+    def fireAndCollectAll[S](topology: ExecutablePetriNet[S], msg: Any, waitForRetries: Boolean = false)(implicit
+      timeout: Timeout
+    ): Source[TransitionResponse, NotUsed] = {
+      responseSource[Any](msg, takeWhileNotFailed(topology, waitForRetries)).map {
         case e: TransitionResponse => e
-        case msg @ _ => throw new RuntimeException(s"Unexepected message: $msg")
-      }.toSeq
+        case msg @ _ => throw new RuntimeException(s"Unexepected response message: $msg")
+      }
     }
   }
 }
