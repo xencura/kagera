@@ -61,19 +61,25 @@ object PetriNetInstanceProtocol {
   /**
    * Any message that is a response to a FireTransition command.
    */
-  sealed trait TransitionResponse extends Response
+  sealed trait TransitionResponse extends Response {
+    val transitionId: Long
+  }
 
   /**
    * Response indicating that a transition has fired successfully
    */
-  case class TransitionFired[S](transitionId: Long, consumed: Marking, produced: Marking, result: InstanceState[S])
-      extends TransitionResponse
+  case class TransitionFired[S](
+    override val transitionId: Long,
+    consumed: Marking,
+    produced: Marking,
+    result: InstanceState[S]
+  ) extends TransitionResponse
 
   /**
    * Response indicating that a transition has failed.
    */
   case class TransitionFailed(
-    transitionId: Long,
+    override val transitionId: Long,
     consume: Marking,
     input: Any,
     reason: String,
@@ -83,7 +89,7 @@ object PetriNetInstanceProtocol {
   /**
    * Response indicating that the transition could not be fired because it is not enabled.
    */
-  case class TransitionNotEnabled(transitionId: Long, reason: String) extends TransitionResponse
+  case class TransitionNotEnabled(override val transitionId: Long, reason: String) extends TransitionResponse
 
   /**
    * The exception state of a transition.
