@@ -19,33 +19,24 @@ case class TransitionBehaviour[S, E](automated: Boolean, exceptionHandler: Trans
 
 trait SequenceNet[S, E] {
 
-  val nrOfSteps = 2
-
+  def sequence: Seq[TransitionBehaviour[S, E]]
   def eventSourcing: S => E => S
 
-  val places = (1 to nrOfSteps).map(i => Place[Unit](id = i))
+  lazy val places = (1 to (sequence.size + 1)).map(i => Place[Unit](id = i))
+  lazy val initialMarking = Marking(place(1) -> 1)
+
   def place(n: Int) = places(n - 1)
-
-  val initialMarking = Marking(place(1) -> 1)
-
-  def sequence: PartialFunction[Long, TransitionBehaviour[S, E]]
-
   def transition(automated: Boolean = false, exceptionHandler: TransitionExceptionHandler = (e, n) => BlockSelf)(
     fn: S => E
   ): TransitionBehaviour[S, E] = TransitionBehaviour(automated, exceptionHandler, fn)
 
   lazy val petriNet = {
-    val tr = (1 to nrOfSteps)
-      .map(i =>
-        sequence
-          .lift(i)
-          .map(_.asTransition(i, eventSourcing))
-          .getOrElse(nullTransition(i))
-      )
+    val nrOfSteps = sequence.size
+    val transitions = sequence.zipWithIndex.map { case (t, index) => t.asTransition(index + 1, eventSourcing) }
 
     val places = (1 to (nrOfSteps + 1)).map(i => Place[Unit](id = i))
-    val tpedges = tr.zip(places.tail).map { case (t, p) => arc(t, p, 1) }
-    val ptedges = places.zip(tr).map { case (p, t) => arc(p, t, 1) }
+    val tpedges = transitions.zip(places.tail).map { case (t, p) => arc(t, p, 1) }
+    val ptedges = places.zip(transitions).map { case (p, t) => arc(p, t, 1) }
     process[S]((tpedges ++ ptedges): _*)
   }
 }
