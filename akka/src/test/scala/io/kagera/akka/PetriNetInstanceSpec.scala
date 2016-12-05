@@ -16,27 +16,6 @@ import org.scalatest.{ BeforeAndAfterAll, WordSpecLike }
 
 object PetriNetInstanceSpec {
 
-  val config = ConfigFactory.parseString("""
-      |
-      |akka {
-      |  loggers = ["akka.testkit.TestEventListener"]
-      |  persistence {
-      |    journal.plugin = "inmemory-journal"
-      |    snapshot-store.plugin = "inmemory-snapshot-store"
-      |  }
-      |}
-      |
-      |inmemory-read-journal {
-      |  write-plugin = "inmemory-journal"
-      |  offset-mode = "sequence"
-      |  ask-timeout = "10s"
-      |  refresh-interval = "50ms"
-      |  max-buffer-size = "100"
-      |}
-      |
-      |logging.root.level = WARN
-    """.stripMargin)
-
   def createPetriNetActor[S](petriNet: ExecutablePetriNet[S], processId: String = UUID.randomUUID().toString)(implicit
     system: ActorSystem
   ) =
@@ -44,28 +23,6 @@ object PetriNetInstanceSpec {
 }
 
 class PetriNetInstanceSpec extends AkkaTestBase {
-
-  def expectMsgInAnyOrderPF[Out](pfs: PartialFunction[Any, Out]*): Unit = {
-    if (pfs.nonEmpty) {
-      val total = pfs.reduce((a, b) => a.orElse(b))
-      expectMsgPF() {
-        case msg @ _ if total.isDefinedAt(msg) =>
-          val index = pfs.indexWhere(pf => pf.isDefinedAt(msg))
-          val pfn = pfs(index)
-          pfn(msg)
-          expectMsgInAnyOrderPF[Out](pfs.take(index) ++ pfs.drop(index + 1): _*)
-      }
-    }
-  }
-
-  val integerSetEventSource: Set[Int] => Event => Set[Int] = set => {
-    case Added(c) => set + c
-    case Removed(c) => set - c
-  }
-
-  val p1 = Place[Unit](id = 1)
-  val p2 = Place[Unit](id = 2)
-  val p3 = Place[Unit](id = 3)
 
   "A persistent petri net actor" should {
 
@@ -195,14 +152,14 @@ class PetriNetInstanceSpec extends AkkaTestBase {
       actor ! FireTransition(1, ())
 
       // expect the next marking: p2 -> 1
-      expectMsgPF() { case TransitionFired(1, _, _, result) if result.marking == Marking(p2 -> 1) => }
+      expectMsgPF() { case TransitionFired(1, _, _, result) if result.marking == Marking(place(2) -> 1) => }
 
       // since t2 fires automatically we also expect the next marking: p3 -> 1
-      expectMsgPF() { case TransitionFired(2, _, _, result) if result.marking == Marking(p3 -> 1) => }
+      expectMsgPF() { case TransitionFired(2, _, _, result) if result.marking == Marking(place(3) -> 1) => }
 
       // validate the final state
       actor ! GetState
-      expectMsg(InstanceState[Set[Int]](3, Marking(p3 -> 1), Set(1, 2), Map.empty))
+      expectMsg(InstanceState[Set[Int]](3, Marking(place(3) -> 1), Set(1, 2), Map.empty))
 
       // terminate the actor
       watch(actor)
@@ -215,7 +172,7 @@ class PetriNetInstanceSpec extends AkkaTestBase {
       newActor ! GetState
 
       // assert that the marking is the same as before termination
-      expectMsg(InstanceState[Set[Int]](3, Marking(p3 -> 1), Set(1, 2), Map.empty))
+      expectMsg(InstanceState[Set[Int]](3, Marking(place(3) -> 1), Set(1, 2), Map.empty))
     }
 
     "fire automated transitions in parallel when possible" in new StateTransitionNet[Unit, Unit] {
