@@ -94,7 +94,7 @@ object PetriNetInstanceProtocol {
   /**
    * The exception state of a transition.
    */
-  case class ExceptionState(consecutiveFailureCount: Int, failureReason: String, failureStrategy: ExceptionStrategy)
+  case class ExceptionState(failureCount: Int, failureReason: String, failureStrategy: ExceptionStrategy)
 
   /**
    * Response containing the state of the process.
