@@ -3,13 +3,12 @@ package io.kagera.akka
 import akka.NotUsed
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{ Sink, Source }
-import akka.util.Timeout
+import io.kagera.akka.actor.PetriNetInstanceApi
 import io.kagera.akka.actor.PetriNetInstanceProtocol._
-import io.kagera.akka.actor.PetriNetInstanceApi._
-
-import scala.concurrent.{ Await, ExecutionContext }
-import scala.concurrent.duration._
 import org.scalatest.Matchers._
+
+import scala.concurrent.duration._
+import scala.concurrent.{ Await, ExecutionContext }
 
 class PetriNetInstanceApiSpec extends AkkaTestBase {
 
@@ -33,8 +32,8 @@ class PetriNetInstanceApiSpec extends AkkaTestBase {
       actor ! Initialize(initialMarking, Set.empty)
       expectMsgClass(classOf[Initialized[_]])
 
-      val source: Source[TransitionResponse, NotUsed] =
-        actor.fireAndCollectAll(petriNet, FireTransition(1, ()))(Timeout(waitTimeout))
+      val api = new PetriNetInstanceApi(petriNet, actor)
+      val source: Source[TransitionResponse, NotUsed] = api.askAndCollectAll(FireTransition(1, ()))
       val responses = Await.result(source.runWith(Sink.seq[TransitionResponse]), waitTimeout)
 
       responses.size shouldBe 3
