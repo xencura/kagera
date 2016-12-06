@@ -9,6 +9,7 @@ import io.kagera.api.colored._
 import io.kagera.execution.EventSourcing._
 
 import scala.collection.Set
+import scala.util.Random
 
 package object execution {
 
@@ -50,7 +51,7 @@ package object execution {
   /**
    * Finds the (optional) first transition that is automated & enabled
    */
-  def firstFirstEnabled[S]: State[Instance[S], Option[Job[S, _]]] = State { instance =>
+  def fireFirstEnabled[S]: State[Instance[S], Option[Job[S, _]]] = State { instance =>
     instance.process
       .enabledParameters(instance.availableMarking)
       .find { case (t, markings) =>
@@ -78,7 +79,7 @@ package object execution {
    * Finds all automated enabled transitions.
    */
   def fireAllEnabledTransitions[S]: State[Instance[S], Set[Job[S, _]]] =
-    firstFirstEnabled[S].flatMap {
+    fireFirstEnabled[S].flatMap {
       case None => State.pure(Set.empty)
       case Some(job) => fireAllEnabledTransitions[S].map(_ + job)
     }
