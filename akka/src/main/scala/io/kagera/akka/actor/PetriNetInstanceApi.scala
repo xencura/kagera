@@ -1,12 +1,10 @@
 package io.kagera.akka.actor
 
-import java.util.concurrent.{ BlockingQueue, LinkedBlockingQueue, TimeUnit }
-
 import akka.NotUsed
 import akka.actor.{ Actor, ActorRef, ActorSystem, Props }
 import akka.pattern.ask
-import akka.stream.Materializer
-import akka.stream.scaladsl.{ Sink, Source }
+import akka.stream.scaladsl.{ Sink, Source, SourceQueueWithComplete }
+import akka.stream.{ Materializer, OverflowStrategy }
 import akka.util.Timeout
 import cats.data.Xor
 import io.kagera.akka.actor.PetriNetInstanceProtocol._
@@ -24,20 +22,15 @@ object PetriNetInstanceApi {
   case class Error(msg: String)
 
   /**
-   * An actor that pushes all received messages on a blocking queue.
+   * An actor that pushes all received messages on a SourceQueueWithComplete.
    */
-  class QueuePushingActor[E](queue: BlockingQueue[E], takeWhile: Any => Boolean) extends Actor {
+  class QueuePushingActor[E](queue: SourceQueueWithComplete[E], takeWhile: Any => Boolean) extends Actor {
     override def receive: Receive = { case msg @ _ =>
-      queue.add(msg.asInstanceOf[E])
-      if (!takeWhile(msg))
+      queue.offer(msg.asInstanceOf[E])
+      if (!takeWhile(msg)) {
+        queue.complete()
         context.stop(self)
-    }
-  }
-
-  implicit class IteratorExtension[A](i: Iterator[A]) {
-    def takeWhileInclusive(p: A => Boolean): Iterator[A] = {
-      val (a, b) = i.span(p)
-      a ++ b.take(1)
+      }
     }
   }
 
@@ -64,15 +57,12 @@ object PetriNetInstanceApi {
 
     import actorSystem.dispatcher
 
-    def responseIterator[E](msg: Any, takeWhile: Any => Boolean)(implicit timeout: Timeout): Iterator[E] = {
-      val queue = new LinkedBlockingQueue[E]()
-      val askingActor = actorSystem.actorOf(Props(new QueuePushingActor[E](queue, takeWhile)))
-      actor.tell(msg, askingActor)
-      Iterator.continually(queue.poll(timeout.duration.toMillis, TimeUnit.MILLISECONDS)).takeWhileInclusive(takeWhile)
-    }
-
-    def responseSource[E](msg: Any, takeWhile: Any => Boolean)(implicit timeout: Timeout): Source[E, NotUsed] = {
-      Source.fromIterator(() => responseIterator(msg, takeWhile))
+    def responseSource[E](msg: Any, takeWhile: Any => Boolean): Source[E, NotUsed] = {
+      Source.queue[E](100, OverflowStrategy.fail).mapMaterializedValue { queue =>
+        val sender = actorSystem.actorOf(Props(new QueuePushingActor[E](queue, takeWhile)))
+        actor.tell(msg, sender)
+        NotUsed.getInstance()
+      }
     }
 
     /**
