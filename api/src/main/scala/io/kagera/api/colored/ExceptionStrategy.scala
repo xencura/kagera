@@ -8,9 +8,9 @@ object ExceptionStrategy {
   case object Fatal extends ExceptionStrategy
 
   /**
-   * Indicates that this transition should not be retried but others in the process still can.
+   * Indicates that this transition should not be retried but other transitions in the petri net still can.
    */
-  case object BlockSelf extends ExceptionStrategy
+  case object BlockTransition extends ExceptionStrategy
 
   /**
    * Retries firing the transition after some delay.

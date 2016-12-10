@@ -1,7 +1,7 @@
 package io.kagera.api.colored.dsl
 
 import fs2.Task
-import io.kagera.api.colored.ExceptionStrategy.BlockSelf
+import io.kagera.api.colored.ExceptionStrategy.BlockTransition
 import io.kagera.api.colored.transitions.{ AbstractTransition, UncoloredTransition }
 import io.kagera.api.colored.{ Marking, Transition, _ }
 
@@ -16,7 +16,7 @@ trait StateTransitionNet[S, E] {
     id: Long = Math.abs(Random.nextLong),
     label: Option[String] = None,
     automated: Boolean = false,
-    exceptionStrategy: TransitionExceptionHandler = (e, n) => BlockSelf
+    exceptionStrategy: TransitionExceptionHandler = (e, n) => BlockTransition
   )(fn: S => E): Transition[Unit, E, S] =
     new AbstractTransition[Unit, E, S](id, label.getOrElse(s"t$id"), automated, Duration.Undefined, exceptionStrategy)
       with UncoloredTransition[Unit, E, S] {

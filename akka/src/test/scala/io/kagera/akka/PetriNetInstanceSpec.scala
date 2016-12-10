@@ -3,16 +3,13 @@ package io.kagera.akka
 import java.util.UUID
 
 import akka.actor.{ ActorSystem, PoisonPill, Terminated }
-import akka.testkit.{ ImplicitSender, TestKit }
-import com.typesafe.config.ConfigFactory
 import io.kagera.akka.PetriNetInstanceSpec._
 import io.kagera.akka.actor.PetriNetInstance
 import io.kagera.akka.actor.PetriNetInstanceProtocol._
 import io.kagera.api.colored.ExceptionStrategy.{ Fatal, RetryWithDelay }
 import io.kagera.api.colored._
-import io.kagera.api.colored.dsl.{ SequenceNet, _ }
+import io.kagera.api.colored.dsl._
 import org.scalatest.time.{ Milliseconds, Span }
-import org.scalatest.{ BeforeAndAfterAll, WordSpecLike }
 
 object PetriNetInstanceSpec {
 

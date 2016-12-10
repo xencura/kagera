@@ -1,7 +1,7 @@
 package io.kagera.persistence
 
 import io.kagera.api._
-import io.kagera.api.colored.ExceptionStrategy.{ BlockSelf, Fatal, RetryWithDelay }
+import io.kagera.api.colored.ExceptionStrategy.{ BlockTransition, Fatal, RetryWithDelay }
 import io.kagera.api.colored._
 import io.kagera.execution.EventSourcing._
 import io.kagera.execution.{ EventSourcing, Instance }
@@ -127,7 +127,7 @@ class Serialization(serializer: ObjectSerializer) {
       val input = e.inputData.map(serializer.deserializeObject)
       val failureReason = e.failureReason.getOrElse("")
       val failureStrategy = e.failureStrategy.getOrElse(missingFieldException("time_failed")) match {
-        case FailureStrategy(Some(StrategyType.BLOCK_TRANSITION), _) => BlockSelf
+        case FailureStrategy(Some(StrategyType.BLOCK_TRANSITION), _) => BlockTransition
         case FailureStrategy(Some(StrategyType.BLOCK_ALL), _) => Fatal
         case FailureStrategy(Some(StrategyType.RETRY), Some(delay)) => RetryWithDelay(delay)
         case other @ _ => throw new IllegalStateException(s"Invalid failure strategy: $other")
@@ -148,7 +148,7 @@ class Serialization(serializer: ObjectSerializer) {
   private def serializeTransitionFailed(e: TransitionFailedEvent): messages.TransitionFailed = {
 
     val strategy = e.exceptionStrategy match {
-      case BlockSelf => FailureStrategy(Some(StrategyType.BLOCK_TRANSITION))
+      case BlockTransition => FailureStrategy(Some(StrategyType.BLOCK_TRANSITION))
       case Fatal => FailureStrategy(Some(StrategyType.BLOCK_ALL))
       case RetryWithDelay(delay) => FailureStrategy(Some(StrategyType.RETRY), Some(delay))
     }

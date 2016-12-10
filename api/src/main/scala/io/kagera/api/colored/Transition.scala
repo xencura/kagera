@@ -1,7 +1,7 @@
 package io.kagera.api.colored
 
 import fs2.Task
-import io.kagera.api.colored.ExceptionStrategy.BlockSelf
+import io.kagera.api.colored.ExceptionStrategy.BlockTransition
 import io.kagera.api.multiset.MultiSet
 
 import scala.concurrent.{ ExecutionContext, Future }
@@ -57,7 +57,7 @@ trait Transition[Input, Output, State] {
    *
    * @return
    */
-  def exceptionStrategy: TransitionExceptionHandler = (e, n) => BlockSelf
+  def exceptionStrategy: TransitionExceptionHandler = (e, n) => BlockTransition
 
   /**
    * Given the in and out adjacent places with their weight returns a function:

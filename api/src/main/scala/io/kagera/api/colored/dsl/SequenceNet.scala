@@ -1,7 +1,7 @@
 package io.kagera.api.colored.dsl
 
 import fs2.Task
-import io.kagera.api.colored.ExceptionStrategy.BlockSelf
+import io.kagera.api.colored.ExceptionStrategy.BlockTransition
 import io.kagera.api.colored._
 import io.kagera.api.colored.transitions.{ AbstractTransition, UncoloredTransition }
 
@@ -26,7 +26,7 @@ trait SequenceNet[S, E] {
   lazy val initialMarking = Marking(place(1) -> 1)
 
   def place(n: Int) = places(n - 1)
-  def transition(automated: Boolean = false, exceptionHandler: TransitionExceptionHandler = (e, n) => BlockSelf)(
+  def transition(automated: Boolean = false, exceptionHandler: TransitionExceptionHandler = (e, n) => BlockTransition)(
     fn: S => E
   ): TransitionBehaviour[S, E] = TransitionBehaviour(automated, exceptionHandler, fn)
 
