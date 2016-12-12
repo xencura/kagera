@@ -1,15 +1,15 @@
 package io.kagera.demo.http
 
-import akka.http.scaladsl.common.{ CsvEntityStreamingSupport, EntityStreamingSupport, JsonEntityStreamingSupport }
+import akka.http.scaladsl.common.{ EntityStreamingSupport, JsonEntityStreamingSupport }
+import akka.http.scaladsl.marshalling.PredefinedToEntityMarshallers._
 import akka.http.scaladsl.marshalling.{ Marshaller, Marshalling }
 import akka.http.scaladsl.model.{ ContentTypes, HttpEntity, HttpResponse, StatusCodes }
-import akka.http.scaladsl.marshalling.PredefinedToEntityMarshallers._
 import akka.http.scaladsl.server.Directives
 import akka.pattern.ask
 import akka.util.{ ByteString, Timeout }
 import de.heikoseeberger.akkahttpupickle.UpickleSupport
-import io.kagera.akka.actor.PetriNetProcess
-import io.kagera.akka.actor.PetriNetProcessProtocol._
+import io.kagera.akka.actor.PetriNetInstance
+import io.kagera.akka.actor.PetriNetInstanceProtocol._
 import io.kagera.api.colored.{ ExecutablePetriNet, Generators, Marking }
 import io.kagera.demo.{ ConfiguredActorSystem, Queries }
 
@@ -70,7 +70,7 @@ trait Routes extends Directives with Queries with UpickleSupport {
         post {
           val topology = repository(topologyId).asInstanceOf[ExecutablePetriNet[Unit]]
           val id = java.util.UUID.randomUUID.toString
-          system.actorOf(PetriNetProcess.props(topology, Marking.empty, ()), id)
+//          system.actorOf(PetriNetInstance.props(topology, Marking.empty, ()), id)
           complete(id)
         }
       } ~
@@ -80,7 +80,7 @@ trait Routes extends Directives with Queries with UpickleSupport {
         pathEndOrSingleSlash {
           get {
             // should return the current state (marking) of the process
-            val futureResult = processActor.ask(GetState).mapTo[ProcessState[_]].map { state =>
+            val futureResult = processActor.ask(GetState).mapTo[InstanceState[_]].map { state =>
               state.marking.toString
             }
             complete(futureResult)
@@ -93,7 +93,7 @@ trait Routes extends Directives with Queries with UpickleSupport {
         } ~ path("fire" / Segment) { tid =>
           post {
             val msg = FireTransition(tid.toLong, ())
-            val futureResult = processActor.ask(msg).mapTo[TransitionResult].map {
+            val futureResult = processActor.ask(msg).mapTo[TransitionResponse].map {
               case success: TransitionFired[_] => "success"
               case failure: TransitionFailed => "failure"
               case notEnabled: TransitionNotEnabled => "not enabled"
