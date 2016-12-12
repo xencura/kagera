@@ -1,11 +1,9 @@
 package io.kagera.api.colored
 
-import fs2.Task
 import io.kagera.api.colored.ExceptionStrategy.BlockTransition
 import io.kagera.api.multiset.MultiSet
 
-import scala.concurrent.{ ExecutionContext, Future }
-import scala.concurrent.duration.{ Duration, FiniteDuration }
+import scala.concurrent.duration.Duration
 
 /**
  * A transition in a Colored Petri Net
@@ -38,12 +36,12 @@ trait Transition[Input, Output, State] {
   /**
    * Flag indicating whether this transition is managed or manually triggered from outside.
    *
-   * This should be true iff Input == Unit.
+   * This is only true IFF Input == Unit.
    *
-   * TODO how to encode this? the problem is in some contexts the Input type is unknown but this property might still be
+   * TODO How to encode this? the problem is in some contexts the Input type is unknown but this property might still be
    * needed
    *
-   * Require a TypeClass?
+   * Require a TypeTag for Input?
    */
   val isAutomated: Boolean
 
@@ -70,6 +68,14 @@ trait Transition[Input, Output, State] {
    *
    * Mo is the out-adjacent marking, the tokens this transition produces. O is the emitted output
    *
+   * TODO instead of requiring this on a Transition trait a Type-Class approach looks more flexible.
+   *
+   * For example some type T[_, _, _] we have T => TransitionFunction The same goes for other properties defined on this
+   * trait.
+   *
+   * This way we can forgo with the entire Transition trait and let user's use whatever they want. For example, in
+   * simple cases (uncolored place / transition nets) an identifier (Int or Long) as a type is enough.
+   *
    * @param inAdjacent
    * @param outAdjacent
    * @return
@@ -77,12 +83,7 @@ trait Transition[Input, Output, State] {
   def apply(inAdjacent: MultiSet[Place[_]], outAdjacent: MultiSet[Place[_]]): TransitionFunction[Input, Output, State]
 
   /**
-   * The state transition function:
-   *
-   * Given a value of type Output returns a function
-   *
-   * @param e
-   * @return
+   * The state event sourcing function.
    */
   def updateState: State => Output => State
 }

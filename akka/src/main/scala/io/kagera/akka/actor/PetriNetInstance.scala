@@ -92,7 +92,7 @@ class PetriNetInstance[S](
       log.debug(s"Received message: {}", e)
       log.warning(s"Transition '${topology.transitions.getById(transitionId)}' failed with: {}", reason)
 
-      val updatedInstance = updateInstance(instance)(e)
+      val updatedInstance = applyEvent(instance)(e)
 
       strategy match {
         case RetryWithDelay(delay) =>
@@ -126,7 +126,10 @@ class PetriNetInstance[S](
     fireAllEnabledTransitions.run(instance).value match {
       case (updatedInstance, jobs) =>
         if (jobs.isEmpty && updatedInstance.jobs.isEmpty)
-          settings.postCompleteTTL.foreach(ttl => system.scheduler.scheduleOnce(ttl, context.self, PoisonPill))
+          settings.postCompleteTTL.foreach { ttl =>
+            log.debug("Process has completed, killing the actor in: {}", ttl)
+            system.scheduler.scheduleOnce(ttl, context.self, PoisonPill)
+          }
 
         jobs.foreach(job => executeJob(job, sender()))
         context become running(updatedInstance)

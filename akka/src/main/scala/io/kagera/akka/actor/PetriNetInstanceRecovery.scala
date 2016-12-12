@@ -3,9 +3,8 @@ package io.kagera.akka.actor
 import akka.persistence.{ PersistentActor, RecoveryCompleted }
 import io.kagera.api.colored.ExecutablePetriNet
 import io.kagera.execution.EventSourcing._
-import io.kagera.execution.Instance
-import io.kagera.persistence.Serialization
-import io.kagera.persistence.messages
+import io.kagera.execution.{ EventSourcing, Instance }
+import io.kagera.persistence.{ messages, Serialization }
 
 trait PetriNetInstanceRecovery[S] {
 
@@ -18,12 +17,12 @@ trait PetriNetInstanceRecovery[S] {
 
   def onRecoveryCompleted(state: Instance[S])
 
-  def updateInstance(i: Instance[S])(e: Event): Instance[S] = applyEvent(e).runS(i).value
+  def applyEvent(i: Instance[S])(e: Event): Instance[S] = EventSourcing.applyEvent(e).runS(i).value
 
   def persistEvent[T, E <: Event](instance: Instance[S], e: E)(fn: (Instance[S], E) => T): Unit = {
 
     val serializedEvent = serializer.serializeEvent(e)(instance)
-    val updatedState = updateInstance(instance)(e)
+    val updatedState = applyEvent(instance)(e)
     persist(serializedEvent) { persisted =>
       fn.apply(updatedState, e)
     }
@@ -34,10 +33,10 @@ trait PetriNetInstanceRecovery[S] {
   override def receiveRecover: Receive = {
     case e: messages.Initialized =>
       val deserializedEvent = serializer.deserializeEvent(e)(recoveringState)
-      recoveringState = updateInstance(recoveringState)(deserializedEvent)
+      recoveringState = applyEvent(recoveringState)(deserializedEvent)
     case e: messages.TransitionFired =>
       val deserializedEvent = serializer.deserializeEvent(e)(recoveringState)
-      recoveringState = updateInstance(recoveringState)(deserializedEvent)
+      recoveringState = applyEvent(recoveringState)(deserializedEvent)
     case RecoveryCompleted =>
       if (recoveringState.sequenceNr > 0)
         onRecoveryCompleted(recoveringState)
