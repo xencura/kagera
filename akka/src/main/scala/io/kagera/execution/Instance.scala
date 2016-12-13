@@ -13,7 +13,7 @@ object Instance {
 
 case class Instance[S](
   process: ExecutablePetriNet[S],
-  sequenceNr: BigInt,
+  sequenceNr: Long,
   marking: Marking,
   state: S,
   jobs: Map[Long, Job[S, _]]

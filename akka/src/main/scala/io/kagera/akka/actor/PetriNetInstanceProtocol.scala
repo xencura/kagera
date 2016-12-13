@@ -99,7 +99,7 @@ object PetriNetInstanceProtocol {
   /**
    * Response containing the state of the process.
    */
-  case class InstanceState[S](sequenceNr: BigInt, marking: Marking, state: S, failures: Map[Long, ExceptionState]) {
+  case class InstanceState[S](sequenceNr: Long, marking: Marking, state: S, failures: Map[Long, ExceptionState]) {
 
     def hasFailed(transitionId: Long): Boolean = failures.contains(transitionId)
   }
