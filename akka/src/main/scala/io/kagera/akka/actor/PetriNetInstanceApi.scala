@@ -104,7 +104,7 @@ class PetriNetInstanceApi[S](topology: ExecutablePetriNet[S], actor: ActorRef)(i
   }
 
   /**
-   * Collects
+   * Synchronously collects all messages from a petri net actor in response to a message.
    */
   def askAndCollectAllSync(msg: Any, waitForRetries: Boolean = false)(implicit
     timeout: Timeout
@@ -114,13 +114,13 @@ class PetriNetInstanceApi[S](topology: ExecutablePetriNet[S], actor: ActorRef)(i
   }
 
   /**
-   * Sends a FireTransition command to the actor and returns a Source of TransitionResponse messages
+   * Returns a Source of messages in response to a FireTransition command.
    */
   def fireTransition(transitionId: Long, input: Any): Source[TransitionResponse, NotUsed] =
     askAndCollectAll(FireTransition(transitionId, input))
 
   /**
-   * Collects all the messages from the petri net actor in reponse to a message
+   * Returns a Source of all the messages from a petri net actor in reponse to a message.
    */
   def askAndCollectAll(msg: Any, waitForRetries: Boolean = false): Source[TransitionResponse, NotUsed] = {
     askSource[Any](actor, msg, takeWhileNotFailed(topology, waitForRetries)).map {

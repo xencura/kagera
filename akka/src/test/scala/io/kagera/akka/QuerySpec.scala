@@ -11,9 +11,9 @@ import io.kagera.akka.query.PetriNetQuery
 import io.kagera.api.colored.dsl._
 import io.kagera.api.colored.{ Marking, Place }
 import io.kagera.execution.EventSourcing.{ InitializedEvent, TransitionFiredEvent }
+import org.scalatest.Inside._
 import org.scalatest.Matchers._
 import org.scalatest.WordSpecLike
-import org.scalatest.Inside._
 
 import scala.concurrent.duration._
 import scala.concurrent.{ Await, ExecutionContext }
@@ -55,12 +55,8 @@ class QuerySpec
       // wait for all events to be available in the read journal
       Thread.sleep(100)
 
-      def collectList[E] = Sink.fold[List[E], E](List.empty) { case (list, e) =>
-        list :+ e
-      }
-
-      val futureEventList = eventsForInstance(processId, petriNet).map(_._2).runWith(collectList)
-      val eventList = Await.result(futureEventList, 2 seconds)
+      val futureEventList = eventsForInstance(processId, petriNet).map(_._2).runWith(Sink.seq)
+      val eventList = Await.result(futureEventList, 2 seconds).toList
 
       eventList.size shouldBe 3
 

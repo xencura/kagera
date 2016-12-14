@@ -1,6 +1,7 @@
 package io.kagera.execution
 
 import io.kagera.api._
+import io.kagera.api.colored.ExceptionStrategy.RetryWithDelay
 import io.kagera.api.colored._
 
 import scala.collection.{ Iterable, Map }
@@ -25,6 +26,12 @@ case class Instance[S](
 
   // The marking that is available for new jobs
   lazy val availableMarking: Marking = marking |-| reservedMarking
+
+  def activeJobs: Iterable[Job[S, _]] = jobs.values.filter(_.failure match {
+    case Some(ExceptionState(_, _, _, RetryWithDelay(_))) => true
+    case None => true
+    case _ => false
+  })
 
   def failedJobs: Iterable[ExceptionState] = jobs.values.map(_.failure).flatten
 

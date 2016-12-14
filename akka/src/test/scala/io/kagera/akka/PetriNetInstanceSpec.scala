@@ -3,13 +3,17 @@ package io.kagera.akka
 import java.util.UUID
 
 import akka.actor.{ ActorSystem, PoisonPill, Terminated }
+import fs2.Strategy
 import io.kagera.akka.PetriNetInstanceSpec._
 import io.kagera.akka.actor.PetriNetInstance
+import io.kagera.akka.actor.PetriNetInstance.Settings
 import io.kagera.akka.actor.PetriNetInstanceProtocol._
 import io.kagera.api.colored.ExceptionStrategy.{ Fatal, RetryWithDelay }
 import io.kagera.api.colored._
 import io.kagera.api.colored.dsl._
 import org.scalatest.time.{ Milliseconds, Span }
+
+import scala.concurrent.duration._
 
 object PetriNetInstanceSpec {
 
@@ -23,15 +27,24 @@ class PetriNetInstanceSpec extends AkkaTestBase {
 
   "A persistent petri net actor" should {
 
-    "Respond with an Initialized response after being initialized by an Initialized command" in new TestSequenceNet {
+    "Respond with an Initialized response after processing an Initialized command" in new TestSequenceNet {
 
       override val sequence = Seq(transition()(_ => Added(1)), transition()(_ => Added(2)))
 
       val actor = createPetriNetActor[Set[Int]](petriNet)
 
       actor ! Initialize(initialMarking, Set(1, 2, 3))
-
       expectMsg(Initialized(initialMarking, Set(1, 2, 3)))
+    }
+
+    "Before being intialized respond with an IllegalCommand message on receiving a GetState command" in new TestSequenceNet {
+
+      override val sequence = Seq(transition()(_ => Added(1)), transition()(_ => Added(2)))
+
+      val actor = createPetriNetActor[Set[Int]](petriNet)
+
+      actor ! GetState
+      expectMsgClass(classOf[IllegalCommand])
     }
 
     "Afer being initialized respond with an InstanceState message on receiving a GetState command" in new TestSequenceNet {
@@ -127,7 +140,7 @@ class PetriNetInstanceSpec extends AkkaTestBase {
       expectMsgPF() { case TransitionFailed(1, _, _, _, RetryWithDelay(40)) => }
       expectMsgPF() { case TransitionFailed(1, _, _, _, Fatal) => }
 
-      // attempt to fire t1 explicitely
+      // attempt to fire t1 explicitly
       actor ! FireTransition(1, ())
 
       // expect the transition to be not enabled
@@ -170,6 +183,28 @@ class PetriNetInstanceSpec extends AkkaTestBase {
 
       // assert that the marking is the same as before termination
       expectMsg(InstanceState[Set[Int]](3, Marking(place(3) -> 1), Set(1, 2), Map.empty))
+    }
+
+    "When Idle terminate after some time if an idle TTL has been specified" in new TestSequenceNet {
+
+      val ttl = 500 milliseconds
+
+      val customSettings =
+        Settings(evaluationStrategy = Strategy.fromCachedDaemonPool("Kagera.CachedThreadPool"), idleTTL = Some(ttl))
+
+      override val sequence =
+        Seq(transition(automated = false)(_ => Added(1)), transition(automated = false)(_ => Added(2)))
+
+      val actor = system.actorOf(
+        props = PetriNetInstance.props(petriNet, customSettings),
+        name = java.util.UUID.randomUUID().toString
+      )
+
+      actor ! Initialize(initialMarking, ())
+      expectMsgClass(classOf[Initialized[_]])
+
+      watch(actor)
+      expectMsgClass(classOf[Terminated])
     }
 
     "fire automated transitions in parallel when possible" in new StateTransitionNet[Unit, Unit] {
