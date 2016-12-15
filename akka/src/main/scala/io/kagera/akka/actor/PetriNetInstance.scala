@@ -74,6 +74,7 @@ class PetriNetInstance[S](
       }
     case msg: Command =>
       sender() ! IllegalCommand("Only accepting Initialize commands in 'uninitialized' state")
+      context.stop(context.self)
   }
 
   def running(instance: Instance[S]): Receive = {
