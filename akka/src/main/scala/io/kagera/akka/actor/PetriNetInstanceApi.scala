@@ -120,12 +120,16 @@ class PetriNetInstanceApi[S](topology: ExecutablePetriNet[S], actor: ActorRef)(i
     askAndCollectAll(FireTransition(transitionId, input))
 
   /**
-   * Collects all the messages from the petri net actor in reponse to a message
+   * Collects all the messages from the petri net actor in reponse to a message. If the instance is 'uninitialized'
+   * returns an empty source.
    */
   def askAndCollectAll(msg: Any, waitForRetries: Boolean = false): Source[TransitionResponse, NotUsed] = {
-    askSource[Any](actor, msg, takeWhileNotFailed(topology, waitForRetries)).map {
-      case e: TransitionResponse => e
-      case msg @ _ => throw new RuntimeException(s"Unexepected response message: $msg")
-    }
+    askSource[Any](actor, msg, takeWhileNotFailed(topology, waitForRetries))
+      .map {
+        case e: TransitionResponse => Xor.Right(e)
+        case msg @ _ => Xor.Left(s"Received unexpected message: $msg")
+      }
+      .takeWhile(_.isRight)
+      .map(_.asInstanceOf[Xor.Right[TransitionResponse]].b)
   }
 }

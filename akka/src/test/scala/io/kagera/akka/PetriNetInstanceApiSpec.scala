@@ -42,5 +42,20 @@ class PetriNetInstanceApiSpec extends AkkaTestBase {
       responses(1).transitionId shouldBe 2
       responses(2).transitionId shouldBe 3
     }
+
+    "Return an empty source when the petri net instance is 'uninitialized'" in new TestSequenceNet {
+
+      val waitTimeout = 2 seconds
+
+      override val sequence = Seq(transition()(_ => Added(1)))
+
+      val actor = PetriNetInstanceSpec.createPetriNetActor[Set[Int]](petriNet)
+      val api = new PetriNetInstanceApi(petriNet, actor)
+      val source: Source[TransitionResponse, NotUsed] = api.askAndCollectAll(FireTransition(1, ()))
+
+      val responses = Await.result(source.runWith(Sink.seq[TransitionResponse]), waitTimeout)
+
+      responses.isEmpty shouldBe true
+    }
   }
 }
