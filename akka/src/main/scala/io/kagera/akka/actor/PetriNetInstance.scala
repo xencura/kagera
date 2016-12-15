@@ -78,7 +78,7 @@ class PetriNetInstance[S](
   }
 
   def running(instance: Instance[S]): Receive = {
-    case IdleStop(n) if n == instance.sequenceNr && instance.jobs.isEmpty =>
+    case IdleStop(n) if n == instance.sequenceNr && instance.activeJobs.isEmpty =>
       log.info(s"Process was idle for '${settings.idleTTL}, stopping the actor")
       context.stop(context.self)
     case GetState =>
@@ -131,7 +131,7 @@ class PetriNetInstance[S](
   def step(instance: Instance[S]) = {
     fireAllEnabledTransitions.run(instance).value match {
       case (updatedInstance, jobs) =>
-        if (jobs.isEmpty && updatedInstance.jobs.isEmpty)
+        if (jobs.isEmpty && updatedInstance.activeJobs.isEmpty)
           settings.idleTTL.foreach { ttl =>
             system.scheduler.scheduleOnce(ttl, context.self, IdleStop(updatedInstance.sequenceNr))
           }
