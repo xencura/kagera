@@ -162,6 +162,7 @@ class PetriNetInstanceSpec extends AkkaTestBase {
       watch(actor)
       actor ! PoisonPill
       expectMsgClass(classOf[Terminated])
+      Thread.sleep(100)
 
       // create a new actor with the same persistent identifier
       val newActor = createPetriNetActor[Set[Int]](petriNet, actorName)
