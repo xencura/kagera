@@ -14,7 +14,19 @@ import io.kagera.api.colored.{ Transition, _ }
 import scala.collection.immutable.Seq
 import scala.concurrent.{ Await, Future }
 
-case class Error(msg: String)
+sealed trait ErrorResponse {
+  def msg: String
+}
+
+object ErrorResponse {
+  def unapply(arg: ErrorResponse): Option[String] = Some(arg.msg)
+}
+
+case class UnexpectedMessage(msg: String) extends ErrorResponse
+
+case object UnknownProcessId extends ErrorResponse {
+  val msg: String = s"Unknown process id"
+}
 
 /**
  * An actor that pushes all received messages on a SourceQueueWithComplete.
@@ -69,20 +81,20 @@ class PetriNetInstanceApi[S](topology: ExecutablePetriNet[S], actor: ActorRef)(i
   materializer: Materializer
 ) {
 
-  import actorSystem.dispatcher
   import PetriNetInstanceApi._
+  import actorSystem.dispatcher
 
   /**
    * Fires a transition and confirms (waits) for the result of that transition firing.
    */
-  def askAndConfirmFirst(msg: Any)(implicit timeout: Timeout): Future[Xor[Error, InstanceState[S]]] = {
+  def askAndConfirmFirst(msg: Any)(implicit timeout: Timeout): Future[Xor[UnexpectedMessage, InstanceState[S]]] = {
     actor.ask(msg).map {
       case e: TransitionFired[_] => Xor.Right(e.result.asInstanceOf[InstanceState[S]])
-      case msg @ _ => Xor.Left(Error(s"Received unexepected message: $msg"))
+      case msg @ _ => Xor.Left(UnexpectedMessage(s"Received unexepected message: $msg"))
     }
   }
 
-  def askAndConfirmFirstSync(msg: Any)(implicit timeout: Timeout): Xor[Error, InstanceState[S]] = {
+  def askAndConfirmFirstSync(msg: Any)(implicit timeout: Timeout): Xor[UnexpectedMessage, InstanceState[S]] = {
     Await.result(askAndConfirmFirst(topology, msg), timeout.duration)
   }
 
@@ -91,20 +103,21 @@ class PetriNetInstanceApi[S](topology: ExecutablePetriNet[S], actor: ActorRef)(i
    */
   def askAndConfirmAll(msg: Any, waitForRetries: Boolean = false)(implicit
     timeout: Timeout
-  ): Future[Xor[Error, InstanceState[S]]] = {
+  ): Future[Xor[ErrorResponse, InstanceState[S]]] = {
 
     val futureMessages = askAndCollectAll(msg, waitForRetries).runWith(Sink.seq)
 
     futureMessages.map {
-      _.last match {
-        case e: TransitionFired[_] => Xor.Right(e.result.asInstanceOf[InstanceState[S]])
-        case msg @ _ => Xor.Left(Error(s"Received unexpected message: $msg"))
+      _.lastOption match {
+        case Some(e: TransitionFired[_]) => Xor.Right(e.result.asInstanceOf[InstanceState[S]])
+        case Some(msg) => Xor.Left(UnexpectedMessage(s"Received unexpected message: $msg"))
+        case None => Xor.Left(UnknownProcessId)
       }
     }
   }
 
   /**
-   * Collects
+   * Synchronously collects all messages in response to a message sent to a PetriNet instance.
    */
   def askAndCollectAllSync(msg: Any, waitForRetries: Boolean = false)(implicit
     timeout: Timeout
@@ -120,8 +133,9 @@ class PetriNetInstanceApi[S](topology: ExecutablePetriNet[S], actor: ActorRef)(i
     askAndCollectAll(FireTransition(transitionId, input))
 
   /**
-   * Collects all the messages from the petri net actor in reponse to a message. If the instance is 'uninitialized'
-   * returns an empty source.
+   * Returns a Source of all the messages from a petri net actor in reponse to a message.
+   *
+   * If the instance is 'uninitialized' returns an empty source.
    */
   def askAndCollectAll(msg: Any, waitForRetries: Boolean = false): Source[TransitionResponse, NotUsed] = {
     askSource[Any](actor, msg, takeWhileNotFailed(topology, waitForRetries))
