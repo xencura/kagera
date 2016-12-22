@@ -74,6 +74,7 @@ class PetriNetInstance[S](
       }
     case msg: Command =>
       sender() ! IllegalCommand("Only accepting Initialize commands in 'uninitialized' state")
+      context.stop(context.self)
   }
 
   def running(instance: Instance[S]): Receive = {
@@ -151,7 +152,7 @@ class PetriNetInstance[S](
   }
 
   def executeJob[E](job: Job[S, E], originalSender: ActorRef) =
-    runJob(job, executor)(settings.evaluationStrategy).unsafeRunAsyncFuture().pipeTo(context.self)(originalSender)
+    runJobAsync(job, executor)(settings.evaluationStrategy).unsafeRunAsyncFuture().pipeTo(context.self)(originalSender)
 
   override def onRecoveryCompleted(instance: Instance[S]) = step(instance)
 }

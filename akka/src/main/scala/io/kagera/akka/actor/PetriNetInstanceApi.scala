@@ -14,7 +14,19 @@ import io.kagera.api.colored.{ Transition, _ }
 import scala.collection.immutable.Seq
 import scala.concurrent.{ Await, Future }
 
-case class Error(msg: String)
+sealed trait ErrorResponse {
+  def msg: String
+}
+
+object ErrorResponse {
+  def unapply(arg: ErrorResponse): Option[String] = Some(arg.msg)
+}
+
+case class UnexpectedMessage(msg: String) extends ErrorResponse
+
+case object UnknownProcessId extends ErrorResponse {
+  val msg: String = s"Unknown process id"
+}
 
 /**
  * An actor that pushes all received messages on a SourceQueueWithComplete.
@@ -69,20 +81,20 @@ class PetriNetInstanceApi[S](topology: ExecutablePetriNet[S], actor: ActorRef)(i
   materializer: Materializer
 ) {
 
-  import actorSystem.dispatcher
   import PetriNetInstanceApi._
+  import actorSystem.dispatcher
 
   /**
    * Fires a transition and confirms (waits) for the result of that transition firing.
    */
-  def askAndConfirmFirst(msg: Any)(implicit timeout: Timeout): Future[Xor[Error, InstanceState[S]]] = {
+  def askAndConfirmFirst(msg: Any)(implicit timeout: Timeout): Future[Xor[UnexpectedMessage, InstanceState[S]]] = {
     actor.ask(msg).map {
       case e: TransitionFired[_] => Xor.Right(e.result.asInstanceOf[InstanceState[S]])
-      case msg @ _ => Xor.Left(Error(s"Received unexepected message: $msg"))
+      case msg @ _ => Xor.Left(UnexpectedMessage(s"Received unexepected message: $msg"))
     }
   }
 
-  def askAndConfirmFirstSync(msg: Any)(implicit timeout: Timeout): Xor[Error, InstanceState[S]] = {
+  def askAndConfirmFirstSync(msg: Any)(implicit timeout: Timeout): Xor[UnexpectedMessage, InstanceState[S]] = {
     Await.result(askAndConfirmFirst(topology, msg), timeout.duration)
   }
 
@@ -91,20 +103,21 @@ class PetriNetInstanceApi[S](topology: ExecutablePetriNet[S], actor: ActorRef)(i
    */
   def askAndConfirmAll(msg: Any, waitForRetries: Boolean = false)(implicit
     timeout: Timeout
-  ): Future[Xor[Error, InstanceState[S]]] = {
+  ): Future[Xor[ErrorResponse, InstanceState[S]]] = {
 
     val futureMessages = askAndCollectAll(msg, waitForRetries).runWith(Sink.seq)
 
     futureMessages.map {
-      _.last match {
-        case e: TransitionFired[_] => Xor.Right(e.result.asInstanceOf[InstanceState[S]])
-        case msg @ _ => Xor.Left(Error(s"Received unexpected message: $msg"))
+      _.lastOption match {
+        case Some(e: TransitionFired[_]) => Xor.Right(e.result.asInstanceOf[InstanceState[S]])
+        case Some(msg) => Xor.Left(UnexpectedMessage(s"Received unexpected message: $msg"))
+        case None => Xor.Left(UnknownProcessId)
       }
     }
   }
 
   /**
-   * Synchronously collects all messages from a petri net actor in response to a message.
+   * Synchronously collects all messages in response to a message sent to a PetriNet instance.
    */
   def askAndCollectAllSync(msg: Any, waitForRetries: Boolean = false)(implicit
     timeout: Timeout
@@ -114,18 +127,23 @@ class PetriNetInstanceApi[S](topology: ExecutablePetriNet[S], actor: ActorRef)(i
   }
 
   /**
-   * Returns a Source of messages in response to a FireTransition command.
+   * Sends a FireTransition command to the actor and returns a Source of TransitionResponse messages
    */
   def fireTransition(transitionId: Long, input: Any): Source[TransitionResponse, NotUsed] =
     askAndCollectAll(FireTransition(transitionId, input))
 
   /**
    * Returns a Source of all the messages from a petri net actor in reponse to a message.
+   *
+   * If the instance is 'uninitialized' returns an empty source.
    */
   def askAndCollectAll(msg: Any, waitForRetries: Boolean = false): Source[TransitionResponse, NotUsed] = {
-    askSource[Any](actor, msg, takeWhileNotFailed(topology, waitForRetries)).map {
-      case e: TransitionResponse => e
-      case msg @ _ => throw new RuntimeException(s"Unexepected response message: $msg")
-    }
+    askSource[Any](actor, msg, takeWhileNotFailed(topology, waitForRetries))
+      .map {
+        case e: TransitionResponse => Xor.Right(e)
+        case msg @ _ => Xor.Left(s"Received unexpected message: $msg")
+      }
+      .takeWhile(_.isRight)
+      .map(_.asInstanceOf[Xor.Right[TransitionResponse]].b)
   }
 }
