@@ -5,3 +5,7 @@ jdk:
    - oraclejdk8
 notifications:
   email: false
+
+cache:
+  directories:
+  - $HOME/.ivy2
