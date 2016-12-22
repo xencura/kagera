@@ -8,7 +8,7 @@ import io.kagera.akka.PetriNetInstanceSpec._
 import io.kagera.akka.actor.PetriNetInstance
 import io.kagera.akka.actor.PetriNetInstance.Settings
 import io.kagera.akka.actor.PetriNetInstanceProtocol._
-import io.kagera.api.colored.ExceptionStrategy.{ Fatal, RetryWithDelay }
+import io.kagera.api.colored.ExceptionStrategy.{ BlockTransition, Fatal, RetryWithDelay }
 import io.kagera.api.colored._
 import io.kagera.api.colored.dsl._
 import org.scalatest.time.{ Milliseconds, Span }
@@ -147,7 +147,7 @@ class PetriNetInstanceSpec extends AkkaTestBase {
       val msg = expectMsgClass(classOf[TransitionNotEnabled])
     }
 
-    "Be able to restore it's state after termination" in new TestSequenceNet {
+    "Be able to restore it's state from persistent storage after termination" in new TestSequenceNet {
 
       override val sequence = Seq(transition()(_ => Added(1)), transition(automated = true)(_ => Added(2)))
 
@@ -181,8 +181,44 @@ class PetriNetInstanceSpec extends AkkaTestBase {
 
       newActor ! GetState
 
-      // assert that the marking is the same as before termination
+      // assert that the actor is the same as before termination
       expectMsg(InstanceState[Set[Int]](3, Marking(place(3) -> 1), Set(1, 2), Map.empty))
+    }
+
+    "Not re-fire a failed/blocked transition after being restored from persistent storage" in new TestSequenceNet {
+
+      override val sequence = Seq(
+        transition(automated = true)(_ => Added(1)),
+        transition(automated = true)(_ => throw new RuntimeException("t2 failed"))
+      )
+
+      val actorName = java.util.UUID.randomUUID().toString
+
+      val actor = createPetriNetActor[Set[Int]](petriNet, actorName)
+
+      actor ! Initialize(initialMarking, Set.empty)
+      expectMsgClass(classOf[Initialized[_]])
+
+      // expect the next marking: p2 -> 1
+      expectMsgPF() { case TransitionFired(1, _, _, _) => }
+      expectMsgPF() { case TransitionFailed(2, _, _, _, BlockTransition) => }
+
+      // terminate the actor
+      watch(actor)
+      actor ! PoisonPill
+      expectMsgClass(classOf[Terminated])
+
+      // create a new actor with the same persistent identifier
+      val newActor = createPetriNetActor[Set[Int]](petriNet, actorName)
+
+      // TODO assert t2 is not fired again using mocks
+
+      newActor ! GetState
+
+      // assert that the actor is the same as before termination
+      expectMsgPF() { case InstanceState(2, marking, _, jobs) =>
+
+      }
     }
 
     "When Idle terminate after some time if an idle TTL has been specified" in new TestSequenceNet {
@@ -215,8 +251,8 @@ class PetriNetInstanceSpec extends AkkaTestBase {
       val p2 = Place[Unit](id = 2)
 
       val t1 = nullTransition[Unit](id = 1, automated = false)
-      val t2 = transition(id = 2, automated = true)(unit => Thread.sleep(500))
-      val t3 = transition(id = 3, automated = true)(unit => Thread.sleep(500))
+      val t2 = transition(id = 2, automated = true)(_ => Thread.sleep(500))
+      val t3 = transition(id = 3, automated = true)(_ => Thread.sleep(500))
 
       val petriNet = createPetriNet(t1 ~> p1, t1 ~> p2, p1 ~> t2, p2 ~> t3)
 

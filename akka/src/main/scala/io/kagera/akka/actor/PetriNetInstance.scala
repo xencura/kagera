@@ -66,10 +66,11 @@ class PetriNetInstance[S](
   def uninitialized: Receive = {
     case msg @ Initialize(marking, state) =>
       log.debug(s"Received message: {}", msg)
-      persistEvent(Instance.uninitialized(topology), InitializedEvent(marking, state.asInstanceOf[S])) {
-        (updatedState, e) =>
-          step(updatedState)
-          sender() ! Initialized(marking, state)
+      val uninitialized = Instance.uninitialized[S](topology)
+      persistEvent(uninitialized, InitializedEvent(marking, state.asInstanceOf[S])) {
+        (applyEvent(uninitialized) _)
+          .andThen(step)
+          .andThen { _ => sender() ! Initialized(marking, state) }
       }
     case msg: Command =>
       sender() ! IllegalCommand("Only accepting Initialize commands in 'uninitialized' state")
@@ -87,16 +88,24 @@ class PetriNetInstance[S](
       log.debug(s"Received message: {}", e)
       log.debug(s"Transition '${topology.transitions.getById(transitionId)}' successfully fired")
 
-      persistEvent(instance, e) { (updateInstance, e) =>
-        step(updateInstance)
-        sender() ! TransitionFired[S](transitionId, e.consumed, e.produced, instanceState(updateInstance))
-      }
+      persistEvent(instance, e)(
+        (applyEvent(instance) _)
+          .andThen(step)
+          .andThen { updatedInstance =>
+            sender() ! TransitionFired[S](transitionId, e.consumed, e.produced, instanceState(updatedInstance))
+          }
+      )
 
     case e @ TransitionFailedEvent(jobId, transitionId, timeStarted, timeFailed, consume, input, reason, strategy) =>
       log.debug(s"Received message: {}", e)
       log.warning(s"Transition '${topology.transitions.getById(transitionId)}' failed with: {}", reason)
 
       val updatedInstance = applyEvent(instance)(e)
+
+      def updateAndRespond(instance: Instance[S]) = {
+        sender() ! TransitionFailed(transitionId, consume, input, reason, strategy)
+        context become running(instance)
+      }
 
       strategy match {
         case RetryWithDelay(delay) =>
@@ -105,11 +114,10 @@ class PetriNetInstance[S](
           )
           val originalSender = sender()
           system.scheduler.scheduleOnce(delay milliseconds) { executeJob(updatedInstance.jobs(jobId), originalSender) }
+          updateAndRespond(applyEvent(instance)(e))
         case _ =>
+          persistEvent(instance, e)((applyEvent(instance) _).andThen(updateAndRespond _))
       }
-
-      sender() ! TransitionFailed(transitionId, consume, input, reason, strategy)
-      context become running(updatedInstance)
 
     case msg @ FireTransition(id, input, correlationId) =>
       log.debug(s"Received message: {}", msg)
@@ -126,7 +134,8 @@ class PetriNetInstance[S](
       sender() ! IllegalCommand("Already initialized")
   }
 
-  def step(instance: Instance[S]) = {
+  // TODO remove side effecting here
+  def step(instance: Instance[S]): Instance[S] = {
     fireAllEnabledTransitions.run(instance).value match {
       case (updatedInstance, jobs) =>
         if (jobs.isEmpty && updatedInstance.activeJobs.isEmpty)
@@ -137,6 +146,7 @@ class PetriNetInstance[S](
 
         jobs.foreach(job => executeJob(job, sender()))
         context become running(updatedInstance)
+        updatedInstance
     }
   }
 

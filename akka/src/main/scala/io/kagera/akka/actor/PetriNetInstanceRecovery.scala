@@ -19,24 +19,22 @@ trait PetriNetInstanceRecovery[S] {
 
   def applyEvent(i: Instance[S])(e: Event): Instance[S] = EventSourcing.applyEvent(e).runS(i).value
 
-  def persistEvent[T, E <: Event](instance: Instance[S], e: E)(fn: (Instance[S], E) => T): Unit = {
-
+  def persistEvent[T, E <: Event](instance: Instance[S], e: E)(fn: E => T): Unit = {
     val serializedEvent = serializer.serializeEvent(e)(instance)
-    val updatedState = applyEvent(instance)(e)
-    persist(serializedEvent) { persisted =>
-      fn.apply(updatedState, e)
-    }
+    persist(serializedEvent) { persisted => fn.apply(e) }
   }
 
   private var recoveringState: Instance[S] = Instance.uninitialized[S](topology)
 
+  private def applyToRecoveringState(e: AnyRef) = {
+    val deserializedEvent = serializer.deserializeEvent(e)(recoveringState)
+    recoveringState = applyEvent(recoveringState)(deserializedEvent)
+  }
+
   override def receiveRecover: Receive = {
-    case e: messages.Initialized =>
-      val deserializedEvent = serializer.deserializeEvent(e)(recoveringState)
-      recoveringState = applyEvent(recoveringState)(deserializedEvent)
-    case e: messages.TransitionFired =>
-      val deserializedEvent = serializer.deserializeEvent(e)(recoveringState)
-      recoveringState = applyEvent(recoveringState)(deserializedEvent)
+    case e: messages.Initialized => applyToRecoveringState(e)
+    case e: messages.TransitionFired => applyToRecoveringState(e)
+    case e: messages.TransitionFailed => applyToRecoveringState(e)
     case RecoveryCompleted =>
       if (recoveringState.sequenceNr > 0)
         onRecoveryCompleted(recoveringState)

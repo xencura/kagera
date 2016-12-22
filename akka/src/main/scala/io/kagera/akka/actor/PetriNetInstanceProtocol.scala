@@ -40,7 +40,7 @@ object PetriNetInstanceProtocol {
   case class FireTransition(transitionId: Long, input: Any, correlationId: Option[Long] = None) extends Command
 
   /**
-   * A common trait for all reponses coming from a petri net instance.
+   * A common trait for all responses coming from a petri net instance.
    */
   sealed trait Response
 
@@ -99,7 +99,7 @@ object PetriNetInstanceProtocol {
   /**
    * Response containing the state of the process.
    */
-  case class InstanceState[S](sequenceNr: BigInt, marking: Marking, state: S, failures: Map[Long, ExceptionState]) {
+  case class InstanceState[S](sequenceNr: Long, marking: Marking, state: S, failures: Map[Long, ExceptionState]) {
 
     def hasFailed(transitionId: Long): Boolean = failures.contains(transitionId)
   }
