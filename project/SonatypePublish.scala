@@ -25,9 +25,9 @@ object SonatypePublish {
             <name>Merlijn van Ittersum</name>
           </developer>
         </developers>
-      ),
+    ),
     publishMavenStyle := true,
-    publishTo <<= version((v: String) => Some(if (isSnapshot(v)) ossSnapshots else ossStaging)),
+    publishTo := Some(if (isSnapshot(version.value)) ossSnapshots else ossStaging),
     publishArtifact in Test := false,
     pomIncludeRepository := (_ => false),
     releaseProcess := Seq[ReleaseStep](

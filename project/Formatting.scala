@@ -6,7 +6,7 @@ import scalariform.formatter.preferences._
 object Formatting {
   lazy val formattingSettings = SbtScalariform.scalariformSettings ++ Seq(
     ScalariformKeys.preferences in Compile := formattingPreferences,
-    ScalariformKeys.preferences in Test    := formattingPreferences
+    ScalariformKeys.preferences in Test := formattingPreferences
   )
 
   private def formattingPreferences =
@@ -15,6 +15,5 @@ object Formatting {
       .setPreference(AlignSingleLineCaseStatements, true)
       .setPreference(AlignSingleLineCaseStatements.MaxArrowIndent, 60)
       .setPreference(DoubleIndentClassDeclaration, true)
-      .setPreference(PreserveDanglingCloseParenthesis, true)
       .setPreference(RewriteArrowSymbols, true)
 }
