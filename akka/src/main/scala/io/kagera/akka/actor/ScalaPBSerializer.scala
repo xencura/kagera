@@ -6,7 +6,7 @@ import java.nio.charset.Charset
 
 import akka.actor.ExtendedActorSystem
 import akka.serialization.SerializerWithStringManifest
-import com.trueaccord.scalapb.{ GeneratedMessage, GeneratedMessageCompanion, Message }
+import scalapb.{ GeneratedMessage, GeneratedMessageCompanion, Message }
 import io.kagera.akka.actor.ScalaPBSerializer._
 import io.kagera.persistence.messages._
 
@@ -45,7 +45,7 @@ class ScalaPBSerializer(system: ExtendedActorSystem) extends SerializerWithStrin
   override def fromBinary(bytes: Array[Byte], manifest: String): AnyRef = {
     manifests
       .get(manifest)
-      .map { case (_, companion) => companion.parseFrom(bytes) }
+      .map { case (_, companion) => companion.parseFrom(bytes).asInstanceOf[AnyRef] }
       .getOrElse(throw new IllegalArgumentException(s"Cannot deserialize byte array with manifest $manifest"))
   }
 
@@ -55,7 +55,7 @@ class ScalaPBSerializer(system: ExtendedActorSystem) extends SerializerWithStrin
 
   override def toBinary(o: AnyRef): Array[Byte] = {
     o match {
-      case msg: com.trueaccord.scalapb.GeneratedMessage =>
+      case msg: GeneratedMessage =>
         val stream: ByteArrayOutputStream = new ByteArrayOutputStream()
         msg.writeTo(stream)
         stream.toByteArray
