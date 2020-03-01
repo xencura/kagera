@@ -1,5 +1,7 @@
 # Kagera: A discrete, colored Petri Net DSL and executor.
 
+The credits for this library go to [@merlijn](https://github.com/merlijn). I've merely forked the library back in the day when we started [Baker](https://github.com/ing-bank/baker) together. It now seems that Merlijn removed it from his own GitHub account.
+
 Example of a simple colored Petri net with functions acting on the data in the tokens.
 
 ```
