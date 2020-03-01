@@ -1,6 +1,6 @@
-# Kagera. A Discrete, colored Petri Net DSL & Executor.
+# Kagera: A discrete, colored Petri Net DSL and executor.
 
-Example of a simple colored petrinet with functions acting on the data in the tokens.
+Example of a simple colored Petri net with functions acting on the data in the tokens.
 
 ```
 val sum = {
@@ -35,7 +35,7 @@ val sum = {
 Input:
 * `M` is the in-adjacent marking of the transition.
 * `S` is the type of state the transition closes over, `Unit` indicates no state.
-* `I` Is the type of input the transition requires (provided from outside the proces), `Unit` indicates case no input is required.
+* `I` Is the type of input the transition requires (provided from outside the process), `Unit` indicates case no input is required.
 
 Output:
 * `M'` is the out-adjacent marking of the transition.
@@ -51,19 +51,19 @@ The transition's behaviour is defined by 2 functions
 ## Roadmap
 
 Short term:
-* Http API (using akka http)
+* HTTP API (using Akka HTTP)
 * Clustering & Sharding
-* Analysis (using apache Spark or apache Flink), some examples:
+* Analysis (using Apache Spark or Apache Flink), some examples:
   * Path querying
   * Path prediction
   * Transition timing
 
 Long term:
-* Hyarchical petri nets
+* Hierarchical petri nets
 * Timed petri nets
 * Other execution models, such as:
   * Splitting processes over multiple actors, possibly on different nodes in a cluster.
-  * A petri net process as a Stream (using https://github.com/functional-streams-for-scala/fs2 or akka streams for example).
+  * A petri net process as a stream (using https://github.com/functional-streams-for-scala/fs2 or Akka Streams for example).
 * Process migration
   * Providing tools to migrate process state when the petri net topology changes.
 * Visual process editor
