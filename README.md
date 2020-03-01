@@ -30,7 +30,7 @@ val sum = {
 
 ## Transition Model
 
-![Transition Model](https://github.com/merlijn/kagera/raw/master/docs/Kagera%20-%20Transition%20model.jpg)
+![Transition Model](docs/Kagera%20-%20Transition%20model.jpg)
 
 Input:
 * `M` is the in-adjacent marking of the transition.
