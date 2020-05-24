@@ -3,7 +3,6 @@ package io.kagera.akka.actor
 import akka.actor.{ ActorLogging, ActorRef, PoisonPill, Props }
 import akka.pattern.pipe
 import akka.persistence.PersistentActor
-import fs2.Strategy
 import io.kagera.akka.actor.PetriNetInstance.Settings
 import io.kagera.akka.actor.PetriNetInstanceProtocol._
 import io.kagera.api.colored.ExceptionStrategy.RetryWithDelay
@@ -12,17 +11,18 @@ import io.kagera.api.colored._
 import io.kagera.execution.EventSourcing._
 import io.kagera.execution._
 
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.language.existentials
 
 object PetriNetInstance {
 
   case class Settings(
-    evaluationStrategy: Strategy,
+    evaluationStrategy: ExecutionContext,
     idleTTL: Option[FiniteDuration])
 
   val defaultSettings: Settings = Settings(
-    evaluationStrategy = Strategy.fromCachedDaemonPool("Kagera.CachedThreadPool"),
+    evaluationStrategy = ExecutionContext.Implicits.global,
     idleTTL = Some(5 minutes)
   )
 
@@ -152,7 +152,7 @@ class PetriNetInstance[S](
   }
 
   def executeJob[E](job: Job[S, E], originalSender: ActorRef) =
-    runJobAsync(job, executor)(settings.evaluationStrategy).unsafeRunAsyncFuture().pipeTo(context.self)(originalSender)
+    runJobAsync(job, executor)(settings.evaluationStrategy).unsafeToFuture().pipeTo(context.self)(originalSender)
 
   override def onRecoveryCompleted(instance: Instance[S]) = step(instance)
 }

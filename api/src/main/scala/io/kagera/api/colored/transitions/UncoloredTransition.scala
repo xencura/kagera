@@ -1,6 +1,6 @@
 package io.kagera.api.colored.transitions
 
-import fs2.Task
+import cats.effect.IO
 import io.kagera.api.colored._
 import io.kagera.api.multiset.{ MultiSet, _ }
 
@@ -17,5 +17,5 @@ trait UncoloredTransition[Input, Output, State] extends Transition[Input, Output
       }
   }
 
-  def produceEvent(consume: Marking, state: State, input: Input): Task[Output]
+  def produceEvent(consume: Marking, state: State, input: Input): IO[Output]
 }

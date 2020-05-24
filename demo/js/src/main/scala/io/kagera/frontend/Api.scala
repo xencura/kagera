@@ -3,6 +3,7 @@ package io.kagera.frontend
 import io.kagera.demo.model.{ PetriNetModel, ProcessState }
 import org.scalajs.dom.ext.Ajax
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
+import upickle.default._
 
 import scala.concurrent.Future
 

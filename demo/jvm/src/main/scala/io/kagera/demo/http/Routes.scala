@@ -12,6 +12,7 @@ import io.kagera.akka.actor.PetriNetInstance
 import io.kagera.akka.actor.PetriNetInstanceProtocol._
 import io.kagera.api.colored.{ExecutablePetriNet, Generators, Marking}
 import io.kagera.demo.{ConfiguredActorSystem, Queries}
+import upickle.default._
 
 trait Routes extends Directives with Queries with UpickleSupport {
 

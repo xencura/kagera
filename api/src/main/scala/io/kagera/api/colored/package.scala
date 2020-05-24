@@ -1,9 +1,10 @@
 package io.kagera.api
 
-import fs2.Task
+import cats.effect.IO
 import io.kagera.api.multiset._
 
 import scala.language.existentials
+import scala.language.higherKinds
 import scalax.collection.Graph
 import scalax.collection.edge.WLDiEdge
 
@@ -33,7 +34,7 @@ package object colored {
    * @tparam Output The output emitted by the transition.
    * @tparam State  The state the transition closes over.
    */
-  type TransitionFunction[Input, Output, State] = (Marking, State, Input) ⇒ Task[(Marking, Output)]
+  type TransitionFunction[Input, Output, State] = (Marking, State, Input) ⇒ IO[(Marking, Output)]
 
   /**
    * An exception handler function associated with a transition.

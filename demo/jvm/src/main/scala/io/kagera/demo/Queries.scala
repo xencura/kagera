@@ -5,9 +5,9 @@ import akka.actor.Actor
 import akka.persistence.cassandra.query.scaladsl.CassandraReadJournal
 import akka.persistence.query.PersistenceQuery
 import akka.stream.scaladsl.Source
-import io.kagera.akka.persistence.TransitionFired
 import io.kagera.api.colored._
 import io.kagera.api.multiset._
+import io.kagera.persistence.messages.TransitionFired
 
 trait Queries {
 
@@ -16,7 +16,7 @@ trait Queries {
   // obtain read journal
   val readJournal = PersistenceQuery(system).readJournalFor[CassandraReadJournal](CassandraReadJournal.Identifier)
 
-  def allProcessIds: Source[String, NotUsed] = readJournal.allPersistenceIds()
+  def allProcessIds: Source[String, NotUsed] = readJournal.currentPersistenceIds()
 
   def journalFor(id: String): Source[String, NotUsed] = {
     readJournal.currentEventsByPersistenceId(s"process-$id", 0, Long.MaxValue).map {
@@ -32,7 +32,7 @@ class AggregateMarking[S](topology: ExecutablePetriNet[S]) extends Actor {
 
   def updateMarking(aggregateMarking: MultiSet[Long]): Receive = {
 
-    case TransitionFired(_, Some(tid), Some(started), Some(completed), consumed, produced, data) ⇒
+    case TransitionFired(_, _, Some(tid), Some(started), Some(completed), consumed, produced, data) ⇒
       val minusConsumed = consumed.foldLeft(aggregateMarking) {
         case (aggregate, token) ⇒ aggregate.multisetDecrement(token.placeId.get, token.count.get)
       }

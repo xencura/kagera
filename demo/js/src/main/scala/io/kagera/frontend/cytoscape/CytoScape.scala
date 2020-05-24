@@ -3,9 +3,9 @@ package io.kagera.frontend.cytoscape
 import org.scalajs.dom.html
 
 import scala.scalajs.js
-import scala.scalajs.js.annotation.JSName
+import scala.scalajs.js.annotation.{ JSExportTopLevel, JSGlobal, JSName }
 
-@JSName("cytoscape")
+@JSGlobal("cytoscape")
 @js.native
 protected object CytoScapeJS extends js.Object {
 

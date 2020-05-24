@@ -3,13 +3,13 @@ package io.kagera
 import java.io.{ PrintWriter, StringWriter }
 
 import cats.data.State
-import fs2.{ Strategy, Task }
+import cats.effect.IO
 import io.kagera.api._
 import io.kagera.api.colored._
 import io.kagera.execution.EventSourcing._
 
 import scala.collection.Set
-import scala.util.Random
+import scala.concurrent.ExecutionContext
 
 package object execution {
 
