@@ -74,13 +74,13 @@ package object execution {
   /**
    * Executes a job returning a Task[TransitionEvent]
    */
-  def runJobAsync[S, E](job: Job[S, E], executor: TransitionExecutor[S])(implicit S: Strategy): Task[TransitionEvent] = {
+  def runJobAsync[S, E](job: Job[S, E], executor: TransitionExecutor[S])(implicit S: ExecutionContext): IO[TransitionEvent] = {
     val startTime = System.currentTimeMillis()
 
     executor.fireTransition(job.transition)(job.consume, job.processState, job.input).map {
       case (produced, out) ⇒
         TransitionFiredEvent(job.id, job.transition.id, startTime, System.currentTimeMillis(), job.consume, produced, Some(out))
-    }.handle {
+    }.handleErrorWith {
       case e: Throwable ⇒
         val failureCount = job.failureCount + 1
         val failureStrategy = job.transition.exceptionStrategy(e, failureCount)
@@ -89,7 +89,7 @@ package object execution {
         e.printStackTrace(new PrintWriter(sw))
         val stackTraceString = sw.toString
 
-        TransitionFailedEvent(job.id, job.transition.id, startTime, System.currentTimeMillis(), job.consume, Some(job.input), stackTraceString, failureStrategy)
-    }.async
+        IO(TransitionFailedEvent(job.id, job.transition.id, startTime, System.currentTimeMillis(), job.consume, Some(job.input), stackTraceString, failureStrategy))
+    }
   }
 }

@@ -35,7 +35,7 @@ package object api {
   }
 
   def requireUniqueElements[T](i: Iterable[T], name: String = "Element"): Unit = {
-    (Set.empty[T] /: i) { (set, e) ⇒
+    i.foldLeft(Set.empty[T]) { (set, e) ⇒
       if (set.contains(e))
         throw new IllegalArgumentException(s"$name '$e' is not unique!")
       else
