@@ -1,6 +1,6 @@
 package io.kagera.api.colored
 
-import fs2.Task
+import cats.effect.IO
 import io.kagera.api._
 import io.kagera.api.colored.transitions.{ AbstractTransition, IdentityTransition }
 import io.kagera.api.multiset._
@@ -47,7 +47,7 @@ package object dsl {
 
       override def apply(inAdjacent: MultiSet[Place[_]], outAdjacent: MultiSet[Place[_]]) =
         (marking, state, input) =>
-          Task.delay {
+          IO.delay {
             val produced = outAdjacent.map { case (place, weight) =>
               place -> Map(constant -> weight)
             }.toMarking
