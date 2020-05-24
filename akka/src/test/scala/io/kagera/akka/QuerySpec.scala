@@ -2,7 +2,7 @@ package io.kagera.akka
 
 import akka.actor.ActorSystem
 import akka.persistence.query.PersistenceQuery
-import akka.persistence.query.scaladsl.{ AllPersistenceIdsQuery, CurrentEventsByPersistenceIdQuery, ReadJournal }
+import akka.persistence.query.scaladsl.{ CurrentEventsByPersistenceIdQuery, ReadJournal }
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Sink
 import akka.testkit.{ ImplicitSender, TestKit }
@@ -35,7 +35,7 @@ class QuerySpec
       override def readJournal =
         PersistenceQuery(system)
           .readJournalFor("inmemory-read-journal")
-          .asInstanceOf[ReadJournal with CurrentEventsByPersistenceIdQuery with AllPersistenceIdsQuery]
+          .asInstanceOf[ReadJournal with CurrentEventsByPersistenceIdQuery]
 
       val p1 = Place[Unit](id = 1)
       val p2 = Place[Unit](id = 2)

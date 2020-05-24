@@ -1,6 +1,6 @@
 package io.kagera.api.colored
 
-import fs2.Task
+import cats.effect.IO
 import io.kagera.api._
 
 trait TransitionExecutor[State] {
@@ -26,16 +26,16 @@ class TransitionExecutorImpl[State](topology: ColoredPetriNet) extends Transitio
 
   def fireTransition[Input, Output](t: Transition[Input, Output, State]): TransitionFunction[Input, Output, State] = {
     (consume, state, input) =>
-      def handleFailure: PartialFunction[Throwable, Task[(Marking, Output)]] = { case e: Throwable =>
-        Task.fail(e)
+      def handleFailure: PartialFunction[Throwable, IO[(Marking, Output)]] = { case e: Throwable =>
+        IO.raiseError(e).asInstanceOf[IO[(Marking, Output)]]
       }
 
       if (consume.multiplicities != topology.inMarking(t)) {
-        Task.fail(new IllegalArgumentException(s"Transition $t may not consume $consume"))
+        IO.raiseError(new IllegalArgumentException(s"Transition $t may not consume $consume"))
       }
 
       try {
-        transitionFunction(t)(consume, state, input).handleWith { handleFailure }
+        transitionFunction(t)(consume, state, input).handleErrorWith { handleFailure }
       } catch { handleFailure }
   }
 }

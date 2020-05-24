@@ -3,7 +3,6 @@ package io.kagera.akka
 import java.util.UUID
 
 import akka.actor.{ ActorSystem, PoisonPill, Terminated }
-import fs2.Strategy
 import io.kagera.akka.PetriNetInstanceSpec._
 import io.kagera.akka.actor.PetriNetInstance
 import io.kagera.akka.actor.PetriNetInstance.Settings
@@ -13,6 +12,7 @@ import io.kagera.api.colored._
 import io.kagera.api.colored.dsl._
 import org.scalatest.time.{ Milliseconds, Span }
 
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
 object PetriNetInstanceSpec {
@@ -226,8 +226,7 @@ class PetriNetInstanceSpec extends AkkaTestBase {
 
       val ttl = 500 milliseconds
 
-      val customSettings =
-        Settings(evaluationStrategy = Strategy.fromCachedDaemonPool("Kagera.CachedThreadPool"), idleTTL = Some(ttl))
+      val customSettings = Settings(evaluationStrategy = ExecutionContext.Implicits.global, idleTTL = Some(ttl))
 
       override val sequence =
         Seq(transition(automated = false)(_ => Added(1)), transition(automated = false)(_ => Added(2)))

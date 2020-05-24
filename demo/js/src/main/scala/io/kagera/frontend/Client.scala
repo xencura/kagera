@@ -4,10 +4,10 @@ import io.kagera.frontend.cytoscape._
 import org.scalajs.dom.html
 
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
-import scala.scalajs.js.annotation.JSExport
+import scala.scalajs.js.annotation.{ JSExport, JSExportTopLevel }
 import scalatags.JsDom.all._
 
-@JSExport
+@JSExportTopLevel("Client")
 object Client extends {
 
   @JSExport

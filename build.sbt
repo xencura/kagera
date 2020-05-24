@@ -32,7 +32,7 @@ lazy val akka = Project("akka", file("akka"))
     defaultProjectSettings ++ Seq(
       name := "kagera-akka",
       libraryDependencies ++= Seq(
-        scalaReflect,
+        "org.scala-lang" % "scala-reflect" % scalaVersion.value,
         akkaActor,
         akkaPersistence,
         akkaSlf4j,
@@ -56,7 +56,7 @@ lazy val demo = (crossProject(JSPlatform, JVMPlatform) in file("demo"))
   .settings(defaultProjectSettings: _*)
   .settings(
     unmanagedSourceDirectories in Compile += baseDirectory.value / "shared" / "main" / "scala",
-    libraryDependencies ++= Seq("com.lihaoyi" %%% "scalatags" % "0.4.6", "com.lihaoyi" %%% "upickle" % "0.4.2")
+    libraryDependencies ++= Seq("com.lihaoyi" %%% "scalatags" % "0.9.1", "com.lihaoyi" %%% "upickle" % "1.1.0")
   )
   .jsSettings(
     jsDependencies ++= Seq(
@@ -65,13 +65,13 @@ lazy val demo = (crossProject(JSPlatform, JVMPlatform) in file("demo"))
         minified s"$cytoscapeVersion/dist/cytoscape.min.js"
         commonJSName "cytoscape"
     ),
-    libraryDependencies ++= Seq("org.scala-js" %%% "scalajs-dom" % "0.8.0")
+    libraryDependencies ++= Seq("org.scala-js" %%% "scalajs-dom" % "1.0.0")
   )
   .jvmSettings(
     libraryDependencies ++= Seq(
-      "de.heikoseeberger" %% "akka-http-upickle" % "1.10.1",
+      "de.heikoseeberger" %% "akka-http-upickle" % "1.32.0",
       akkaHttp,
-      akkaPersistenceQuery,
+      akkaQuery,
       akkaPersistenceCassandra
     ),
     name := "demo-app",

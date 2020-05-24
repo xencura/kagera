@@ -6,7 +6,6 @@ import akka.pattern.ask
 import akka.stream.scaladsl.{ Sink, Source, SourceQueueWithComplete }
 import akka.stream.{ Materializer, OverflowStrategy }
 import akka.util.Timeout
-import cats.data.Xor
 import io.kagera.akka.actor.PetriNetInstanceProtocol._
 import io.kagera.api.colored.ExceptionStrategy.RetryWithDelay
 import io.kagera.api.colored.{ Transition, _ }
@@ -87,14 +86,14 @@ class PetriNetInstanceApi[S](topology: ExecutablePetriNet[S], actor: ActorRef)(i
   /**
    * Fires a transition and confirms (waits) for the result of that transition firing.
    */
-  def askAndConfirmFirst(msg: Any)(implicit timeout: Timeout): Future[Xor[UnexpectedMessage, InstanceState[S]]] = {
+  def askAndConfirmFirst(msg: Any)(implicit timeout: Timeout): Future[Either[UnexpectedMessage, InstanceState[S]]] = {
     actor.ask(msg).map {
-      case e: TransitionFired[_] => Xor.Right(e.result.asInstanceOf[InstanceState[S]])
-      case msg @ _ => Xor.Left(UnexpectedMessage(s"Received unexepected message: $msg"))
+      case e: TransitionFired[_] => Right(e.result.asInstanceOf[InstanceState[S]])
+      case msg @ _ => Left(UnexpectedMessage(s"Received unexepected message: $msg"))
     }
   }
 
-  def askAndConfirmFirstSync(msg: Any)(implicit timeout: Timeout): Xor[UnexpectedMessage, InstanceState[S]] = {
+  def askAndConfirmFirstSync(msg: Any)(implicit timeout: Timeout): Either[UnexpectedMessage, InstanceState[S]] = {
     Await.result(askAndConfirmFirst(topology, msg), timeout.duration)
   }
 
@@ -103,15 +102,15 @@ class PetriNetInstanceApi[S](topology: ExecutablePetriNet[S], actor: ActorRef)(i
    */
   def askAndConfirmAll(msg: Any, waitForRetries: Boolean = false)(implicit
     timeout: Timeout
-  ): Future[Xor[ErrorResponse, InstanceState[S]]] = {
+  ): Future[Either[ErrorResponse, InstanceState[S]]] = {
 
     val futureMessages = askAndCollectAll(msg, waitForRetries).runWith(Sink.seq)
 
     futureMessages.map {
       _.lastOption match {
-        case Some(e: TransitionFired[_]) => Xor.Right(e.result.asInstanceOf[InstanceState[S]])
-        case Some(msg) => Xor.Left(UnexpectedMessage(s"Received unexpected message: $msg"))
-        case None => Xor.Left(UnknownProcessId)
+        case Some(e: TransitionFired[_]) => Right(e.result.asInstanceOf[InstanceState[S]])
+        case Some(msg) => Left(UnexpectedMessage(s"Received unexpected message: $msg"))
+        case None => Left(UnknownProcessId)
       }
     }
   }
@@ -140,10 +139,10 @@ class PetriNetInstanceApi[S](topology: ExecutablePetriNet[S], actor: ActorRef)(i
   def askAndCollectAll(msg: Any, waitForRetries: Boolean = false): Source[TransitionResponse, NotUsed] = {
     askSource[Any](actor, msg, takeWhileNotFailed(topology, waitForRetries))
       .map {
-        case e: TransitionResponse => Xor.Right(e)
-        case msg @ _ => Xor.Left(s"Received unexpected message: $msg")
+        case e: TransitionResponse => Right(e)
+        case msg @ _ => Left(s"Received unexpected message: $msg")
       }
       .takeWhile(_.isRight)
-      .map(_.asInstanceOf[Xor.Right[TransitionResponse]].b)
+      .map(_.asInstanceOf[Right[NotUsed, TransitionResponse]].value)
   }
 }
