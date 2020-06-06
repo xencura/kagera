@@ -3,8 +3,8 @@ import sbt._
 
 object Dependencies {
 
-  val akkaVersion = "2.4.12"
-  val akkaHttpVersion = "2.4.11"
+  val akkaVersion = "2.5.31"
+  val akkaHttpVersion = "10.1.12"
   val sprayVersion = "1.3.2"
   val scalazVersion = "7.1.3"
   val cytoscapeVersion = "2.7.9"

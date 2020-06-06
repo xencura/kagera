@@ -13,7 +13,12 @@ val commonScalacOptions = Seq(
 )
 
 lazy val basicSettings =
-  Seq(organization := "io.kagera", scalaVersion := "2.11.12", scalacOptions := commonScalacOptions)
+  Seq(
+    organization := "io.kagera",
+    crossScalaVersions := Seq("2.12.11", "2.11.12"),
+    scalaVersion := crossScalaVersions.value.head,
+    scalacOptions := commonScalacOptions
+  )
 
 lazy val defaultProjectSettings = basicSettings ++ SonatypePublish.settings
 
