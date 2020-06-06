@@ -1,9 +1,13 @@
 name: Scala CI
 
-on: [push]
+on: [push, pull_request]
 
 jobs:
   build:
+    strategy:
+      fail-fast: false
+      matrix:
+        scala: ["2.12.11", "2.11.12"]
 
     runs-on: ubuntu-latest
 
@@ -14,4 +18,4 @@ jobs:
       with:
         java-version: 1.8
     - name: Run tests
-      run: sbt test
+      run: sbt ++${{ matrix.scala }} test
