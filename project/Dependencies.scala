@@ -25,8 +25,8 @@ object Dependencies {
 
   val akkaPersistenceCassandra = "com.typesafe.akka" %% "akka-persistence-cassandra" % "0.103"
 
-  val scalaGraph = "org.scala-graph" %% "graph-core" % "1.12.5"
-  val scalaGraphDot = "org.scala-graph" %% "graph-dot" % "1.11.5"
+  val scalaGraph = "org.scala-graph" %% "graph-core" % "1.13.1"
+  val scalaGraphDot = "org.scala-graph" %% "graph-dot" % "1.13.0"
 
   val fs2Core = "co.fs2" %% "fs2-core" % "2.1.0"
   val catsCore = "org.typelevel" %% "cats-core" % "2.0.0"

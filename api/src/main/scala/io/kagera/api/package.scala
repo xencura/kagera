@@ -47,7 +47,7 @@ package object api {
     }
   }
 
-  type BiPartiteGraph[P, T, E[X] <: EdgeLikeIn[X]] = Graph[Either[P, T], E]
+  type BiPartiteGraph[P, T, E[+X] <: EdgeLikeIn[X]] = Graph[Either[P, T], E]
 
   /**
    * TODO; can we remove this wrapper? It seems only needed because we need to mix in other traits with PetriNet which
