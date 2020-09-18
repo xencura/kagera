@@ -4,6 +4,7 @@ import cats.effect.IO
 import io.kagera.api.multiset._
 
 import scala.language.existentials
+import scala.collection.compat._
 import scala.language.higherKinds
 import scalax.collection.Graph
 import scalax.collection.edge.WLDiEdge
@@ -60,7 +61,7 @@ package object colored {
    */
   implicit class MarkingAdditions(marking: Marking) {
 
-    def multiplicities: MultiSet[Place[_]] = marking.data.mapValues(_.multisetSize)
+    def multiplicities: MultiSet[Place[_]] = marking.data.view.mapValues(_.multisetSize).toMap
 
     def add[C](p: Place[C], value: C, count: Int = 1): Marking = {
       val newTokens = marking.getOrElse(p, MultiSet.empty).multisetIncrement(value, count)
