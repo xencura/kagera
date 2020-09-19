@@ -15,18 +15,23 @@ val commonScalacOptions = Seq(
 lazy val basicSettings =
   Seq(
     organization := "io.kagera",
-    crossScalaVersions := Seq("2.12.11", "2.11.12"),
+    crossScalaVersions := Seq("2.13.3", "2.12.12"),
     scalaVersion := crossScalaVersions.value.head,
     scalacOptions := commonScalacOptions
   )
 
 lazy val defaultProjectSettings = basicSettings ++ SonatypePublish.settings
 
-lazy val api = Project("api", file("api"))
+lazy val api = project
+  .in(file("api"))
   .settings(defaultProjectSettings: _*)
-  .settings(name := "kagera-api", libraryDependencies ++= Seq(scalaGraph, catsCore, fs2Core, scalatest % "test"))
+  .settings(
+    name := "kagera-api",
+    libraryDependencies ++= Seq(collectionCompat, scalaGraph, catsCore, fs2Core, scalatest % "test")
+  )
 
-lazy val visualization = Project("visualization", file("visualization"))
+lazy val visualization = project
+  .in(file("visualization"))
   .dependsOn(api)
   .settings(defaultProjectSettings: _*)
   .settings(name := "kagera-visualization", libraryDependencies ++= Seq(scalaGraph, scalaGraphDot))
