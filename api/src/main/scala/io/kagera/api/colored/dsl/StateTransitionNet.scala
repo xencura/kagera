@@ -1,6 +1,6 @@
 package io.kagera.api.colored.dsl
 
-import cats.effect.IO
+import cats.effect.Sync
 import io.kagera.api.colored.ExceptionStrategy.BlockTransition
 import io.kagera.api.colored.transitions.{ AbstractTransition, UncoloredTransition }
 import io.kagera.api.colored.{ Marking, Transition, _ }
@@ -22,7 +22,8 @@ trait StateTransitionNet[S, E] {
       with UncoloredTransition[Unit, E, S] {
       override val toString = label
       override val updateState = eventSourcing
-      override def produceEvent(consume: Marking, state: S, input: Unit): IO[E] = IO.delay { (fn(state)) }
+      override def produceEvent[F[_]](consume: Marking, state: S, input: Unit)(implicit sync: Sync[F]): F[E] =
+        Sync.apply.delay { (fn(state)) }
     }
 
   def createPetriNet(arcs: Arc*) = process[S](arcs: _*)
