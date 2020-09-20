@@ -3,6 +3,7 @@ package io.kagera.akka.actor
 import akka.actor.{ ActorLogging, ActorRef, PoisonPill, Props }
 import akka.pattern.pipe
 import akka.persistence.PersistentActor
+import cats.effect.IO
 import io.kagera.akka.actor.PetriNetInstance.Settings
 import io.kagera.akka.actor.PetriNetInstanceProtocol._
 import io.kagera.api.colored.ExceptionStrategy.RetryWithDelay
@@ -39,7 +40,7 @@ object PetriNetInstance {
   }
 
   def props[S](topology: ExecutablePetriNet[S], settings: Settings = defaultSettings): Props =
-    Props(new PetriNetInstance[S](topology, settings, new TransitionExecutorImpl[S](topology)))
+    Props(new PetriNetInstance[S](topology, settings, new TransitionExecutorImpl[IO, S](topology)))
 }
 
 /**
@@ -48,7 +49,7 @@ object PetriNetInstance {
 class PetriNetInstance[S](
   override val topology: ExecutablePetriNet[S],
   val settings: Settings,
-  executor: TransitionExecutor[S]
+  executor: TransitionExecutor[IO, S]
 ) extends PersistentActor
     with ActorLogging
     with PetriNetInstanceRecovery[S] {
