@@ -4,9 +4,10 @@ import java.io.{ PrintWriter, StringWriter }
 
 import cats.data.State
 import cats.effect.IO
+import execution.EventSourcing.TransitionEvent
 import io.kagera.api._
 import io.kagera.api.colored._
-import io.kagera.execution.EventSourcing._
+import execution.EventSourcing._
 
 import scala.collection.Set
 import scala.concurrent.ExecutionContext

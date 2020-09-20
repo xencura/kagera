@@ -36,9 +36,23 @@ lazy val visualization = project
   .settings(defaultProjectSettings: _*)
   .settings(name := "kagera-visualization", libraryDependencies ++= Seq(scalaGraph, scalaGraphDot))
 
+lazy val execution = project
+  .in(file("execution"))
+  .dependsOn(api)
+  .settings(
+    defaultProjectSettings ++ Seq(
+      name := "kagera-execution",
+      libraryDependencies ++= Seq(
+        "org.scala-lang" % "scala-reflect" % scalaVersion.value,
+        scalaGraph,
+        scalatest % "test"
+      )
+    )
+  )
+
 lazy val akka = project
   .in(file("akka"))
-  .dependsOn(api)
+  .dependsOn(api, execution)
   .settings(
     defaultProjectSettings ++ Seq(
       name := "kagera-akka",
@@ -97,7 +111,7 @@ lazy val demoJvm = demo.jvm
   )
 
 lazy val root = Project("kagera", file("."))
-  .aggregate(api, akka, visualization)
+  .aggregate(api, akka, execution, visualization)
   .enablePlugins(BuildInfoPlugin)
   .settings(defaultProjectSettings)
   .settings(
