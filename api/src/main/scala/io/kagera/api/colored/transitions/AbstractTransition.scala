@@ -10,5 +10,5 @@ abstract class AbstractTransition[I, O, S](
   override val label: String,
   override val isAutomated: Boolean,
   override val maximumOperationTime: Duration = Duration.Undefined,
-  override val exceptionStrategy: TransitionExceptionHandler = (e, n) => BlockTransition
-) extends Transition[I, O, S] {}
+  override val exceptionStrategy: TransitionExceptionHandler = (_, _) => BlockTransition
+) extends Transition[I, O, S]

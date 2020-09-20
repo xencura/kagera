@@ -1,13 +1,10 @@
 package io.kagera.api
 
-import cats.effect.IO
 import io.kagera.api.multiset._
-
-import scala.language.existentials
 import scala.collection.compat._
-import scala.language.higherKinds
-import scalax.collection.Graph
 import scalax.collection.edge.WLDiEdge
+
+import scala.language.{ existentials, higherKinds }
 
 package object colored {
 
@@ -39,7 +36,7 @@ package object colored {
    * @tparam State
    *   The state the transition closes over.
    */
-  type TransitionFunction[Input, Output, State] = (Marking, State, Input) => IO[(Marking, Output)]
+  type TransitionFunction[F[_], Input, Output, State] = (Marking, State, Input) => F[(Marking, Output)]
 
   /**
    * An exception handler function associated with a transition.

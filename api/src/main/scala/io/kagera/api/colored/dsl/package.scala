@@ -1,14 +1,14 @@
 package io.kagera.api.colored
 
-import cats.effect.IO
+import cats.ApplicativeError
+import cats.effect.Sync
 import io.kagera.api._
 import io.kagera.api.colored.transitions.{ AbstractTransition, IdentityTransition }
 import io.kagera.api.multiset._
-
-import scala.concurrent.duration.Duration
-import scala.concurrent.{ ExecutionContext, Future }
 import scalax.collection.Graph
 import scalax.collection.edge.WLDiEdge
+
+import scala.concurrent.duration.Duration
 
 /**
  * TODO:
@@ -45,9 +45,12 @@ package object dsl {
 
       override val toString = label
 
-      override def apply(inAdjacent: MultiSet[Place[_]], outAdjacent: MultiSet[Place[_]]) =
+      override def apply[F[_]](inAdjacent: MultiSet[Place[_]], outAdjacent: MultiSet[Place[_]])(implicit
+        sync: Sync[F],
+        applicativeError: ApplicativeError[F, Throwable]
+      ) =
         (marking, state, input) =>
-          IO.delay {
+          sync.delay {
             val produced = outAdjacent.map { case (place, weight) =>
               place -> Map(constant -> weight)
             }.toMarking

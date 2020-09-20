@@ -1,6 +1,6 @@
 package io.kagera.api.colored.dsl
 
-import cats.effect.IO
+import cats.effect.Sync
 import io.kagera.api.colored.ExceptionStrategy.BlockTransition
 import io.kagera.api.colored._
 import io.kagera.api.colored.transitions.{ AbstractTransition, UncoloredTransition }
@@ -13,7 +13,9 @@ case class TransitionBehaviour[S, E](automated: Boolean, exceptionHandler: Trans
       with UncoloredTransition[Unit, E, S] {
       override val toString = label
       override val updateState = eventSource
-      override def produceEvent(consume: Marking, state: S, input: Unit): IO[E] = IO.delay { (fn(state)) }
+      override def produceEvent[F[_] : Sync](consume: Marking, state: S, input: Unit): F[E] = Sync.apply.delay {
+        (fn(state))
+      }
     }
 }
 
