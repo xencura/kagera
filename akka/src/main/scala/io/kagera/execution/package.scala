@@ -87,7 +87,7 @@ package object execution {
   /**
    * Executes a job returning a Task[TransitionEvent]
    */
-  def runJobAsync[S, E](job: Job[S, E], executor: TransitionExecutor[S])(implicit
+  def runJobAsync[S, E](job: Job[S, E], executor: TransitionExecutor[IO, S])(implicit
     S: ExecutionContext
   ): IO[TransitionEvent] = {
     val startTime = System.currentTimeMillis()

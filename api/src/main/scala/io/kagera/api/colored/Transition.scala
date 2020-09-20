@@ -1,5 +1,7 @@
 package io.kagera.api.colored
 
+import cats.ApplicativeError
+import cats.effect.Sync
 import io.kagera.api.colored.ExceptionStrategy.BlockTransition
 import io.kagera.api.multiset.MultiSet
 
@@ -80,7 +82,10 @@ trait Transition[Input, Output, State] {
    * @param outAdjacent
    * @return
    */
-  def apply(inAdjacent: MultiSet[Place[_]], outAdjacent: MultiSet[Place[_]]): TransitionFunction[Input, Output, State]
+  def apply[F[_]](inAdjacent: MultiSet[Place[_]], outAdjacent: MultiSet[Place[_]])(implicit
+    sync: Sync[F],
+    errorHandling: ApplicativeError[F, Throwable]
+  ): TransitionFunction[F, Input, Output, State]
 
   /**
    * The state event sourcing function.
