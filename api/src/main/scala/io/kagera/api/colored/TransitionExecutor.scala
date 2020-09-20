@@ -19,14 +19,14 @@ trait TransitionExecutor[State] {
 class TransitionExecutorImpl[State](topology: ColoredPetriNet) extends TransitionExecutor[State] {
 
   val cachedTransitionFunctions: Map[Transition[_, _, _], _] =
-    topology.transitions.map(t ⇒ t -> t.apply(topology.inMarking(t), topology.outMarking(t))).toMap
+    topology.transitions.map(t => t -> t.apply(topology.inMarking(t), topology.outMarking(t))).toMap
 
   def transitionFunction[Input, Output](t: Transition[Input, Output, State]) =
     cachedTransitionFunctions(t).asInstanceOf[TransitionFunction[Input, Output, State]]
 
   def fireTransition[Input, Output](t: Transition[Input, Output, State]): TransitionFunction[Input, Output, State] = {
-    (consume, state, input) ⇒
-      def handleFailure: PartialFunction[Throwable, IO[(Marking, Output)]] = { case e: Throwable ⇒
+    (consume, state, input) =>
+      def handleFailure: PartialFunction[Throwable, IO[(Marking, Output)]] = { case e: Throwable =>
         IO.raiseError(e).asInstanceOf[IO[(Marking, Output)]]
       }
 

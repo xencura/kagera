@@ -9,11 +9,11 @@ import scala.concurrent.Future
 
 object Api {
 
-  def getProcessIndex(): Future[Set[String]] = Ajax.get("/process_topology/_index").map { xhr ⇒
+  def getProcessIndex(): Future[Set[String]] = Ajax.get("/process_topology/_index").map { xhr =>
     upickle.default.read[Set[String]](xhr.responseText)
   }
 
-  def getProcess(id: String): Future[PetriNetModel] = Ajax.get(s"/process_topology/by_id/$id").map { xhr ⇒
+  def getProcess(id: String): Future[PetriNetModel] = Ajax.get(s"/process_topology/by_id/$id").map { xhr =>
     upickle.default.read[PetriNetModel](xhr.responseText)
   }
 

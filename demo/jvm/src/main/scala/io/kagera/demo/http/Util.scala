@@ -7,21 +7,21 @@ object Util {
   def toModel(pn: ExecutablePetriNet[_]): model.PetriNetModel = {
 
     val places = pn.nodes.collect {
-      case Left(p) ⇒ model.Place(p.id, p.label)
+      case Left(p) => model.Place(p.id, p.label)
     }
 
     val transitions = pn.nodes.collect {
-      case Right(t) ⇒ model.Transition(t.id, t.label)
+      case Right(t) => model.Transition(t.id, t.label)
     }
 
     def nodeId(n: Either[Place[_], Transition[_, _, _]]): String = n match {
-      case Left(p)  ⇒ p.label
-      case Right(t) ⇒ t.label
+      case Left(p)  => p.label
+      case Right(t) => t.label
     }
 
     val graph = pn.innerGraph
 
-    val edges = graph.edges.map { (e: graph.EdgeT) ⇒
+    val edges = graph.edges.map { (e: graph.EdgeT) =>
       model.Edge(nodeId(e.source.value), nodeId(e.target.value), 1)
     }
 

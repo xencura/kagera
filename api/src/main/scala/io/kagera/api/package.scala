@@ -13,18 +13,18 @@ package object api {
   case class Id(value: Long) extends AnyVal
   case class Label(value: String) extends AnyVal
 
-  type Identifiable[T] = T ⇒ Id
-  type Labeled[T] = T ⇒ Label
+  type Identifiable[T] = T => Id
+  type Labeled[T] = T => Label
 
   implicit class LabeledFn[T : Labeled](seq: Iterable[T]) {
-    def findByLabel(label: String): Option[T] = seq.find(e ⇒ implicitly[Labeled[T]].apply(e).value == label)
+    def findByLabel(label: String): Option[T] = seq.find(e => implicitly[Labeled[T]].apply(e).value == label)
     def getByLabel(label: String): T = findByLabel(label).getOrElse {
       throw new IllegalStateException(s"No element found with label: $label")
     }
   }
 
   implicit class IdFn[T : Identifiable](seq: Iterable[T]) {
-    def findById(id: Long): Option[T] = seq.find(e ⇒ implicitly[Identifiable[T]].apply(e).value == id)
+    def findById(id: Long): Option[T] = seq.find(e => implicitly[Identifiable[T]].apply(e).value == id)
     def getById(id: Long): T = findById(id).getOrElse {
       throw new IllegalStateException(s"No element found with id: $id")
     }
@@ -39,7 +39,7 @@ package object api {
   }
 
   def requireUniqueElements[T](i: Iterable[T], name: String = "Element"): Unit = {
-    i.foldLeft(Set.empty[T]) { (set, e) ⇒
+    i.foldLeft(Set.empty[T]) { (set, e) =>
       if (set.contains(e))
         throw new IllegalArgumentException(s"$name '$e' is not unique!")
       else
@@ -74,13 +74,13 @@ package object api {
   implicit class PetriNetGraphNodeTAdditions[A, B](val node: BiPartiteGraph[A, B, WLDiEdge]#NodeT) {
 
     def asPlace: A = node.value match {
-      case Left(p) ⇒ p
-      case _ ⇒ throw new IllegalStateException(s"node $node is not a place!")
+      case Left(p) => p
+      case _ => throw new IllegalStateException(s"node $node is not a place!")
     }
 
     def asTransition: B = node.value match {
-      case Right(t) ⇒ t
-      case _ ⇒ throw new IllegalStateException(s"node $node is not a transition!")
+      case Right(t) => t
+      case _ => throw new IllegalStateException(s"node $node is not a transition!")
     }
 
     def incomingEdgeB(b: B) = node.incoming.find(_.source.value == Right(b)).map(_.toOuter)
@@ -95,14 +95,14 @@ package object api {
     def outgoingPlaces = node.outgoing.map(_.target.asPlace)
     def outgoingTransitions = node.outgoing.map(_.target.asTransition)
 
-    def isPlace = cond(node.value) { case Left(n) ⇒ true }
-    def isTransition = cond(node.value) { case Right(n) ⇒ true }
+    def isPlace = cond(node.value) { case Left(n) => true }
+    def isTransition = cond(node.value) { case Right(n) => true }
   }
 
   implicit class PetriNetGraphAdditions[P, T](val graph: BiPartiteGraph[P, T, WLDiEdge]) {
 
-    def inMarking(t: T): MultiSet[P] = graph.get(t).incoming.map(e ⇒ e.source.asPlace -> e.weight.toInt).toMap
-    def outMarking(t: T): MultiSet[P] = graph.get(t).outgoing.map(e ⇒ e.target.asPlace -> e.weight.toInt).toMap
+    def inMarking(t: T): MultiSet[P] = graph.get(t).incoming.map(e => e.source.asPlace -> e.weight.toInt).toMap
+    def outMarking(t: T): MultiSet[P] = graph.get(t).outgoing.map(e => e.target.asPlace -> e.weight.toInt).toMap
 
     def findPTEdge(from: P, to: T): Option[WLDiEdge[Either[P, T]]] =
       graph.get(Left(from)).outgoing.find(_.target.value == Right(to)).map(_.toOuter)
@@ -118,8 +118,8 @@ package object api {
 
     def outgoingTransitions(p: P): Set[T] = graph.get(p).outgoingTransitions
 
-    def places() = graph.nodes.collect { case n if n.isPlace ⇒ n.asPlace }
+    def places() = graph.nodes.collect { case n if n.isPlace => n.asPlace }
 
-    def transitions() = graph.nodes.collect { case n if n.isTransition ⇒ n.asTransition }
+    def transitions() = graph.nodes.collect { case n if n.isTransition => n.asTransition }
   }
 }

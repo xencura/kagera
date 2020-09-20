@@ -16,9 +16,9 @@ case class Job[S, E](
 ) {
 
   def isActive: Boolean = failure match {
-    case Some(ExceptionState(_, _, _, RetryWithDelay(_))) ⇒ true
-    case None ⇒ true
-    case _ ⇒ false
+    case Some(ExceptionState(_, _, _, RetryWithDelay(_))) => true
+    case None => true
+    case _ => false
   }
 
   lazy val failureCount = failure.map(_.consecutiveFailureCount).getOrElse(0)

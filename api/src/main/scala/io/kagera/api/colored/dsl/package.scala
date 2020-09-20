@@ -27,14 +27,14 @@ package object dsl {
   }
 
   implicit class PlaceDSL[C](p: Place[C]) {
-    def ~>(t: Transition[_, _, _], weight: Long = 1, filter: C ⇒ Boolean = token ⇒ true): Arc =
+    def ~>(t: Transition[_, _, _], weight: Long = 1, filter: C => Boolean = token => true): Arc =
       arc(p, t, weight, filter)
   }
 
   def arc(t: Transition[_, _, _], p: Place[_], weight: Long): Arc =
     WLDiEdge[Node, String](Right(t), Left(p))(weight, "")
 
-  def arc[C](p: Place[C], t: Transition[_, _, _], weight: Long, filter: C ⇒ Boolean = (token: C) ⇒ true): Arc = {
+  def arc[C](p: Place[C], t: Transition[_, _, _], weight: Long, filter: C => Boolean = (token: C) => true): Arc = {
     val innerEdge = new PTEdgeImpl[C](weight, filter)
     WLDiEdge[Node, PTEdge[C]](Left(p), Right(t))(weight, innerEdge)
   }
@@ -46,9 +46,9 @@ package object dsl {
       override val toString = label
 
       override def apply(inAdjacent: MultiSet[Place[_]], outAdjacent: MultiSet[Place[_]]) =
-        (marking, state, input) ⇒
+        (marking, state, input) =>
           IO.delay {
-            val produced = outAdjacent.map { case (place, weight) ⇒
+            val produced = outAdjacent.map { case (place, weight) =>
               place -> Map(constant -> weight)
             }.toMarking
 

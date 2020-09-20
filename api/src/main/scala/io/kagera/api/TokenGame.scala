@@ -3,13 +3,13 @@ package io.kagera.api
 object TokenGame {
 
   // given a process and current marking picks the next transition and marking to fire
-  type Step[P, T, M] = (TokenGame[P, T, M], M) ⇒ Option[(M, T)]
+  type Step[P, T, M] = (TokenGame[P, T, M], M) => Option[(M, T)]
 
-  def stepFirst[P, T, M]: Step[P, T, M] = (process, marking) ⇒ {
-    process.enabledParameters(marking).headOption.map { case (t, enabledMarkings) ⇒ (enabledMarkings.head, t) }
+  def stepFirst[P, T, M]: Step[P, T, M] = (process, marking) => {
+    process.enabledParameters(marking).headOption.map { case (t, enabledMarkings) => (enabledMarkings.head, t) }
   }
 
-  def stepRandom[P, T, M]: Step[P, T, M] = (process, marking) ⇒ {
+  def stepRandom[P, T, M]: Step[P, T, M] = (process, marking) => {
     import scala.util.Random
 
     val params = process.enabledParameters(marking)
@@ -31,11 +31,11 @@ object TokenGame {
  */
 trait TokenGame[P, T, M] {
 
-  this: PetriNet[P, T] ⇒
+  this: PetriNet[P, T] =>
 
   def enabledParameters(marking: M): Map[T, Iterable[M]] = {
     // inefficient, fix
-    enabledTransitions(marking).view.map(t ⇒ t -> consumableMarkings(marking)(t)).toMap
+    enabledTransitions(marking).view.map(t => t -> consumableMarkings(marking)(t)).toMap
   }
 
   def consumableMarkings(marking: M)(t: T): Iterable[M]

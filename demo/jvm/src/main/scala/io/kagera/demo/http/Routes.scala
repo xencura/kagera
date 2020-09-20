@@ -16,15 +16,15 @@ import upickle.default._
 
 trait Routes extends Directives with Queries with UpickleSupport {
 
-  this: ConfiguredActorSystem ⇒
+  this: ConfiguredActorSystem =>
 
   import scala.concurrent.duration._
 
   implicit val streamingSupport: JsonEntityStreamingSupport = EntityStreamingSupport.json()
   implicit val timeout = Timeout(2 seconds)
 
-  implicit val stringMarshaller = Marshaller.strict[String, ByteString] { t ⇒
-    Marshalling.WithFixedContentType(ContentTypes.`application/json`, () ⇒ {
+  implicit val stringMarshaller = Marshaller.strict[String, ByteString] { t =>
+    Marshalling.WithFixedContentType(ContentTypes.`application/json`, () => {
       ByteString(s""""$t"""")
     })
   }
@@ -45,11 +45,11 @@ trait Routes extends Directives with Queries with UpickleSupport {
     path("index") {
       complete(upickle.default.write(repository.keySet))
     } ~
-      path("by_id" / Segment) { id ⇒
+      path("by_id" / Segment) { id =>
         get {
           repository.get(id) match {
-            case None          ⇒ complete(StatusCodes.NotFound -> s"no such process: $id")
-            case Some(process) ⇒ complete(upickle.default.write(Util.toModel(process)))
+            case None          => complete(StatusCodes.NotFound -> s"no such process: $id")
+            case Some(process) => complete(upickle.default.write(Util.toModel(process)))
           }
         }
       }
@@ -66,7 +66,7 @@ trait Routes extends Directives with Queries with UpickleSupport {
         complete(allProcessIds)
       }
     } ~
-      path("create" / Segment) { topologyId ⇒
+      path("create" / Segment) { topologyId =>
         post {
           val topology = repository(topologyId).asInstanceOf[ExecutablePetriNet[Unit]]
           val id = java.util.UUID.randomUUID.toString
@@ -74,7 +74,7 @@ trait Routes extends Directives with Queries with UpickleSupport {
           complete(id)
         }
       } ~
-      pathPrefix("by_id" / Segment) { id ⇒
+      pathPrefix("by_id" / Segment) { id =>
 
         val processActor = actorForProcess(id)
 
@@ -82,7 +82,7 @@ trait Routes extends Directives with Queries with UpickleSupport {
           get {
             // should return the current state (marking) of the process
             val futureResult = processActor.ask(GetState).mapTo[InstanceState[_]].map {
-              state ⇒ state.marking.toString
+              state => state.marking.toString
             }
             complete(futureResult)
           }
@@ -91,13 +91,13 @@ trait Routes extends Directives with Queries with UpickleSupport {
             val journal = journalFor(id)
             complete(journal)
           }
-        } ~ path("fire" / Segment) { tid ⇒
+        } ~ path("fire" / Segment) { tid =>
           post {
             val msg = FireTransition(tid.toLong, ())
             val futureResult = processActor.ask(msg).mapTo[TransitionResponse].map {
-              case success: TransitionFired[_]      ⇒ "success"
-              case failure: TransitionFailed        ⇒ "failure"
-              case notEnabled: TransitionNotEnabled ⇒ "not enabled"
+              case success: TransitionFired[_]      => "success"
+              case failure: TransitionFailed        => "failure"
+              case notEnabled: TransitionNotEnabled => "not enabled"
             }
             complete(futureResult)
           }

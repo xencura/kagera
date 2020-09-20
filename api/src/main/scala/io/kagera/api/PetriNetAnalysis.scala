@@ -7,7 +7,7 @@ object PetriNetAnalysis {
   def reachabilityGraph[P, T](pn: PetriNet[P, T])(m0: MultiSet[P]) = {
 
     // find the enabled transitions from m0
-    val reachableMarkings = enabled(pn)(m0).map { t ⇒
+    val reachableMarkings = enabled(pn)(m0).map { t =>
       // compute the marking after t has fired
       val mt = m0
         .multisetDifference(pn.inMarking(t))
@@ -23,13 +23,13 @@ object PetriNetAnalysis {
   def enabled[P, T](pn: PetriNet[P, T])(m0: MultiSet[P]): Set[T] = {
 
     // transitions without input may always fire
-    val c = pn.transitions.filter(t ⇒ pn.incomingPlaces(t).isEmpty)
+    val c = pn.transitions.filter(t => pn.incomingPlaces(t).isEmpty)
 
     val outT = m0.keys
       .map(pn.outgoingTransitions)
       .reduceOption(_ ++ _)
       .getOrElse(Set.empty)
-      .filter(t ⇒ m0.isSubSet(pn.inMarking(t)))
+      .filter(t => m0.isSubSet(pn.inMarking(t)))
 
     c ++ outT
   }

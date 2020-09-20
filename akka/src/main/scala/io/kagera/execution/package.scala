@@ -20,15 +20,15 @@ package object execution {
     transition: Transition[Any, E, S],
     input: Any
   ): State[Instance[S], Either[String, Job[S, E]]] =
-    State { instance ⇒
+    State { instance =>
       instance.isBlockedReason(transition.id) match {
-        case Some(reason) ⇒
+        case Some(reason) =>
           (instance, Left(reason))
-        case None ⇒
+        case None =>
           instance.process.enabledParameters(instance.availableMarking).get(transition) match {
-            case None ⇒
+            case None =>
               (instance, Left(s"Not enough consumable tokens"))
-            case Some(params) ⇒
+            case Some(params) =>
               val (updatedState, job) = createJob(transition, params.head, input)(instance)
               (updatedState, Right(job))
           }
@@ -42,7 +42,7 @@ package object execution {
     transition: Transition[Any, E, S],
     consume: Marking,
     input: Any
-  ): Instance[S] ⇒ (Instance[S], Job[S, E]) = s ⇒ {
+  ): Instance[S] => (Instance[S], Job[S, E]) = s => {
     val job = Job[S, E](s.nextJobId(), s.state, transition, consume, input)
     val newState = s.copy(jobs = s.jobs + (job.id -> job))
     (newState, job)
@@ -51,13 +51,13 @@ package object execution {
   /**
    * Finds the (optional) first transition that is automated & enabled
    */
-  def fireFirstEnabled[S]: State[Instance[S], Option[Job[S, _]]] = State { instance ⇒
+  def fireFirstEnabled[S]: State[Instance[S], Option[Job[S, _]]] = State { instance =>
     instance.process
       .enabledParameters(instance.availableMarking)
-      .find { case (t, markings) ⇒
+      .find { case (t, markings) =>
         t.isAutomated && !instance.isBlockedReason(t.id).isDefined
       }
-      .map { case (t, markings) ⇒
+      .map { case (t, markings) =>
         val job =
           Job[S, Any](instance.nextJobId(), instance.state, t.asInstanceOf[Transition[Any, Any, S]], markings.head, ())
         (instance.copy(jobs = instance.jobs + (job.id -> job)), Some(job))
@@ -67,12 +67,12 @@ package object execution {
 
   def fireTransitionById[S](id: Long, input: Any): State[Instance[S], Either[String, Job[S, Any]]] =
     State
-      .inspect[Instance[S], Option[Transition[Any, Any, S]]] { instance ⇒
+      .inspect[Instance[S], Option[Transition[Any, Any, S]]] { instance =>
         instance.process.transitions.findById(id).map(_.asInstanceOf[Transition[Any, Any, S]])
       }
       .flatMap {
-        case None ⇒ State.pure(Left(s"No transition exists with id $id"))
-        case Some(t) ⇒ fireTransition(t, input)
+        case None => State.pure(Left(s"No transition exists with id $id"))
+        case Some(t) => fireTransition(t, input)
       }
 
   /**
@@ -80,8 +80,8 @@ package object execution {
    */
   def fireAllEnabledTransitions[S]: State[Instance[S], Set[Job[S, _]]] =
     fireFirstEnabled[S].flatMap {
-      case None ⇒ State.pure(Set.empty)
-      case Some(job) ⇒ fireAllEnabledTransitions[S].map(_ + job)
+      case None => State.pure(Set.empty)
+      case Some(job) => fireAllEnabledTransitions[S].map(_ + job)
     }
 
   /**
@@ -94,7 +94,7 @@ package object execution {
 
     executor
       .fireTransition(job.transition)(job.consume, job.processState, job.input)
-      .map { case (produced, out) ⇒
+      .map { case (produced, out) =>
         TransitionFiredEvent(
           job.id,
           job.transition.id,
@@ -105,7 +105,7 @@ package object execution {
           Some(out)
         )
       }
-      .handleErrorWith { case e: Throwable ⇒
+      .handleErrorWith { case e: Throwable =>
         val failureCount = job.failureCount + 1
         val failureStrategy = job.transition.exceptionStrategy(e, failureCount)
 

@@ -27,7 +27,7 @@ object PetriNetInstance {
   def petriNetInstancePersistenceId(processId: String): String = s"process-$processId"
 
   def instanceState[S](instance: Instance[S]): InstanceState[S] = {
-    val failures = instance.failedJobs.map { e ⇒
+    val failures = instance.failedJobs.map { e =>
       e.transitionId -> PetriNetInstanceProtocol.ExceptionState(
         e.consecutiveFailureCount,
         e.failureReason,
@@ -64,40 +64,40 @@ class PetriNetInstance[S](
   override def receiveCommand = uninitialized
 
   def uninitialized: Receive = {
-    case msg @ Initialize(marking, state) ⇒
+    case msg @ Initialize(marking, state) =>
       log.debug(s"Received message: {}", msg)
       val uninitialized = Instance.uninitialized[S](topology)
       persistEvent(uninitialized, InitializedEvent(marking, state.asInstanceOf[S])) {
         (applyEvent(uninitialized) _)
           .andThen(step)
-          .andThen { _ ⇒ sender() ! Initialized(marking, state) }
+          .andThen { _ => sender() ! Initialized(marking, state) }
       }
-    case msg: Command ⇒
+    case msg: Command =>
       sender() ! IllegalCommand("Only accepting Initialize commands in 'uninitialized' state")
       context.stop(context.self)
   }
 
   def running(instance: Instance[S]): Receive = {
-    case IdleStop(n) if n == instance.sequenceNr && instance.activeJobs.isEmpty ⇒
+    case IdleStop(n) if n == instance.sequenceNr && instance.activeJobs.isEmpty =>
       context.stop(context.self)
 
-    case GetState ⇒
+    case GetState =>
       log.debug(s"Received message: GetState")
       sender() ! instanceState(instance)
 
-    case e @ TransitionFiredEvent(jobId, transitionId, timeStarted, timeCompleted, consumed, produced, output) ⇒
+    case e @ TransitionFiredEvent(jobId, transitionId, timeStarted, timeCompleted, consumed, produced, output) =>
       log.debug(s"Received message: {}", e)
       log.debug(s"Transition '${topology.transitions.getById(transitionId)}' successfully fired")
 
       persistEvent(instance, e)(
         (applyEvent(instance) _)
           .andThen(step)
-          .andThen { updatedInstance ⇒
+          .andThen { updatedInstance =>
             sender() ! TransitionFired[S](transitionId, e.consumed, e.produced, instanceState(updatedInstance))
           }
       )
 
-    case e @ TransitionFailedEvent(jobId, transitionId, timeStarted, timeFailed, consume, input, reason, strategy) ⇒
+    case e @ TransitionFailedEvent(jobId, transitionId, timeStarted, timeFailed, consume, input, reason, strategy) =>
       log.debug(s"Received message: {}", e)
       log.warning(s"Transition '${topology.transitions.getById(transitionId)}' failed with: {}", reason)
 
@@ -109,43 +109,43 @@ class PetriNetInstance[S](
       }
 
       strategy match {
-        case RetryWithDelay(delay) ⇒
+        case RetryWithDelay(delay) =>
           log.warning(
             s"Scheduling a retry of transition '${topology.transitions.getById(transitionId)}' in $delay milliseconds"
           )
           val originalSender = sender()
           system.scheduler.scheduleOnce(delay milliseconds) { executeJob(updatedInstance.jobs(jobId), originalSender) }
           updateAndRespond(applyEvent(instance)(e))
-        case _ ⇒
+        case _ =>
           persistEvent(instance, e)((applyEvent(instance) _).andThen(updateAndRespond _))
       }
 
-    case msg @ FireTransition(id, input, correlationId) ⇒
+    case msg @ FireTransition(id, input, correlationId) =>
       log.debug(s"Received message: {}", msg)
 
       fireTransitionById[S](id, input).run(instance).value match {
-        case (updatedInstance, Right(job)) ⇒
+        case (updatedInstance, Right(job)) =>
           executeJob(job, sender())
           context become running(updatedInstance)
-        case (_, Left(reason)) ⇒
+        case (_, Left(reason)) =>
           log.warning(reason)
           sender() ! TransitionNotEnabled(id, reason)
       }
-    case msg: Initialize[_] ⇒
+    case msg: Initialize[_] =>
       sender() ! IllegalCommand("Already initialized")
   }
 
   // TODO remove side effecting here
   def step(instance: Instance[S]): Instance[S] = {
     fireAllEnabledTransitions.run(instance).value match {
-      case (updatedInstance, jobs) ⇒
+      case (updatedInstance, jobs) =>
         if (jobs.isEmpty && updatedInstance.activeJobs.isEmpty)
-          settings.idleTTL.foreach { ttl ⇒
+          settings.idleTTL.foreach { ttl =>
             log.debug("Process has no running jobs, killing the actor in: {}", ttl)
             system.scheduler.scheduleOnce(ttl, context.self, PoisonPill)
           }
 
-        jobs.foreach(job ⇒ executeJob(job, sender()))
+        jobs.foreach(job => executeJob(job, sender()))
         context become running(updatedInstance)
         updatedInstance
     }

@@ -30,8 +30,8 @@ case object UnknownProcessId extends ErrorResponse {
 /**
  * An actor that pushes all received messages on a SourceQueueWithComplete.
  */
-class QueuePushingActor[E](queue: SourceQueueWithComplete[E], takeWhile: Any ⇒ Boolean) extends Actor {
-  override def receive: Receive = { case msg @ _ ⇒
+class QueuePushingActor[E](queue: SourceQueueWithComplete[E], takeWhile: Any => Boolean) extends Actor {
+  override def receive: Receive = { case msg @ _ =>
     queue.offer(msg.asInstanceOf[E])
     if (!takeWhile(msg)) {
       queue.complete()
@@ -42,10 +42,10 @@ class QueuePushingActor[E](queue: SourceQueueWithComplete[E], takeWhile: Any ⇒
 
 object PetriNetInstanceApi {
 
-  def hasAutomaticTransitions[S](topology: ExecutablePetriNet[S]): InstanceState[S] ⇒ Boolean = state ⇒ {
+  def hasAutomaticTransitions[S](topology: ExecutablePetriNet[S]): InstanceState[S] => Boolean = state => {
     state.marking.keySet
-      .map(p ⇒ topology.outgoingTransitions(p))
-      .foldLeft(Set.empty[Transition[_, _, _]]) { case (result, transitions) ⇒
+      .map(p => topology.outgoingTransitions(p))
+      .foldLeft(Set.empty[Transition[_, _, _]]) { case (result, transitions) =>
         result ++ transitions
       }
       .exists(isEnabledInState(topology, state))
@@ -54,17 +54,17 @@ object PetriNetInstanceApi {
   def isEnabledInState[S](topology: ExecutablePetriNet[S], state: InstanceState[S])(t: Transition[_, _, _]): Boolean =
     t.isAutomated && !state.hasFailed(t.id) && topology.isEnabledInMarking(state.marking.multiplicities)(t)
 
-  def takeWhileNotFailed[S](topology: ExecutablePetriNet[S], waitForRetries: Boolean): Any ⇒ Boolean = e ⇒
+  def takeWhileNotFailed[S](topology: ExecutablePetriNet[S], waitForRetries: Boolean): Any => Boolean = e =>
     e match {
-      case e: TransitionFired[S] ⇒ hasAutomaticTransitions(topology)(e.result)
-      case TransitionFailed(_, _, _, _, RetryWithDelay(delay)) ⇒ waitForRetries
-      case msg @ _ ⇒ false
+      case e: TransitionFired[S] => hasAutomaticTransitions(topology)(e.result)
+      case TransitionFailed(_, _, _, _, RetryWithDelay(delay)) => waitForRetries
+      case msg @ _ => false
     }
 
-  def askSource[E](actor: ActorRef, msg: Any, takeWhile: Any ⇒ Boolean)(implicit
+  def askSource[E](actor: ActorRef, msg: Any, takeWhile: Any => Boolean)(implicit
     actorSystem: ActorSystem
   ): Source[E, NotUsed] = {
-    Source.queue[E](100, OverflowStrategy.fail).mapMaterializedValue { queue ⇒
+    Source.queue[E](100, OverflowStrategy.fail).mapMaterializedValue { queue =>
       val sender = actorSystem.actorOf(Props(new QueuePushingActor[E](queue, takeWhile)))
       actor.tell(msg, sender)
       NotUsed.getInstance()
@@ -88,8 +88,8 @@ class PetriNetInstanceApi[S](topology: ExecutablePetriNet[S], actor: ActorRef)(i
    */
   def askAndConfirmFirst(msg: Any)(implicit timeout: Timeout): Future[Either[UnexpectedMessage, InstanceState[S]]] = {
     actor.ask(msg).map {
-      case e: TransitionFired[_] ⇒ Right(e.result.asInstanceOf[InstanceState[S]])
-      case msg @ _ ⇒ Left(UnexpectedMessage(s"Received unexepected message: $msg"))
+      case e: TransitionFired[_] => Right(e.result.asInstanceOf[InstanceState[S]])
+      case msg @ _ => Left(UnexpectedMessage(s"Received unexepected message: $msg"))
     }
   }
 
@@ -108,9 +108,9 @@ class PetriNetInstanceApi[S](topology: ExecutablePetriNet[S], actor: ActorRef)(i
 
     futureMessages.map {
       _.lastOption match {
-        case Some(e: TransitionFired[_]) ⇒ Right(e.result.asInstanceOf[InstanceState[S]])
-        case Some(msg) ⇒ Left(UnexpectedMessage(s"Received unexpected message: $msg"))
-        case None ⇒ Left(UnknownProcessId)
+        case Some(e: TransitionFired[_]) => Right(e.result.asInstanceOf[InstanceState[S]])
+        case Some(msg) => Left(UnexpectedMessage(s"Received unexpected message: $msg"))
+        case None => Left(UnknownProcessId)
       }
     }
   }
@@ -139,8 +139,8 @@ class PetriNetInstanceApi[S](topology: ExecutablePetriNet[S], actor: ActorRef)(i
   def askAndCollectAll(msg: Any, waitForRetries: Boolean = false): Source[TransitionResponse, NotUsed] = {
     askSource[Any](actor, msg, takeWhileNotFailed(topology, waitForRetries))
       .map {
-        case e: TransitionResponse ⇒ Right(e)
-        case msg @ _ ⇒ Left(s"Received unexpected message: $msg")
+        case e: TransitionResponse => Right(e)
+        case msg @ _ => Left(s"Received unexpected message: $msg")
       }
       .takeWhile(_.isRight)
       .map(_.right.get)

@@ -22,9 +22,9 @@ class PetriNetInstanceApiSpec extends AkkaTestBase {
       val waitTimeout = 2 seconds
 
       override val sequence = Seq(
-        transition()(_ ⇒ Added(1)),
-        transition(automated = true)(_ ⇒ Added(2)),
-        transition(automated = true)(_ ⇒ Added(3))
+        transition()(_ => Added(1)),
+        transition(automated = true)(_ => Added(2)),
+        transition(automated = true)(_ => Added(3))
       )
 
       val actor = PetriNetInstanceSpec.createPetriNetActor[Set[Int]](petriNet)
@@ -48,7 +48,7 @@ class PetriNetInstanceApiSpec extends AkkaTestBase {
       val waitTimeout = 2 seconds
 
       override val sequence = Seq(
-        transition()(_ ⇒ Added(1))
+        transition()(_ => Added(1))
       )
 
       val actor = PetriNetInstanceSpec.createPetriNetActor[Set[Int]](petriNet)

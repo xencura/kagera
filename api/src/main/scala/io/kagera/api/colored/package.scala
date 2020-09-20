@@ -35,12 +35,12 @@ package object colored {
    * @tparam Output The output emitted by the transition.
    * @tparam State  The state the transition closes over.
    */
-  type TransitionFunction[Input, Output, State] = (Marking, State, Input) ⇒ IO[(Marking, Output)]
+  type TransitionFunction[Input, Output, State] = (Marking, State, Input) => IO[(Marking, Output)]
 
   /**
    * An exception handler function associated with a transition.
    */
-  type TransitionExceptionHandler = (Throwable, Int) ⇒ ExceptionStrategy
+  type TransitionExceptionHandler = (Throwable, Int) => ExceptionStrategy
 
   /**
    * Type alias for a colored petri net.
@@ -64,10 +64,10 @@ package object colored {
       marking.+(p -> newTokens)
     }
 
-    def |-|(other: Marking): Marking = other.keySet.foldLeft(marking) { case (result, place) ⇒
+    def |-|(other: Marking): Marking = other.keySet.foldLeft(marking) { case (result, place) =>
       marking.get(place) match {
-        case None ⇒ result
-        case Some(tokens) ⇒
+        case None => result
+        case Some(tokens) =>
           val newTokens = tokens.multisetDifference(other(place))
           if (newTokens.isEmpty)
             result - place
@@ -76,10 +76,10 @@ package object colored {
       }
     }
 
-    def |+|(other: Marking): Marking = other.keySet.foldLeft(marking) { case (result, place) ⇒
+    def |+|(other: Marking): Marking = other.keySet.foldLeft(marking) { case (result, place) =>
       val newTokens = marking.get(place) match {
-        case None ⇒ other(place)
-        case Some(tokens) ⇒ tokens.multisetSum(other(place))
+        case None => other(place)
+        case Some(tokens) => tokens.multisetSum(other(place))
       }
 
       result + (place -> newTokens)

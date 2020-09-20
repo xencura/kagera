@@ -28,8 +28,8 @@ class PetriNetInstanceSpec extends AkkaTestBase {
     "Respond with an Initialized response after processing an Initialized command" in new TestSequenceNet {
 
       override val sequence = Seq(
-        transition()(_ ⇒ Added(1)),
-        transition()(_ ⇒ Added(2))
+        transition()(_ => Added(1)),
+        transition()(_ => Added(2))
       )
 
       val actor = createPetriNetActor[Set[Int]](petriNet)
@@ -41,8 +41,8 @@ class PetriNetInstanceSpec extends AkkaTestBase {
     "Before being intialized respond with an IllegalCommand message on receiving a GetState command" in new TestSequenceNet {
 
       override val sequence = Seq(
-        transition()(_ ⇒ Added(1)),
-        transition()(_ ⇒ Added(2))
+        transition()(_ => Added(1)),
+        transition()(_ => Added(2))
       )
 
       val actor = createPetriNetActor[Set[Int]](petriNet)
@@ -54,8 +54,8 @@ class PetriNetInstanceSpec extends AkkaTestBase {
     "Afer being initialized respond with an InstanceState message on receiving a GetState command" in new TestSequenceNet {
 
       override val sequence = Seq(
-        transition()(_ ⇒ Added(1)),
-        transition()(_ ⇒ Added(2))
+        transition()(_ => Added(1)),
+        transition()(_ => Added(2))
       )
 
       val actor = createPetriNetActor[Set[Int]](petriNet)
@@ -64,15 +64,15 @@ class PetriNetInstanceSpec extends AkkaTestBase {
       expectMsgClass(classOf[Initialized[_]])
 
       actor ! GetState
-      expectMsgPF() { case InstanceState(_, _, _, _) ⇒ }
+      expectMsgPF() { case InstanceState(_, _, _, _) => }
 
     }
 
     "Respond with a TransitionFailed message if a transition failed to fire" in new TestSequenceNet {
 
       override val sequence = Seq(
-        transition()(_ ⇒ throw new RuntimeException("t1 failed!")),
-        transition()(_ ⇒ throw new RuntimeException("t2 failed!"))
+        transition()(_ => throw new RuntimeException("t1 failed!")),
+        transition()(_ => throw new RuntimeException("t2 failed!"))
       )
 
       val actor = createPetriNetActor[Set[Int]](petriNet)
@@ -88,8 +88,8 @@ class PetriNetInstanceSpec extends AkkaTestBase {
     "Respond with a TransitionNotEnabled message if a transition is not enabled because of a previous failure" in new TestSequenceNet {
 
       override val sequence = Seq(
-        transition()(_ ⇒ throw new RuntimeException("t1 failed!")),
-        transition()(_ ⇒ Added(2))
+        transition()(_ => throw new RuntimeException("t1 failed!")),
+        transition()(_ => Added(2))
       )
 
       val actor = createPetriNetActor[Set[Int]](petriNet)
@@ -99,19 +99,19 @@ class PetriNetInstanceSpec extends AkkaTestBase {
 
       actor ! FireTransition(1, ())
 
-      expectMsgPF() { case TransitionFailed(1, _, _, _, _) ⇒ }
+      expectMsgPF() { case TransitionFailed(1, _, _, _, _) => }
 
       actor ! FireTransition(1, ())
 
       // expect a failure message
-      expectMsgPF() { case TransitionNotEnabled(1, msg) ⇒ }
+      expectMsgPF() { case TransitionNotEnabled(1, msg) => }
     }
 
     "Respond with a TransitionNotEnabled message if a transition is not enabled because of not enough consumable tokens" in new TestSequenceNet {
 
       override val sequence = Seq(
-        transition()(_ ⇒ Added(1)),
-        transition()(_ ⇒ Added(2))
+        transition()(_ => Added(1)),
+        transition()(_ => Added(2))
       )
 
       val actor = createPetriNetActor[Set[Int]](petriNet)
@@ -123,19 +123,19 @@ class PetriNetInstanceSpec extends AkkaTestBase {
       actor ! FireTransition(2, ())
 
       // expect a failure message
-      expectMsgPF() { case TransitionNotEnabled(2, _) ⇒ }
+      expectMsgPF() { case TransitionNotEnabled(2, _) => }
     }
 
     "Retry to execute a transition with a delay when the exception strategy indicates so" in new TestSequenceNet {
 
       val retryHandler: TransitionExceptionHandler = {
-        case (e, n) if n < 3 ⇒ RetryWithDelay((10 * Math.pow(2, n)).toLong)
-        case _               ⇒ Fatal
+        case (e, n) if n < 3 => RetryWithDelay((10 * Math.pow(2, n)).toLong)
+        case _               => Fatal
       }
 
       override val sequence = Seq(
-        transition(exceptionHandler = retryHandler) { _ ⇒ throw new RuntimeException("t1 failed") },
-        transition() { _ ⇒ Added(2) }
+        transition(exceptionHandler = retryHandler) { _ => throw new RuntimeException("t1 failed") },
+        transition() { _ => Added(2) }
       )
 
       val id = UUID.randomUUID()
@@ -148,9 +148,9 @@ class PetriNetInstanceSpec extends AkkaTestBase {
       actor ! FireTransition(1, ())
 
       // expect 3 failure messages
-      expectMsgPF() { case TransitionFailed(1, _, _, _, RetryWithDelay(20)) ⇒ }
-      expectMsgPF() { case TransitionFailed(1, _, _, _, RetryWithDelay(40)) ⇒ }
-      expectMsgPF() { case TransitionFailed(1, _, _, _, Fatal) ⇒ }
+      expectMsgPF() { case TransitionFailed(1, _, _, _, RetryWithDelay(20)) => }
+      expectMsgPF() { case TransitionFailed(1, _, _, _, RetryWithDelay(40)) => }
+      expectMsgPF() { case TransitionFailed(1, _, _, _, Fatal) => }
 
       // attempt to fire t1 explicitly
       actor ! FireTransition(1, ())
@@ -162,8 +162,8 @@ class PetriNetInstanceSpec extends AkkaTestBase {
     "Be able to restore it's state from persistent storage after termination" in new TestSequenceNet {
 
       override val sequence = Seq(
-        transition()(_ ⇒ Added(1)),
-        transition(automated = true)(_ ⇒ Added(2))
+        transition()(_ => Added(1)),
+        transition(automated = true)(_ => Added(2))
       )
 
       val actorName = java.util.UUID.randomUUID().toString
@@ -177,10 +177,10 @@ class PetriNetInstanceSpec extends AkkaTestBase {
       actor ! FireTransition(1, ())
 
       // expect the next marking: p2 -> 1
-      expectMsgPF() { case TransitionFired(1, _, _, result) if result.marking == Marking(place(2) -> 1) ⇒ }
+      expectMsgPF() { case TransitionFired(1, _, _, result) if result.marking == Marking(place(2) -> 1) => }
 
       // since t2 fires automatically we also expect the next marking: p3 -> 1
-      expectMsgPF() { case TransitionFired(2, _, _, result) if result.marking == Marking(place(3) -> 1) ⇒ }
+      expectMsgPF() { case TransitionFired(2, _, _, result) if result.marking == Marking(place(3) -> 1) => }
 
       // validate the final state
       actor ! GetState
@@ -204,8 +204,8 @@ class PetriNetInstanceSpec extends AkkaTestBase {
     "Not re-fire a failed/blocked transition after being restored from persistent storage" in new TestSequenceNet {
 
       override val sequence = Seq(
-        transition(automated = true)(_ ⇒ Added(1)),
-        transition(automated = true)(_ ⇒ throw new RuntimeException("t2 failed"))
+        transition(automated = true)(_ => Added(1)),
+        transition(automated = true)(_ => throw new RuntimeException("t2 failed"))
       )
 
       val actorName = java.util.UUID.randomUUID().toString
@@ -216,8 +216,8 @@ class PetriNetInstanceSpec extends AkkaTestBase {
       expectMsgClass(classOf[Initialized[_]])
 
       // expect the next marking: p2 -> 1
-      expectMsgPF() { case TransitionFired(1, _, _, _) ⇒ }
-      expectMsgPF() { case TransitionFailed(2, _, _, _, BlockTransition) ⇒ }
+      expectMsgPF() { case TransitionFired(1, _, _, _) => }
+      expectMsgPF() { case TransitionFailed(2, _, _, _, BlockTransition) => }
 
       // terminate the actor
       watch(actor)
@@ -233,7 +233,7 @@ class PetriNetInstanceSpec extends AkkaTestBase {
 
       // assert that the actor is the same as before termination
       expectMsgPF() {
-        case InstanceState(2, marking, _, jobs) ⇒
+        case InstanceState(2, marking, _, jobs) =>
 
       }
     }
@@ -248,8 +248,8 @@ class PetriNetInstanceSpec extends AkkaTestBase {
       )
 
       override val sequence = Seq(
-        transition(automated = false)(_ ⇒ Added(1)),
-        transition(automated = false)(_ ⇒ Added(2))
+        transition(automated = false)(_ => Added(1)),
+        transition(automated = false)(_ => Added(2))
       )
 
       val actor = system.actorOf(
@@ -265,14 +265,14 @@ class PetriNetInstanceSpec extends AkkaTestBase {
 
     "fire automated transitions in parallel when possible" in new StateTransitionNet[Unit, Unit] {
 
-      override val eventSourcing: Unit ⇒ Unit ⇒ Unit = s ⇒ e ⇒ s
+      override val eventSourcing: Unit => Unit => Unit = s => e => s
 
       val p1 = Place[Unit](id = 1)
       val p2 = Place[Unit](id = 2)
 
       val t1 = nullTransition[Unit](id = 1, automated = false)
-      val t2 = transition(id = 2, automated = true)(_ ⇒ Thread.sleep(500))
-      val t3 = transition(id = 3, automated = true)(_ ⇒ Thread.sleep(500))
+      val t2 = transition(id = 2, automated = true)(_ => Thread.sleep(500))
+      val t3 = transition(id = 3, automated = true)(_ => Thread.sleep(500))
 
       val petriNet = createPetriNet(
         t1 ~> p1,
@@ -292,7 +292,7 @@ class PetriNetInstanceSpec extends AkkaTestBase {
       // fire the first transition manually
       actor ! FireTransition(1, ())
 
-      expectMsgPF() { case TransitionFired(1, _, _, _) ⇒ }
+      expectMsgPF() { case TransitionFired(1, _, _, _) => }
 
       import org.scalatest.concurrent.Timeouts._
 
@@ -300,8 +300,8 @@ class PetriNetInstanceSpec extends AkkaTestBase {
 
         // expect that the two subsequent transitions are fired automatically and in parallel (in any order)
         expectMsgInAnyOrderPF(
-          { case TransitionFired(2, _, _, _) ⇒ },
-          { case TransitionFired(3, _, _, _) ⇒ }
+          { case TransitionFired(2, _, _, _) => },
+          { case TransitionFired(3, _, _, _) => }
         )
       }
     }

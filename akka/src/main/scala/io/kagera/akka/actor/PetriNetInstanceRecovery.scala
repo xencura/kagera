@@ -8,7 +8,7 @@ import io.kagera.persistence.{ messages, Serialization }
 
 trait PetriNetInstanceRecovery[S] {
 
-  this: PersistentActor ⇒
+  this: PersistentActor =>
 
   def topology: ExecutablePetriNet[S]
 
@@ -32,10 +32,10 @@ trait PetriNetInstanceRecovery[S] {
   }
 
   override def receiveRecover: Receive = {
-    case e: messages.Initialized ⇒ applyToRecoveringState(e)
-    case e: messages.TransitionFired ⇒ applyToRecoveringState(e)
-    case e: messages.TransitionFailed ⇒ applyToRecoveringState(e)
-    case RecoveryCompleted ⇒
+    case e: messages.Initialized => applyToRecoveringState(e)
+    case e: messages.TransitionFired => applyToRecoveringState(e)
+    case e: messages.TransitionFailed => applyToRecoveringState(e)
+    case RecoveryCompleted =>
       if (recoveringState.sequenceNr > 0)
         onRecoveryCompleted(recoveringState)
   }

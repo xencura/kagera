@@ -51,7 +51,7 @@ trait Transition[Input, Output, State] {
    *
    * @return
    */
-  def exceptionStrategy: TransitionExceptionHandler = (e, n) ⇒ BlockTransition
+  def exceptionStrategy: TransitionExceptionHandler = (e, n) => BlockTransition
 
   /**
    * Given the in and out adjacent places with their weight returns a function:
@@ -84,5 +84,5 @@ trait Transition[Input, Output, State] {
   /**
    * The state event sourcing function.
    */
-  def updateState: State ⇒ Output ⇒ State
+  def updateState: State => Output => State
 }

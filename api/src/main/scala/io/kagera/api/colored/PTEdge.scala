@@ -25,5 +25,5 @@ trait PTEdge[T] {
    *
    * @return A predicate function from token -> boolean, indicating whether the token may be consumed (true) or not (false)
    */
-  val filter: T ⇒ Boolean
+  val filter: T => Boolean
 }

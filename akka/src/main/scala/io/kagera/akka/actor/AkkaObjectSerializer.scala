@@ -17,8 +17,8 @@ class AkkaObjectSerializer(system: ActorSystem) extends ObjectSerializer {
     val bytes = serializer.toBinary(obj)
 
     val manifest = serializer match {
-      case s: SerializerWithStringManifest ⇒ s.manifest(obj)
-      case _ ⇒ if (obj != null) obj.getClass.getName else ""
+      case s: SerializerWithStringManifest => s.manifest(obj)
+      case _ => if (obj != null) obj.getClass.getName else ""
     }
 
     // we should not have to copy the bytes
@@ -31,9 +31,9 @@ class AkkaObjectSerializer(system: ActorSystem) extends ObjectSerializer {
 
   override def deserializeObject(data: SerializedData): AnyRef = {
     data match {
-      case SerializedData(None, _, Some(data)) ⇒
+      case SerializedData(None, _, Some(data)) =>
         throw new IllegalStateException(s"Missing serializer id")
-      case SerializedData(Some(serializerId), _, Some(data)) ⇒
+      case SerializedData(Some(serializerId), _, Some(data)) =>
         val serializer = serialization.serializerByIdentity.getOrElse(
           serializerId,
           throw new IllegalStateException(s"No serializer found with id $serializerId")
