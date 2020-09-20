@@ -13,20 +13,32 @@ val commonScalacOptions = Seq(
 )
 
 lazy val basicSettings =
-  Seq(organization := "io.kagera", crossScalaVersions := Seq("2.13.3", "2.12.12"), scalaVersion := crossScalaVersions.value.head, scalacOptions := commonScalacOptions)
+  Seq(
+    organization := "io.kagera",
+    crossScalaVersions := Seq("2.13.3", "2.12.12"),
+    scalaVersion := crossScalaVersions.value.head,
+    scalacOptions := commonScalacOptions
+  )
 
 lazy val defaultProjectSettings = basicSettings ++ SonatypePublish.settings
 
-lazy val api = project.in(file("api"))
+lazy val api = project
+  .in(file("api"))
   .settings(defaultProjectSettings: _*)
-  .settings(name := "kagera-api", libraryDependencies ++= Seq(collectionCompat, scalaGraph, catsCore, fs2Core, scalatest % "test"))
+  .settings(
+    name := "kagera-api",
+    libraryDependencies ++= Seq(collectionCompat, scalaGraph, catsCore, fs2Core, scalatest % "test")
+  )
 
-lazy val visualization = project.in(file("visualization"))
+lazy val visualization = project
+  .in(file("visualization"))
   .dependsOn(api)
   .settings(defaultProjectSettings: _*)
   .settings(name := "kagera-visualization", libraryDependencies ++= Seq(scalaGraph, scalaGraphDot))
 
-lazy val akka = Project("akka", file("akka"))
+
+lazy val akka = project
+  .in(file("akka"))
   .dependsOn(api)
   .settings(
     defaultProjectSettings ++ Seq(
@@ -56,10 +68,7 @@ lazy val demo = (crossProject(JSPlatform, JVMPlatform) in file("demo"))
   .settings(defaultProjectSettings: _*)
   .settings(
     unmanagedSourceDirectories in Compile += baseDirectory.value / "shared" / "main" / "scala",
-    libraryDependencies ++= Seq(
-      "com.lihaoyi" %%% "scalatags" % "0.9.1",
-      "com.lihaoyi" %%% "upickle" % "1.1.0"
-    )
+    libraryDependencies ++= Seq("com.lihaoyi" %%% "scalatags" % "0.9.1", "com.lihaoyi" %%% "upickle" % "1.1.0")
   )
   .jsSettings(
     jsDependencies ++= Seq(
@@ -97,11 +106,17 @@ lazy val root = Project("kagera", file("."))
   .settings(defaultProjectSettings)
   .settings(
     publish := {},
-    buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, BuildInfoKey.map(git.gitHeadCommit) {
-      case (key, value) => key -> value.getOrElse("-")
-    }, BuildInfoKey.action("buildTime") {
-      buildTime
-    })
+    buildInfoKeys := Seq[BuildInfoKey](
+      name,
+      version,
+      scalaVersion,
+      BuildInfoKey.map(git.gitHeadCommit) { case (key, value) =>
+        key -> value.getOrElse("-")
+      },
+      BuildInfoKey.action("buildTime") {
+        buildTime
+      }
+    )
   )
 
 def buildTime = {
