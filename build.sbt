@@ -7,6 +7,7 @@ val commonScalacOptions = Seq(
   "-feature",
   "-language:implicitConversions",
   "-language:postfixOps",
+  "-language:higherKinds",
   "-unchecked",
   "-deprecation",
   "-Xlog-reflective-calls"
@@ -27,7 +28,7 @@ lazy val api = project
   .settings(defaultProjectSettings: _*)
   .settings(
     name := "kagera-api",
-    libraryDependencies ++= Seq(collectionCompat, scalaGraph, catsCore, fs2Core, scalatest % "test")
+    libraryDependencies ++= Seq(collectionCompat, scalaGraph, catsCore, catsEffect, fs2Core, scalatest % "test")
   )
 
 lazy val visualization = project
@@ -76,6 +77,27 @@ lazy val akka = project
     )
   )
 
+lazy val zio = project
+  .in(file("zio"))
+  .dependsOn(api, execution)
+  .settings(
+    defaultProjectSettings ++ Seq(
+      name := "kagera-zio",
+      resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
+      libraryDependencies ++= Seq(
+        "org.scala-lang" % "scala-reflect" % scalaVersion.value,
+        zioCore,
+        zioInteropCats,
+        zioActors,
+        zioActorsPersistence,
+        scalaGraph,
+        zioTest % "test",
+        zioTestSbt % "test"
+      ),
+      testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
+    )
+  )
+
 lazy val demo = (crossProject(JSPlatform, JVMPlatform) in file("demo"))
   .enablePlugins(JSDependenciesPlugin)
   .settings(defaultProjectSettings: _*)
@@ -114,7 +136,7 @@ lazy val demoJvm = demo.jvm
   )
 
 lazy val root = Project("kagera", file("."))
-  .aggregate(api, akka, execution, visualization)
+  .aggregate(api, akka, execution, visualization, zio)
   .enablePlugins(BuildInfoPlugin)
   .settings(defaultProjectSettings)
   .settings(
