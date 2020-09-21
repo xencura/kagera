@@ -2,15 +2,14 @@ package io.kagera
 
 import java.io.{ PrintWriter, StringWriter }
 
+import cats.ApplicativeError
 import cats.data.State
-import cats.effect.IO
-import execution.EventSourcing.TransitionEvent
+import cats.syntax.all._
 import io.kagera.api._
 import io.kagera.api.colored._
-import execution.EventSourcing._
+import io.kagera.execution.EventSourcing.{ TransitionEvent, _ }
 
 import scala.collection.Set
-import scala.concurrent.ExecutionContext
 
 package object execution {
 
@@ -88,13 +87,15 @@ package object execution {
   /**
    * Executes a job returning a Task[TransitionEvent]
    */
-  def runJobAsync[S, E](job: Job[S, E], executor: TransitionExecutor[IO, S])(implicit
-    S: ExecutionContext
-  ): IO[TransitionEvent] = {
+  def runJobAsync[F[_], S, E](job: Job[S, E], executor: TransitionExecutor[F, S])(implicit
+    applicativeError: ApplicativeError[F, Throwable]
+  ): F[TransitionEvent] = {
     val startTime = System.currentTimeMillis()
 
-    executor
-      .fireTransition(job.transition)(job.consume, job.processState, job.input)
+    val transitionFunction: TransitionFunction[F, Any, E, S] = executor
+      .fireTransition(job.transition)
+    val transitionApplied: F[(Marking, E)] = transitionFunction(job.consume, job.processState, job.input)
+    transitionApplied
       .map { case (produced, out) =>
         TransitionFiredEvent(
           job.id,
@@ -104,7 +105,7 @@ package object execution {
           job.consume,
           produced,
           Some(out)
-        )
+        ): TransitionEvent
       }
       .handleErrorWith { case e: Throwable =>
         val failureCount = job.failureCount + 1
@@ -114,7 +115,7 @@ package object execution {
         e.printStackTrace(new PrintWriter(sw))
         val stackTraceString = sw.toString
 
-        IO(
+        applicativeError.pure(
           TransitionFailedEvent(
             job.id,
             job.transition.id,

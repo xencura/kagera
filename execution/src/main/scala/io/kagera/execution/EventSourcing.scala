@@ -10,7 +10,9 @@ object EventSourcing {
 
   sealed trait Event
 
-  sealed trait TransitionEvent extends Event
+  sealed trait TransitionEvent extends Event {
+    def transitionId: Long
+  }
 
   /**
    * An event describing the fact that a transition has fired in the petri net process.
