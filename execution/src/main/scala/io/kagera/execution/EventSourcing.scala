@@ -10,7 +10,9 @@ object EventSourcing {
 
   sealed trait Event
 
-  sealed trait TransitionEvent extends Event
+  sealed trait TransitionEvent extends Event {
+    def transitionId: Long
+  }
 
   /**
    * An event describing the fact that a transition has fired in the petri net process.
@@ -43,11 +45,13 @@ object EventSourcing {
    * An event describing the fact that an instance was initialized.
    */
   case class InitializedEvent(marking: Marking, state: Any) extends Event
-
+  case class UpdatedInstance[S](instance: Instance[S]) extends Event
+  case class TokenUpdatedInPlaceEvent[T](from: T, to: T, place: Place[T]) extends Event
   def applyEvent[S](e: Event): State[Instance[S], Unit] = State.modify { instance =>
     e match {
       case InitializedEvent(initialMarking, initialState) =>
         Instance[S](instance.process, 1, initialMarking, initialState.asInstanceOf[S], Map.empty)
+      case UpdatedInstance(instance) => instance.asInstanceOf[Instance[S]]
       case e: TransitionFiredEvent =>
         val t = instance.transitionById(e.transitionId).get.asInstanceOf[Transition[_, Any, S]]
         val newState = e.output.map(t.updateState(instance.state)).getOrElse(instance.state)
@@ -74,6 +78,8 @@ object EventSourcing {
         val updatedJob =
           job.copy(failure = Some(ExceptionState(e.transitionId, failureCount, e.failureReason, e.exceptionStrategy)))
         instance.copy(jobs = instance.jobs + (job.id -> updatedJob))
+      case e: TokenUpdatedInPlaceEvent[_] =>
+        instance.copy(marking = instance.marking.updateIn(e.place, e.from, e.to))
     }
   }
 }

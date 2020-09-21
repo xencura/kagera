@@ -8,6 +8,8 @@ object Dependencies {
   val akkaHttpVersion = "10.2.6"
   val sprayVersion = "1.3.2"
   val scalazVersion = "7.1.3"
+  val zioVersion = "1.0.11"
+  val zioActorsVersion = "0.0.7+25-34551a32-SNAPSHOT"
   val cytoscapeVersion = "3.2.5"
 
   val collectionCompat = "org.scala-lang.modules" %% "scala-collection-compat" % "2.5.0"
@@ -40,7 +42,14 @@ object Dependencies {
 
   val fs2Core = Def.setting("co.fs2" %%% "fs2-core" % "3.1.2")
   val catsCore = Def.setting("org.typelevel" %%% "cats-core" % "2.6.1")
+  val catsEffect = Def.setting("org.typelevel" %%% "cats-effect" % "3.2.7")
 
+  val zioCore = "dev.zio" %% "zio" % zioVersion
+  val zioInteropCats = "dev.zio" %% "zio-interop-cats" % "3.1.1.0"
+  val zioTest = "dev.zio" %% "zio-test" % zioVersion
+  val zioTestSbt = "dev.zio" %% "zio-test-sbt" % zioVersion
+  val zioActors = "dev.zio" %% "zio-actors" % zioActorsVersion
+  val zioActorsPersistence = "dev.zio" %% "zio-actors-persistence" % zioActorsVersion
   val logback = "ch.qos.logback" % "logback-classic" % "1.2.5"
   val ficus = "net.ceedubs" %% "ficus" % "1.1.2"
   val scalatest = "org.scalatest" %% "scalatest" % "3.2.9"
