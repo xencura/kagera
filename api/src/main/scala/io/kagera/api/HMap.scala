@@ -88,5 +88,13 @@ case class HMap[K[_], V[_]](data: Map[K[_], V[_]]) extends Iterable[(K[_], V[_])
    */
   def -[T](key: K[T]): HMap[K, V] = HMap[K, V](data - key)
 
+  def updatedWith[T](key: K[T])(remappingFunction: (Option[V[T]]) => Option[V[T]]) = {
+    val previousValue = get(key)
+    val newValue = remappingFunction(previousValue)
+    if (previousValue != newValue)
+      newValue.map(nv => this - key + (key -> nv)).getOrElse(this - key)
+    else
+      this
+  }
   override def iterator: Iterator[(K[_], V[_])] = data.iterator
 }

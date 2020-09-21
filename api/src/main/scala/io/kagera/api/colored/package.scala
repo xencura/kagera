@@ -60,10 +60,14 @@ package object colored {
 
     def multiplicities: MultiSet[Place[_]] = marking.data.view.mapValues(_.multisetSize).toMap
 
-    def add[C](p: Place[C], value: C, count: Int = 1): Marking = {
-      val newTokens = marking.getOrElse(p, MultiSet.empty).multisetIncrement(value, count)
-      marking.+(p -> newTokens)
-    }
+    def add[C](place: Place[C], value: C, count: Int = 1): Marking =
+      marking.updatedWith(place)(_.map(_.multisetIncrement(value, count)).orElse(Some(MultiSet(value))))
+    def remove[C](place: Place[C], value: C, count: Int = 1): Marking =
+      marking.updatedWith(place)(_.map(_.multisetDecrement(value, count)))
+    def replace[T](fromPlace: Place[T], toPlace: Place[T], fromToken: T, toToken: T): Marking =
+      marking.remove(fromPlace, fromToken).add(toPlace, toToken)
+    def move[T](from: Place[T], to: Place[T], token: T): Marking = replace(from, to, token, token)
+    def updateIn[T](place: Place[T], from: T, to: T): Marking = replace(place, place, from, to)
 
     def |-|(other: Marking): Marking = other.keySet.foldLeft(marking) { case (result, place) =>
       marking.get(place) match {

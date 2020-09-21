@@ -8,19 +8,17 @@ package object multiset {
 
     def empty[T]: MultiSet[T] = Map.empty[T, Int]
 
-    def from[T](elements: Iterable[T]) = elements.foldLeft(empty[T]) { case (mset, e) => mset.multisetIncrement(e, 1) }
+    def from[T](elements: Iterable[T]): MultiSet[T] = elements.foldLeft(empty[T]) { case (mset, e) =>
+      mset.multisetIncrement(e, 1)
+    }
 
-    def apply[T](elements: T*) = from(elements.toSeq)
+    def apply[T](elements: T*): MultiSet[T] = from(elements.toSeq)
   }
 
-  implicit class MultiSetOps[T](mset: MultiSet[T]) {
+  implicit class MultiSetOps[T](val mset: MultiSet[T]) extends AnyVal {
     def multisetDifference(other: MultiSet[T]): MultiSet[T] =
-      other.foldLeft(mset) { case (result, (p, count)) =>
-        result.get(p) match {
-          case None => result
-          case Some(n) if n <= count => result - p
-          case Some(n) => result + (p -> (n - count))
-        }
+      other.foldLeft(mset) { case (result, (element, count)) =>
+        result.multisetDecrement(element, count)
       }
 
     def multisetSum(other: MultiSet[T]): MultiSet[T] =
@@ -44,7 +42,7 @@ package object multiset {
 
     def multiplicities(map: MultiSet[T]): Map[T, Int] = map
 
-    def setMultiplicity(map: Map[T, Int])(element: T, m: Int) = map + (element -> m)
+    def setMultiplicity(map: Map[T, Int])(element: T, m: Int): Map[T, Int] = map + (element -> m)
 
     def allElements: Iterable[T] = mset.foldLeft(List.empty[T]) { case (list, (e, count)) =>
       List.fill[T](count)(e) ::: list
