@@ -69,7 +69,7 @@ trait Routes extends Directives with Queries with UpickleSupport {
     } ~
       path("create" / Segment) { topologyId =>
         post {
-          val topology = repository(topologyId).asInstanceOf[ExecutablePetriNet[Unit]]
+          val topology = repository(topologyId)
           val id = java.util.UUID.randomUUID.toString
 //          system.actorOf(PetriNetInstance.props(topology, Marking.empty, ()), id)
           complete(id)
