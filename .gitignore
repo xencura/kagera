@@ -40,3 +40,4 @@ revision.txt
 .DS_Store
 
 *.pyc
+**/.bloop/

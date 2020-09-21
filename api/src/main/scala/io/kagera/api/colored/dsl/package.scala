@@ -34,7 +34,7 @@ package object dsl {
   def arc(t: Transition[_, _, _], p: Place[_], weight: Long): Arc =
     WLDiEdge[Node, String](Right(t), Left(p))(weight, "")
 
-  def arc[C](p: Place[C], t: Transition[_, _, _], weight: Long, filter: C => Boolean = (token: C) => true): Arc = {
+  def arc[C](p: Place[C], t: Transition[_, _, _], weight: Long = 1L, filter: C => Boolean = (token: C) => true): Arc = {
     val innerEdge = new PTEdgeImpl[C](weight, filter)
     WLDiEdge[Node, PTEdge[C]](Left(p), Right(t))(weight, innerEdge)
   }

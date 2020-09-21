@@ -30,5 +30,5 @@ trait Place[Color] {
    */
   def label: String
 
-  def apply[T <: Color](_tokens: T*): MarkedPlace[Color] = (this, MultiSet(_tokens: _*))
+  def apply(_tokens: Color*): MarkedPlace[Color] = (this, MultiSet[Color](_tokens: _*))
 }

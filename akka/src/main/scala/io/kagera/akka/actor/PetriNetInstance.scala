@@ -154,7 +154,8 @@ class PetriNetInstance[S](
   }
 
   def executeJob[E](job: Job[S, E], originalSender: ActorRef) =
-    runJobAsync(job, executor)(settings.evaluationStrategy).unsafeToFuture().pipeTo(context.self)(originalSender)
+    // TODO executionContext: (settings.evaluationStrategy)
+    runJobAsync[IO, S, E](job, executor).unsafeToFuture().pipeTo(context.self)(originalSender)
 
   override def onRecoveryCompleted(instance: Instance[S]) = step(instance)
 }
