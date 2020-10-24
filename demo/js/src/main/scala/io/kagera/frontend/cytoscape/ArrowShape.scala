@@ -14,4 +14,3 @@ object ArrowShape {
     override val name = "none"
   }
 }
-

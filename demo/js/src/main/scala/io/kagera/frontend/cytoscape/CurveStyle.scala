@@ -13,4 +13,3 @@ object CurveStyle {
     override val name = "bezier"
   }
 }
-
