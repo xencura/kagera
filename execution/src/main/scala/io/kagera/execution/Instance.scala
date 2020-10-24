@@ -19,7 +19,9 @@ case class Instance[S](
   state: S,
   jobs: Map[Long, Job[S, _]]
 ) {
-
+  def enabledParameters: Map[Transition[_, _, _], Iterable[Marking]] = process.enabledParameters(availableMarking)
+  def enabledTransitions: Set[Transition[_, _, _]] = process.enabledTransitions(marking)
+  def transitionById(id: Long): Option[Transition[_, _, _]] = process.transitions.findById(id)
   // The marking that is already used by running jobs
   lazy val reservedMarking: Marking =
     jobs.map { case (id, job) => job.consume }.reduceOption(_ |+| _).getOrElse(Marking.empty)
@@ -34,11 +36,9 @@ case class Instance[S](
   def isBlockedReason(transitionId: Long): Option[String] = failedJobs
     .map {
       case ExceptionState(`transitionId`, _, reason, _) =>
-        Some(
-          s"Transition '${process.transitions.getById(transitionId)}' is blocked because it failed previously with: $reason"
-        )
+        Some(s"Transition '${transitionById(transitionId)}' is blocked because it failed previously with: $reason")
       case ExceptionState(tid, _, reason, ExceptionStrategy.Fatal) =>
-        Some(s"Transition '${process.transitions.getById(tid)}' caused a Fatal exception")
+        Some(s"Transition '${transitionById(tid)}' caused a Fatal exception")
       case _ => None
     }
     .find(_.isDefined)

@@ -25,6 +25,7 @@ trait SequenceNet[S, E] {
   def eventSourcing: S => E => S
 
   lazy val places = (1 to (sequence.size + 1)).map(i => Place[Unit](id = i))
+  lazy val transitions = petriNet.transitions
   lazy val initialMarking = Marking(place(1) -> 1)
 
   def place(n: Int) = places(n - 1)
