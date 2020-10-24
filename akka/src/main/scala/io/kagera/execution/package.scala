@@ -25,7 +25,7 @@ package object execution {
         case Some(reason) =>
           (instance, Left(reason))
         case None =>
-          instance.process.enabledParameters(instance.availableMarking).get(transition) match {
+          instance.enabledParameters.get(transition) match {
             case None =>
               (instance, Left(s"Not enough consumable tokens"))
             case Some(params) =>
@@ -52,8 +52,7 @@ package object execution {
    * Finds the (optional) first transition that is automated & enabled
    */
   def fireFirstEnabled[S]: State[Instance[S], Option[Job[S, _]]] = State { instance =>
-    instance.process
-      .enabledParameters(instance.availableMarking)
+    instance.enabledParameters
       .find { case (t, markings) =>
         t.isAutomated && !instance.isBlockedReason(t.id).isDefined
       }
@@ -67,9 +66,9 @@ package object execution {
 
   def fireTransitionById[S](id: Long, input: Any): State[Instance[S], Either[String, Job[S, Any]]] =
     State
-      .inspect[Instance[S], Option[Transition[Any, Any, S]]] { instance =>
-        instance.process.transitions.findById(id).map(_.asInstanceOf[Transition[Any, Any, S]])
-      }
+      .inspect[Instance[S], Option[Transition[Any, Any, S]]](
+        _.transitionById(id).map(_.asInstanceOf[Transition[Any, Any, S]])
+      )
       .flatMap {
         case None => State.pure(Left(s"No transition exists with id $id"))
         case Some(t) => fireTransition(t, input)
@@ -92,8 +91,9 @@ package object execution {
   ): IO[TransitionEvent] = {
     val startTime = System.currentTimeMillis()
 
-    executor
-      .fireTransition(job.transition)(job.consume, job.processState, job.input)
+    val transitionFunction: TransitionFunction[IO, Any, E, S] = executor.fireTransition(job.transition)
+    val transitionApplied: IO[(Marking, E)] = transitionFunction(job.consume, job.processState, job.input)
+    transitionApplied
       .map { case (produced, out) =>
         TransitionFiredEvent(
           job.id,
@@ -106,9 +106,6 @@ package object execution {
         )
       }
       .handleErrorWith { case e: Throwable =>
-        val failureCount = job.failureCount + 1
-        val failureStrategy = job.transition.exceptionStrategy(e, failureCount)
-
         val sw = new StringWriter()
         e.printStackTrace(new PrintWriter(sw))
         val stackTraceString = sw.toString
@@ -122,7 +119,7 @@ package object execution {
             job.consume,
             Some(job.input),
             stackTraceString,
-            failureStrategy
+            job.transition.exceptionStrategy(e, job.failureCount + 1)
           )
         )
       }
