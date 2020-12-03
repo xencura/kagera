@@ -1,10 +1,11 @@
 package io.kagera.api.colored
 
-import org.scalatest.WordSpec
-import org.scalatest.Matchers._
+import matchers.should.Matchers._
 import io.kagera.api.colored.dsl._
+import org.scalatest.matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class TokenGameSpec extends WordSpec {
+class TokenGameSpec extends AnyWordSpec {
 
   val p1 = Place[Int](id = 1)
   val p2 = Place[Int](id = 2)

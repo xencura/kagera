@@ -1,9 +1,10 @@
 package io.kagera.api.colored
 
-import org.scalatest.Matchers._
-import org.scalatest.WordSpec
+import matchers.should.Matchers._
+import org.scalatest.matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class ColoredMarkingSpec extends WordSpec {
+class ColoredMarkingSpec extends AnyWordSpec {
 
   case class Person(name: String, age: Int)
 
