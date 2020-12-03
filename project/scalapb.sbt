@@ -1,1 +1,1 @@
-libraryDependencies ++= Seq("com.github.os72" % "protoc-jar" % "3.0.0.1")
+libraryDependencies ++= Seq("com.github.os72" % "protoc-jar" % "3.11.4")
