@@ -16,7 +16,7 @@ addSbtPlugin("org.scala-js" % "sbt-jsdependencies" % "1.0.0")
 
 addSbtPlugin("com.typesafe.sbt" % "sbt-native-packager" % "1.6.2")
 
-addSbtPlugin("org.xerial.sbt" % "sbt-sonatype" % "2.6")
+addSbtPlugin("org.xerial.sbt" % "sbt-sonatype" % "3.9.5")
 
 addSbtPlugin("com.jsuereth" % "sbt-pgp" % "2.0.2")
 
