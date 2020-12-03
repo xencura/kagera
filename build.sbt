@@ -36,7 +36,6 @@ lazy val visualization = project
   .settings(defaultProjectSettings: _*)
   .settings(name := "kagera-visualization", libraryDependencies ++= Seq(scalaGraph, scalaGraphDot))
 
-
 lazy val akka = project
   .in(file("akka"))
   .dependsOn(api)

@@ -19,10 +19,7 @@ package object model {
     implicit val rw: ReadWriter[Edge] = macroRW[Edge]
   }
 
-  case class PetriNetModel(
-                            places: Set[Place],
-                            transitions: Set[Transition],
-                            edges: Set[Edge]) {
+  case class PetriNetModel(places: Set[Place], transitions: Set[Transition], edges: Set[Edge]) {
 
     def nodes: Set[Either[Place, Transition]] = places.map(p => Left(p)) ++ transitions.map(t => Right(t))
   }

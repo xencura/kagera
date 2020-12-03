@@ -7,8 +7,7 @@ import org.scalatest.{ BeforeAndAfterAll, WordSpecLike }
 
 object AkkaTestBase {
 
-  val defaultTestConfig = ConfigFactory.parseString(
-    """
+  val defaultTestConfig = ConfigFactory.parseString("""
       |
       |akka {
       |  loggers = ["akka.testkit.TestEventListener"]
@@ -30,7 +29,8 @@ object AkkaTestBase {
     """.stripMargin)
 }
 
-abstract class AkkaTestBase extends TestKit(ActorSystem("testSystem", AkkaTestBase.defaultTestConfig))
+abstract class AkkaTestBase
+    extends TestKit(ActorSystem("testSystem", AkkaTestBase.defaultTestConfig))
     with WordSpecLike
     with ImplicitSender
     with BeforeAndAfterAll {

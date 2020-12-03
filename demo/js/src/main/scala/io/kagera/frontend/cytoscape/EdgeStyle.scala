@@ -11,4 +11,5 @@ case class EdgeStyle(
   sourceArrow: ArrowStyle = ArrowStyle.default,
   midSourceArrow: ArrowStyle = ArrowStyle.default,
   midTargetArrow: ArrowStyle = ArrowStyle.default,
-  targetArrow: ArrowStyle = ArrowStyle.default)
+  targetArrow: ArrowStyle = ArrowStyle.default
+)
