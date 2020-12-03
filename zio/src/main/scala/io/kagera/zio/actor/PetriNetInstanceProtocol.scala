@@ -1,6 +1,6 @@
 package io.kagera.zio.actor
 
-import io.kagera.api.colored.{ ExceptionStrategy, Marking, Transition }
+import io.kagera.api.colored.{ ExceptionStrategy, Marking, Place, Transition }
 import zio.stream.Stream
 
 /**
@@ -17,20 +17,15 @@ object PetriNetInstanceProtocol {
    * Command to request the current state of the petri net instance.
    */
   case class GetState[S]() extends Message[InstanceState[S]]
-  case class IdleStop(seq: Long) extends Message[Unit]
-
-  object SetMarkingAndState {
-    def apply(marking: Marking): SetMarkingAndState[Unit] = SetMarkingAndState[Unit](marking, ())
-  }
+  case class UpdateTokenInPlace[T](from: T, to: T, place: Place[T]) extends Message[InstanceState[_]]
+  case class AssignTokenToPlace[T](token: T, place: Place[T]) extends Message[InstanceState[_]]
 
   /**
    * Command to initialize a petri net instance.
    */
   case class SetMarkingAndState[S](marking: Marking, state: S) extends Message[Response] with HasMarking
-
-  object FireTransition {
-    def apply[I](t: Transition[I, _, _], input: I): FireTransition = FireTransition(t.id, input, None)
-    def apply(t: Transition[Unit, _, _]): FireTransition = FireTransition(t.id, (), None)
+  object SetMarkingAndState {
+    def apply(marking: Marking): SetMarkingAndState[Unit] = SetMarkingAndState[Unit](marking, ())
   }
 
   /**
@@ -38,6 +33,12 @@ object PetriNetInstanceProtocol {
    */
   case class FireTransition(transitionId: Long, input: Any, correlationId: Option[Long] = None)
       extends Message[Stream[Throwable, TransitionResponse]]
+  object FireTransition {
+    def apply[I](t: Transition[I, _, _], input: I): FireTransition = FireTransition(t.id, input, None)
+    def apply(t: Transition[Unit, _, _]): FireTransition = FireTransition(t.id, (), None)
+  }
+
+  case class IdleStop(seq: Long) extends Message[Unit]
 
   /**
    * A common trait for all responses coming from a petri net instance.
