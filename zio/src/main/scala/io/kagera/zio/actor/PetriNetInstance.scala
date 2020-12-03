@@ -70,8 +70,12 @@ class PetriNetInstance[S](
           )
         )
 
-      case _: GetState[S] => UIO((Command.ignore, _ => instanceState(instance)))
-
+      case AssignTokenToPlace(token, place) =>
+        UIO((Command.ignore, _ => instanceState(instance))) // TODO Implement real functionality
+      case UpdateTokenInPlace(from, to, place) =>
+        step(state.get.copy(marking = state.get.marking.updateIn(place, from, to))).map(instance =>
+          (Command.persist(UpdatedInstance(instance)), state => instanceState(state.get))
+        )
       case msg @ FireTransition(id, input, correlationId) =>
         fireTransitionById[S](id, input).run(instance).value match {
           case (updatedInstance, Right(job)) =>
@@ -117,46 +121,6 @@ class PetriNetInstance[S](
 
       case _: GetState[S] => UIO((Command.ignore, _ => instanceState(instance)))
 
-      case msg @ FireTransition(id, input, correlationId) =>
-        fireTransitionById[S](id, input).run(instance).value match {
-          case (updatedInstance, Right(job)) =>
-            runJobAsync[Task, S, Any](job, executor).map {
-              case ev: TransitionFiredEvent =>
-                (
-                  Command.persist(ev),
-                  newState =>
-                    zio.stream.Stream(
-                      TransitionFired[S](ev.transitionId, ev.consumed, ev.produced, newState.map(instanceState).get)
-                    )
-                )
-              case e @ TransitionFailedEvent(jobId, transitionId, _, _, consume, input, reason, strategy) =>
-                strategy match {
-                  /* TODO
-                  val updatedInstance = applyEvent(instance)(e)
-                  case RetryWithDelay(delay) =>
-                    log.warning(
-                      s"Scheduling a retry of transition '${topology.transitions.getById(transitionId)}' in $delay milliseconds"
-                    )
-                    val originalSender = sender()
-                    system.scheduler.scheduleOnce(delay milliseconds) {
-                      runJobAsync(updatedInstance.jobs(jobId), executor)
-                    }
-                    updateAndRespond(applyEvent(instance)(e))
-                   */
-                  case _ =>
-                    //persistEvent(instance, e)((applyEvent(instance) _).andThen(updateAndRespond _))
-                    (
-                      Command.persist(e),
-                      _ =>
-                        zio.stream.Stream(
-                          TransitionFailed(transitionId, consume, input, reason, strategy): TransitionResponse
-                        )
-                    )
-                }
-            }
-          case (_, Left(reason)) =>
-            UIO((Command.ignore, _ => zio.stream.Stream(TransitionNotEnabled(id, reason))))
-        }
     }
   }
   override def sourceEvent(state: Option[Instance[S]], event: Event): State = {
@@ -182,7 +146,9 @@ class PetriNetInstance[S](
            */
         }
 
-        ZIO.foreach(jobs.toSeq)(job => runJobAsync(job, executor)).as(updatedInstance)
+        ZIO
+          .foreach(jobs.toSeq)(job => runJobAsync(job, executor))
+          .map(_.foldLeft(updatedInstance)(applyEvent(_)(_)))
     }
   }
   def applyEvent(i: Instance[S])(e: Event): Instance[S] = EventSourcing.applyEvent(e).runS(i).value
