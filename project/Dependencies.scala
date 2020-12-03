@@ -8,8 +8,8 @@ object Dependencies {
   val akkaHttpVersion = "10.1.12"
   val sprayVersion = "1.3.2"
   val scalazVersion = "7.1.3"
-  val zioVersion = "1.0.1"
-  val zioActorsVersion = "0.0.7+13-dffd8d00-SNAPSHOT"
+  val zioVersion = "1.0.3"
+  val zioActorsVersion = "0.0.7+25-34551a32-SNAPSHOT"
   val cytoscapeVersion = "3.2.5"
 
   val collectionCompat = "org.scala-lang.modules" %% "scala-collection-compat" % "2.5.0"
