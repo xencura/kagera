@@ -31,7 +31,7 @@ object Dependencies {
 
   val akkaPersistenceCassandra = "com.typesafe.akka" %% "akka-persistence-cassandra" % "1.0.5"
 
-  val scalaGraph = "org.scala-graph" %% "graph-core" % "1.13.1"
+  val scalaGraph = Def.setting("org.scala-graph" %%% "graph-core" % "1.13.2")
   val scalaGraphDot = "org.scala-graph" %% "graph-dot" % "1.13.0"
   val scalaJsDom = Def.setting("org.scala-js" %%% "scalajs-dom" % "1.0.0")
   val scalaTags = Def.setting("com.lihaoyi" %%% "upickle" % "1.4.1")
