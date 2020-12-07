@@ -11,7 +11,24 @@ package object colored {
   /**
    * Type alias for the node type of the scalax.collection.Graph backing the petri net.
    */
-  type Node = Either[Place[_], Transition[_, _, _]]
+  trait Node {
+
+    /**
+     * The unique identifier of this node.
+     *
+     * @return
+     *   A unique identifier.
+     */
+    def id: Long
+
+    /**
+     * A human readable label of this node.
+     *
+     * @return
+     *   The label.
+     */
+    def label: String
+  }
 
   /**
    * Type alias for the edge type of the scalax.collection.Graph backing the petri net.
