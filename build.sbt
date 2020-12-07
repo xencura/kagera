@@ -35,19 +35,39 @@ lazy val basicSettings =
 
 lazy val defaultProjectSettings = basicSettings
 
-lazy val api = project
+lazy val api = crossProject(JSPlatform, JVMPlatform)
+  .withoutSuffixFor(JVMPlatform)
+  .enablePlugins(ScalaJSBundlerPlugin)
   .in(file("api"))
   .settings(defaultProjectSettings: _*)
   .settings(
     name := "kagera-api",
-    libraryDependencies ++= Seq(collectionCompat, scalaGraph, catsCore, catsEffect, fs2Core, scalatest % "test")
+    libraryDependencies ++= Seq(collectionCompat, scalaGraph.value, catsCore, catsEffect, fs2Core, scalatest % "test"),
+    scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule) }
   )
 
-lazy val visualization = project
+lazy val visualization = crossProject(JSPlatform, JVMPlatform)
+  .withoutSuffixFor(JVMPlatform)
+  .enablePlugins(ScalaJSBundlerPlugin)
   .in(file("visualization"))
   .dependsOn(api)
   .settings(defaultProjectSettings: _*)
-  .settings(name := "kagera-visualization", libraryDependencies ++= Seq(scalaGraph, scalaGraphDot))
+  .settings(
+    name := "kagera-visualization",
+    resolvers += "jitpack" at "https://jitpack.io",
+    libraryDependencies ++= Seq(
+      scalaGraph.value,
+      "com.lihaoyi" %%% "scalatags" % "0.9.1",
+      "com.lihaoyi" %%% "upickle" % "1.1.0"
+    )
+  )
+  .jsSettings(
+    libraryDependencies ++= Seq(
+      "org.scala-js" %%% "scalajs-dom" % "1.0.0",
+      "com.github.xencura.scala-js-d3v4" %%% "scala-js-d3v4" % "766d13e0c1"
+    )
+  )
+  .jvmSettings(libraryDependencies ++= Seq(scalaGraphDot))
 
 lazy val execution = project
   .in(file("execution"))
@@ -65,7 +85,7 @@ lazy val execution = project
 
 lazy val akka = project
   .in(file("akka"))
-  .dependsOn(api, execution)
+  .dependsOn(api.jvm, execution)
   .settings(
     defaultProjectSettings ++ Seq(
       name := "kagera-akka",
@@ -76,7 +96,7 @@ lazy val akka = project
         akkaSlf4j,
         akkaStream,
         akkaQuery,
-        scalaGraph,
+        scalaGraph.value,
         akkaInmemoryJournal % "test",
         akkaTestkit % "test",
         scalatest % "test"
@@ -108,13 +128,15 @@ lazy val zio = project
   )
 
 lazy val demo = (crossProject(JSPlatform, JVMPlatform) in file("demo"))
-  .enablePlugins(JSDependenciesPlugin)
+  .enablePlugins(JSDependenciesPlugin, ScalaJSBundlerPlugin)
+  .dependsOn(api, visualization)
   .settings(defaultProjectSettings: _*)
   .settings(
     Compile / unmanagedSourceDirectories += baseDirectory.value / "shared" / "main" / "scala",
     libraryDependencies ++= Seq(scalaTags.value, upickle.value)
   )
   .jsSettings(
+    webpackBundlingMode := BundlingMode.LibraryAndApplication(),
     jsDependencies ++= Seq(
       "org.webjars.bower" % "cytoscape" % cytoscapeVersion
         / s"$cytoscapeVersion/dist/cytoscape.js"
@@ -131,7 +153,7 @@ lazy val demo = (crossProject(JSPlatform, JVMPlatform) in file("demo"))
 
 lazy val demoJs = demo.js
 lazy val demoJvm = demo.jvm
-  .dependsOn(api, visualization, akka)
+  .dependsOn(api.jvm, visualization.jvm, akka)
   .settings(
     // include the compiled javascript result from js module
     Compile / resources += (demoJs / Compile / fastOptJS).value.data,
@@ -140,7 +162,7 @@ lazy val demoJvm = demo.jvm
   )
 
 lazy val root = Project("kagera", file("."))
-  .aggregate(api, akka, execution, visualization, zio)
+  .aggregate(api.jvm, akka, execution, visualization.jvm, zio)
   .enablePlugins(BuildInfoPlugin)
   .settings(defaultProjectSettings)
   .settings(
