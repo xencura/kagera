@@ -1,5 +1,6 @@
 import sbt.Keys._
 import sbt._
+import org.portablescala.sbtplatformdeps.PlatformDepsPlugin.autoImport._
 
 object Dependencies {
 
@@ -28,7 +29,7 @@ object Dependencies {
 
   val akkaPersistenceCassandra = "com.typesafe.akka" %% "akka-persistence-cassandra" % "0.103"
 
-  val scalaGraph = "org.scala-graph" %% "graph-core" % "1.13.1"
+  val scalaGraph = Def.setting("org.scala-graph" %%% "graph-core" % "1.13.2")
   val scalaGraphDot = "org.scala-graph" %% "graph-dot" % "1.13.0"
 
   val fs2Core = "co.fs2" %% "fs2-core" % "2.5.9"
