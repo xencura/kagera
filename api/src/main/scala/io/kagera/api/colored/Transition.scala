@@ -17,24 +17,7 @@ import scala.concurrent.duration.Duration
  * @tparam State
  *   The type of state the transition closes over.
  */
-trait Transition[Input, Output, State] {
-
-  /**
-   * The unique identifier of this transition.
-   *
-   * @return
-   *   The unique identifier.
-   */
-  val id: Long
-
-  /**
-   * A human readable label of this transition.
-   *
-   * @return
-   *   The label.
-   */
-  val label: String
-
+trait Transition[Input, Output, State] extends Node {
   /**
    * Flag indicating whether this transition is managed or manually triggered from outside.
    *
