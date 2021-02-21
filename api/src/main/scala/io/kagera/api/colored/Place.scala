@@ -12,7 +12,7 @@ object Place {
 /**
  * A Place in a colored petri net.
  */
-trait Place[Color] {
+trait Place[+Color] {
 
   /**
    * The unique identifier of this place.
@@ -30,5 +30,5 @@ trait Place[Color] {
    */
   def label: String
 
-  def apply(_tokens: Color*): MarkedPlace[Color] = (this, MultiSet[Color](_tokens: _*))
+  //def apply(_tokens: Color*): MarkedPlace[Color] = (this, MultiSet[Color](_tokens: _*))
 }

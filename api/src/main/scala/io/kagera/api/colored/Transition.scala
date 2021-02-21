@@ -17,7 +17,7 @@ import scala.concurrent.duration.Duration
  * @tparam State
  *   The type of state the transition closes over.
  */
-trait Transition[Input, Output, State] {
+trait Transition[-Input, Output, State] {
 
   /**
    * The unique identifier of this transition.

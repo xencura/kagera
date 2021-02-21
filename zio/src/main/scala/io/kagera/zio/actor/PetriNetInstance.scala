@@ -1,5 +1,6 @@
 package io.kagera.zio.actor
 
+import com.typesafe.config.{ Config, ConfigFactory }
 import io.kagera.api.colored._
 import io.kagera.api.placeToNode
 import io.kagera.execution.EventSourcing._
@@ -7,6 +8,7 @@ import io.kagera.execution._
 import io.kagera.zio.actor.PetriNetInstance.Settings
 import io.kagera.zio.actor.PetriNetInstanceProtocol._
 import zio.actors.persistence.PersistenceId.PersistenceId
+import zio.actors.persistence.config.JournalPluginClass
 import zio.actors.persistence.{ Command, EventSourcedStateful }
 import zio.actors.{ ActorRef, Context }
 import zio.clock.Clock
@@ -44,8 +46,13 @@ object PetriNetInstance {
     )
   }
 
-  def props[S](topology: ExecutablePetriNet[S], persistenceId: PersistenceId, settings: Settings = defaultSettings) =
-    new PetriNetInstance[S](topology, settings, new TransitionExecutorImpl[Task, S](topology), persistenceId)
+  def props[S](
+    topology: ExecutablePetriNet[S],
+    persistenceId: PersistenceId,
+    settings: Settings = defaultSettings,
+    config: Config
+  ) =
+    new PetriNetInstance[S](topology, settings, new TransitionExecutorImpl[Task, S](topology), persistenceId, config)
 }
 
 /**
@@ -55,8 +62,12 @@ class PetriNetInstance[S](
   val topology: ExecutablePetriNet[S],
   val settings: Settings,
   executor: TransitionExecutor[Task, S],
-  persistenceId: PersistenceId
-) extends EventSourcedStateful[Clock, Option[Instance[S]], Message, Event](persistenceId) {
+  persistenceId: PersistenceId,
+  config: Config
+) extends EventSourcedStateful[Clock, Option[Instance[S]], Message, Event](
+      persistenceId,
+      EventSourcedStateful.retrieveJournal(JournalPluginClass("zio.actors.persistence.journal.InMemJournal"), _)
+    ) {
   import PetriNetInstance._
   type State = Option[Instance[S]]
   override def receive[A](state: State, msg: Message[A], context: Context): RIO[Any, (Command[Event], State => A)] = {

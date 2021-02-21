@@ -66,6 +66,8 @@ package object api {
     override lazy val transitions = innerGraph.transitions().toSet
 
     override def nodes = innerGraph.nodes.map(_.value)
+
+    override def toString: String = s"Petri Net with inner graph:\n$innerGraph"
   }
 
   implicit def placeToNode[P, T](p: P): Either[P, T] = Left(p)
