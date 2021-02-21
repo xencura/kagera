@@ -9,6 +9,8 @@ import scalax.collection.edge.WLDiEdge
  * TODO also incorporate the edge types, P -> T and T -> P
  */
 trait PetriNet[P, T] {
+  type PlaceType = P
+  type TransitionType = T
 
   /**
    * The scala-graph backing petri net.
