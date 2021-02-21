@@ -1,14 +1,15 @@
 package io.kagera.zio.actor
 
+import com.typesafe.config.ConfigFactory
+
 import java.io.File
 import java.util.UUID
-
 import io.kagera.api.colored._
 import io.kagera.execution.Instance
 import io.kagera.zio.actor.PetriNetInstanceProtocol._
-import zio.{ Chunk, RIO }
+import zio.{Chunk, RIO, Task}
 import zio.actors.persistence.PersistenceId.PersistenceId
-import zio.actors.{ ActorRef, ActorSystem, Supervisor }
+import zio.actors.{ActorRef, BasicActorSystem, Supervisor}
 import zio.clock.Clock
 import zio.console.putStrLn
 import zio.duration.durationInt
@@ -18,9 +19,11 @@ import zio.test._
 import zio.test.environment.TestEnvironment
 
 object PetriNetInstanceSpec extends DefaultRunnableSpec {
-  val configFile = Some(new File("./zio/src/test/resources/application.conf"))
+  //val configFile = Some(new File("./zio/src/test/resources/application.conf"))
+  val config = ConfigFactory.load()
+  def actorSystem(name: String): Task[BasicActorSystem] = BasicActorSystem(Some(config))
   def createPetriNetActor[S](
-    actorSystem: ActorSystem,
+    actorSystem: BasicActorSystem,
     petriNet: ExecutablePetriNet[S],
     persistenceId: String,
     processId: String = UUID.randomUUID().toString
@@ -30,7 +33,7 @@ object PetriNetInstanceSpec extends DefaultRunnableSpec {
         s"actor-$processId",
         Supervisor.none,
         None,
-        PetriNetInstance.props[S](petriNet, PersistenceId.apply(persistenceId))
+        PetriNetInstance.props[S](petriNet, PersistenceId.apply(persistenceId), config = config)
       )
   } yield actor
   def spec: ZSpec[TestEnvironment, Throwable] =
@@ -41,7 +44,7 @@ object PetriNetInstanceSpec extends DefaultRunnableSpec {
         }
         import sequenceNet._
         for {
-          actorSystem <- ActorSystem(s"testsystem1", configFile)
+          actorSystem <- actorSystem(s"testsystem1")
           actor <- createPetriNetActor[Set[Int]](actorSystem, petriNet, "1")
           res <- actor ? SetMarkingAndState(initialMarking, Set(1, 2, 3))
         } yield assert(res)(equalTo(Initialized(initialMarking, Set(1, 2, 3))))
@@ -52,7 +55,7 @@ object PetriNetInstanceSpec extends DefaultRunnableSpec {
         }
         import sequenceNet._
         for {
-          actorSystem <- ActorSystem(s"testsystem2", configFile)
+          actorSystem <- actorSystem(s"testsystem2")
           actor <- createPetriNetActor[Set[Int]](actorSystem, petriNet, "2")
           res <- actor ? GetState[Set[Int]]()
         } yield assert(res)(isSubtype[InstanceState[Set[Int]]](hasMarking(Marking.empty)))
@@ -63,7 +66,7 @@ object PetriNetInstanceSpec extends DefaultRunnableSpec {
         }
         import sequenceNet._
         for {
-          actorSystem <- ActorSystem(s"testsystem3", configFile)
+          actorSystem <- actorSystem(s"testsystem3")
           actor <- createPetriNetActor[Set[Int]](actorSystem, petriNet, "3")
           res1 <- actor ? SetMarkingAndState(initialMarking, Set(1, 2, 3))
           res2 <- actor ? GetState[Set[Int]]()
@@ -78,7 +81,7 @@ object PetriNetInstanceSpec extends DefaultRunnableSpec {
         }
         import sequenceNet._
         for {
-          actorSystem <- ActorSystem(s"testsystem4", configFile)
+          actorSystem <- actorSystem(s"testsystem4")
           actor <- createPetriNetActor[Set[Int]](actorSystem, petriNet, "4")
           res1 <- actor ? SetMarkingAndState[Set[Int]](initialMarking, Set.empty)
           res2 <- actor ? FireTransition(1, ())
@@ -95,7 +98,7 @@ object PetriNetInstanceSpec extends DefaultRunnableSpec {
         }
         import sequenceNet._
         for {
-          actorSystem <- ActorSystem(s"testsystem5", configFile)
+          actorSystem <- actorSystem(s"testsystem5")
           actor <- createPetriNetActor[Set[Int]](actorSystem, petriNet, "5")
           _ <- actor ! SetMarkingAndState(initialMarking, Set.empty)
           res1 <- actor ? FireTransition(1, ())
@@ -114,7 +117,7 @@ object PetriNetInstanceSpec extends DefaultRunnableSpec {
         }
         import sequenceNet._
         for {
-          actorSystem <- ActorSystem(s"testsystem6", configFile)
+          actorSystem <- actorSystem(s"testsystem6")
           actor <- createPetriNetActor[Set[Int]](actorSystem, petriNet, "6")
           _ <- actor ! SetMarkingAndState(initialMarking, Set.empty)
           // attempt to fire the second transition
@@ -174,7 +177,7 @@ object PetriNetInstanceSpec extends DefaultRunnableSpec {
         val persistenceId = "8"
 
         for {
-          actorSystem <- ActorSystem(s"testsystem$persistenceId", configFile)
+          actorSystem <- actorSystem(s"testsystem$persistenceId")
           actor <- createPetriNetActor[Set[Int]](actorSystem, petriNet, persistenceId, processId = persistenceId)
           _ <- actor.path.flatMap(p => putStrLn(p))
           init <- actor ? SetMarkingAndState(initialMarking, Set.empty)

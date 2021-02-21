@@ -2,11 +2,11 @@ package io.kagera.client
 
 import io.kagera.api.colored.dsl._
 import io.kagera.api.colored.Place
-import io.kagera.vis.d3.PetriNetD3Visualization
+import io.kagera.vis.d3.GraphVisualization
 import org.scalajs.dom.html
 
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
-import scala.scalajs.js.annotation.{ JSExport, JSExportTopLevel }
+import scala.scalajs.js.annotation.{JSExport, JSExportTopLevel}
 import scalatags.JsDom.svgTags._
 import scalatags.JsDom.all._
 
@@ -29,7 +29,7 @@ object FrontendOnly {
     container.appendChild(graphContainer)
     val places = (0 to 2).map(i => Place[Unit](i))
     val transitions = places.zipWithIndex.map { case (_, i) =>
-      constantTransition[Unit, Unit, Unit](i, Some(i.toString), constant = i)
+      constantTransition[Unit, Unit, Unit](i, Some(i.toString), constant = ())
     }
     val allEdges = for {
       place <- places
@@ -37,7 +37,7 @@ object FrontendOnly {
       edge <- Seq(place ~> transition, transition ~> place)
     } yield edge
     val randomEdges = Random.shuffle(allEdges).take(allEdges.size / 3)
-    val petriNet = new PetriNetD3Visualization("#graph", process(randomEdges: _*))
+    val petriNet = new GraphVisualization("#graph", process(randomEdges: _*))
     petriNet.render()
   }
 }

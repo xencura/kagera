@@ -3,18 +3,18 @@ package io.kagera.api
 import multiset._
 import scalax.collection.edge.WLDiEdge
 
-/**
- * Petri net interface.
- *
- * TODO also incorporate the edge types, P -> T and T -> P
- */
+/** Petri net interface.
+  *
+  * TODO also incorporate the edge types, P -> T and T -> P
+  */
 trait PetriNet[P, T] {
+  type PlaceType = P
+  type TransitionType = T
 
-  /**
-   * The scala-graph backing petri net.
-   *
-   * @return
-   */
+  /** The scala-graph backing petri net.
+    *
+    * @return
+    */
   def innerGraph: BiPartiteGraph[P, T, WLDiEdge]
 
   /**
@@ -95,12 +95,11 @@ trait PetriNet[P, T] {
    */
   def nodes: scala.collection.Set[Either[P, T]]
 
-  /**
-   * Checks whether a transition is 'enabled' in a certain marking.
-   *
-   * @param marking
-   * @param t
-   * @return
-   */
+  /** Checks whether a transition is 'enabled' in a certain marking.
+    *
+    * @param marking
+    * @param t
+    * @return
+    */
   def isEnabledInMarking(marking: MultiSet[P])(t: T): Boolean = marking.isSubSet(inMarking(t))
 }

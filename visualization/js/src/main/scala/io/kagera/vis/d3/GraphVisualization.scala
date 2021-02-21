@@ -1,152 +1,123 @@
 package io.kagera.vis.d3
 
 import d3v4._
-import d3v4.d3selection.{BaseDom, Selection, Update}
-import io.kagera.api.colored.{Arc, ColoredPetriNet, Marking, Place, Transition}
-import io.kagera.api.multiset.MultiSet
-import io.kagera.vis.d3.PetriNetD3Visualization._
+import d3v4.d3selection.{BaseDom, Selection}
 import org.scalajs.dom.raw.EventTarget
 
 import scala.scalajs.js
 import scala.scalajs.js.UndefOr
+import GraphVisualization._
+import org.scalajs.dom
 
-// Adapted from https://github.com/kyouko-taiga/petri-js
-object PetriNetD3Visualization {
-  def apply(element: String, petriNetModel: ColoredPetriNet, marking: Marking = Marking.empty) = {
-    val uisForPlaces = petriNetModel.places.map(p => p -> PlaceUI(p)).toMap
-    val uisForTransitions =
-      petriNetModel.transitions.map(t => t -> TransitionUI(t)).toMap
-
-    val placeUIs = uisForPlaces.values.toSeq
-    val transitionUIs = uisForTransitions.values.toSeq
-    val tokenUIs =
-      marking
-        .flatMap { case (place: Place[_], tokens: MultiSet[_]) =>
-          tokens.flatMap { case (value, count) => (0 to count).map(_ => value -> place) }
-        }
-        .map { case (token, place) =>
-          TokenUI(token.hashCode().toString, token, uisForPlaces(place))
-        }
-        .toSeq
-
-    def uiForNode(e: Either[Place[_], Transition[_, _, _]]): Vertex = e match {
-      case Left(p) => placeUIs.find(e => e.place == p).get
-      case Right(t) => transitionUIs.find(e => e.transition == t).get
-    }
-
-    val edges = petriNetModel.edges.map(e => ArcUi(e, uiForNode(e.from), uiForNode(e.to)))
-    new PetriNetD3Visualization(
-      element,
-      renderers = Seq[PositionedRenderer[_ <: Vertex]](
-        new PlacePositionedRenderer(placeUIs),
-        new TokenPositionedRenderer(tokenUIs),
-        new TransitionPositionedRenderer(transitionUIs)
-      ),
-      edges = edges.toSeq
-    )
-  }
-  val TRANSITION_SIDE = 30
-  val PLACE_RADIUS = math.sqrt(TRANSITION_SIDE * TRANSITION_SIDE / 2)
-
-  trait Vertex extends SimulationNodeImpl {
+object GraphVisualization {
+  trait HasId {
     def id: String
   }
 
-  case class PlaceUI(place: Place[_]) extends Vertex {
-    def id: String = place.id.toString
+  trait Vertex extends SimulationNodeImpl with HasId
+
+  case class NodeUI[+T](content: T) extends Vertex {
+    override def id: String = content.hashCode.toString //TODO
   }
-  case class TransitionUI(transition: Transition[_, _, _]) extends Vertex {
-    override def id: String = transition.id.toString
-  }
-  case class ArcUi(arc: Arc, source: Vertex, target: Vertex) extends SimulationLinkImpl[Vertex, Vertex] {
-    def id: String = arc.hashCode.toString
-    def label: String = s"${source.id}->${target.id}"
-  }
-  case class TokenUI(id: String, value: Any, var place: PlaceUI) extends Vertex
+
+  case class EdgeUI[+C, S, T](content: C, source: NodeUI[S], target: NodeUI[T])
+      extends SimulationLinkImpl[NodeUI[S], NodeUI[T]]
 
   type SelectionRenderer[T] = d3selection.Selection[T] => BaseDom[T, _ <: BaseDom[T, _]]
   type VertexRenderer = SelectionRenderer[Vertex]
-  val defaultPlaceRenderer: SelectionRenderer[PlaceUI] = { places =>
-    places
-      .append("circle")
-      .attr("r", PLACE_RADIUS)
-      .attr("fill", "rgb(255, 248, 220)")
-      .attr("stroke", "rgb(224, 220, 191)")
-      .attr("stroke-width", "3px")
-    places
-      .append("text")
-      .attr("class", "marking")
-      .attr("text-anchor", "middle")
-      .attr("alignment-baseline", "central")
-    places
-      .append("text")
-      .attr("text-anchor", "left")
-      .attr("alignment-baseline", "central")
-      .attr("dx", PLACE_RADIUS * 1.25)
-      .text((place) => place.id)
-  }
-  val defaultTransitionRenderer: SelectionRenderer[TransitionUI] = { transitions =>
-    transitions
-      .append("rect")
-      .attr("width", TRANSITION_SIDE)
-      .attr("height", TRANSITION_SIDE)
-      .attr("x", -TRANSITION_SIDE / 2)
-      .attr("y", -TRANSITION_SIDE / 2)
-      .attr("fill", "rgb(220, 227, 255)")
-      .attr("stroke", "rgb(169, 186, 255)")
-      .attr("stroke-width", 3)
-      .attr("cursor", "pointer")
-    transitions
-      .append("text")
-      .attr("text-anchor", "middle")
-      .attr("alignment-baseline", "central")
-      .text((transition) => transition.id)
-  }
-  val defaultTokenRenderer: SelectionRenderer[TokenUI] =
-    _.append("circle")
-      .attr("r", PLACE_RADIUS * 0.8)
-      .attr("fill", "rgb(0, 0, 0)")
-      .attr("stroke", "rgb(224, 220, 191)")
-      .attr("stroke-width", "3px")
-  trait PositionedRenderer[T] {
+
+  case class Attachment(source: Any, target: Any)
+
+  trait Positioning
+
+  case object Free extends Positioning
+
+  case class AttachedTo[T](t: NodeUI[T]) extends Positioning
+
+  case class Transitioning[S, T](edgeUI: EdgeUI[_, S, T]) extends Positioning
+
+  trait PositionedRenderer[C, T] {
     type UiElement = T
-    def uiElements: Seq[T]
+
+    def elements: Seq[C]
+
     def name: String
-    def draggable: Boolean
+
+    def id(t: T): String
+
+    def movable: Boolean
+
     def renderer: SelectionRenderer[T]
-    def position(t: T): (UndefOr[Double], UndefOr[Double])
-    def updatePositions(selection: Selection[T]): Selection[T]
+
+    def updatePositions(selection: Selection[T]): Unit
+
+    def svgDefs: Map[String, Selection[String] => Selection[String]] = Map.empty
   }
-  trait NodeRenderer[T <: Vertex] extends PositionedRenderer[T] {
-    override def updatePositions(selection: Selection[T]): Selection[T] =
+
+  class NodeRenderer[E](
+    val name: String,
+    val elements: Seq[E],
+    val renderer: SelectionRenderer[NodeUI[E]],
+    val movable: Boolean = true,
+    val idFunc: E => String
+  ) extends PositionedRenderer[E, NodeUI[E]] {
+    type Content = E
+
+    def position(t: NodeUI[E]): (UndefOr[Double], UndefOr[Double]) = (t.x, t.y)
+
+    override def updatePositions(selection: Selection[NodeUI[E]]): Unit =
       selection
         .attr(
           "transform",
-          { d: T =>
+          { d: NodeUI[E] =>
             val (x, y) = position(d)
             s"translate($x, $y)"
           }
         )
-  }
-  class TokenPositionedRenderer(val uiElements: Seq[TokenUI]) extends NodeRenderer[TokenUI] {
-    override def name: String = "token"
-    override def draggable = false
-    override def renderer: SelectionRenderer[TokenUI] = defaultTokenRenderer
-    override def position(t: TokenUI): (UndefOr[Double], UndefOr[Double]) = (t.place.x, t.place.y)
 
+    override def id(t: NodeUI[E]): String = idFunc(t.content)
   }
-  class PlacePositionedRenderer(val uiElements: Seq[PlaceUI]) extends NodeRenderer[PlaceUI] {
-    override def name: String = "place"
-    override def draggable: Boolean = true
-    override def renderer: SelectionRenderer[PlaceUI] = defaultPlaceRenderer
-    override def position(t: PlaceUI): (UndefOr[Double], UndefOr[Double]) = (t.x, t.y)
+
+  class EdgeRenderer[C, S, T](
+    val elements: Seq[(C, S, T)],
+    val name: String,
+    val idFunc: EdgeUI[C, S, T] => String = (t: EdgeUI[C, S, T]) => s"${t.source.id}->${t.target.id}",
+    val renderer: SelectionRenderer[EdgeUI[C, S, T]] = (arcsEnter: Selection[EdgeUI[Any, S, T]]) => {
+      arcsEnter
+        .append("line")
+        .attr("stroke", "black")
+        .attr("stroke-width", 1)
+        .attr("marker-end", "url(#end)")
+    }
+  ) extends PositionedRenderer[(C, S, T), EdgeUI[C, S, T]] {
+    type Content = C
+    type Source = S
+    type Target = T
+
+    override def movable = false
+
+    def createUiElements(
+      sourceResolver: Source => NodeUI[Source],
+      targetResolver: Target => NodeUI[Target]
+    ): Seq[EdgeUI[C, S, T]] =
+      elements.map { case (c, s, t) => EdgeUI(c, sourceResolver(s), targetResolver(t)) }
+
+    override def id(t: EdgeUI[C, S, T]): String = idFunc(t)
+
+    override def updatePositions(selection: Selection[EdgeUI[C, S, T]]): Unit = {
+      selection
+        .selectAll[EdgeUI[C, S, T]]("line")
+        .attr("x1", d => d.source.x)
+        .attr("y1", d => d.source.y)
+        .attr("x2", d => d.target.x)
+        .attr("y2", d => d.target.y)
+      selection
+        .selectAll[EdgeUI[C, S, T]]("text")
+        .attr("x", d => (d.source.x.get + d.target.x.get) / 2)
+        .attr("y", d => (d.source.y.get + d.target.y.get) / 2)
+    }
   }
-  class TransitionPositionedRenderer(val uiElements: Seq[TransitionUI]) extends NodeRenderer[TransitionUI] {
-    override def name: String = "transition"
-    override def draggable: Boolean = true
-    override def renderer: SelectionRenderer[TransitionUI] = defaultTransitionRenderer
-    override def position(t: TransitionUI): (UndefOr[Double], UndefOr[Double]) = (t.x, t.y)
-  }
+
 }
 
 /** Class representing a Petri Net simulator.
@@ -155,7 +126,12 @@ object PetriNetD3Visualization {
   * underlying Petri Net model is customizable (see constructor), but defaults to Place/Transition
   * nets (see https://en.wikipedia.org/wiki/Petri_net).
   */
-class PetriNetD3Visualization(element: String, renderers: Seq[PositionedRenderer[_ <: Vertex]], edges: Seq[ArcUi]) {
+class GraphVisualization(
+  element: String,
+  nodeRenderers: Seq[NodeRenderer[_]],
+  edgeRenderers: Seq[EdgeRenderer[_, _, _]],
+  attachments: Seq[Attachment] = Seq()
+) {
 
   /** Creates a Petri Net simulator.
     *
@@ -168,53 +144,74 @@ class PetriNetD3Visualization(element: String, renderers: Seq[PositionedRenderer
   val width = svg.node().getBoundingClientRect().width
   val height = svg.node().getBoundingClientRect().height
 
-  // Build the arrow en marker. Note that arrows are drawn like that: ``-->-``. Hence we should draw
-  // their source and target nodes over them, so as to hide the exceeding parts.
-  this.svg
-    .append("svg:defs")
-    .selectAll("marker")
-    .data(js.Array("end"))
-    .enter()
-    .append("svg:marker")
-    .attr("id", "end")
-    .attr("refX", TRANSITION_SIDE)
-    .attr("refY", 4)
-    .attr("markerWidth", 12)
-    .attr("markerHeight", 12)
-    .attr("orient", "auto")
-    .append("svg:path")
-    .attr("d", "M0,0 L0,8 L8,4 z")
+  val preDefs = nodeRenderers.flatMap(_.svgDefs) ++ edgeRenderers.flatMap(_.svgDefs)
+  preDefs.foldLeft(
+    this.svg
+      .append("svg:defs")
+      .asInstanceOf[Selection[String]]
+  ) { case (svg, (name, mod)) => mod(svg.selectAll(name)) }
 
-  val arcsGroup = this.svg.append("g").attr("class", "arcs")
-  val rendererNodeGroups =
-    renderers.map(renderer => RendererWithGroup(renderer, this.svg.append("g").attr("class", renderer.name + "s")))
+  case class NodeRendererWithUiElements[C](renderer: NodeRenderer[C], uiElements: Seq[NodeUI[C]]) {
+    def attachTo(sel: Selection[dom.EventTarget]): RendererWithGroup[C, NodeUI[C]] =
+      RendererWithGroup(renderer, uiElements, sel.attr("class", renderer.name + "s"))
+  }
 
+  val nodeRenderersWithUiElements =
+    nodeRenderers.map(r =>
+      NodeRendererWithUiElements[r.Content](
+        r.asInstanceOf[NodeRenderer[r.Content]],
+        r.elements.asInstanceOf[Seq[r.Content]].map(e => NodeUI[r.Content](e.asInstanceOf[r.Content]))
+      )
+    )
+  val nodesByContent = nodeRenderersWithUiElements.flatMap(_.uiElements).map(n => n.content -> n).toMap
+
+  case class NodeAttachment(source: NodeUI[_], target: NodeUI[_])
+
+  val nodeAttachments = attachments.map { case Attachment(source, target) =>
+    NodeAttachment(nodesByContent(source), nodesByContent(target))
+  }
+
+  case class EdgeRendererWithUiElements[C, S, T](renderer: EdgeRenderer[C, S, T], uiElements: Seq[EdgeUI[C, S, T]]) {
+    def attachTo(sel: Selection[dom.EventTarget]): RendererWithGroup[(C, S, T), EdgeUI[C, S, T]] =
+      RendererWithGroup(renderer, uiElements, sel.attr("class", renderer.name + "s"))
+  }
+
+  val edgeRenderersWithUiElements =
+    edgeRenderers.map(r =>
+      EdgeRendererWithUiElements[r.Content, r.Source, r.Target](
+        r.asInstanceOf[EdgeRenderer[r.Content, r.Source, r.Target]],
+        r
+          .createUiElements(
+            nodesByContent.asInstanceOf[r.Source => NodeUI[r.Source]],
+            nodesByContent.asInstanceOf[r.Target => NodeUI[r.Target]]
+          )
+          .asInstanceOf[Seq[EdgeUI[r.Content, r.Source, r.Target]]]
+      )
+    )
+  val rendererEdgeGroups: Seq[RendererWithGroup[_, _ <: EdgeUI[_, _, _]]] =
+    edgeRenderersWithUiElements.map(_.attachTo(this.svg.append("g")))
+  val rendererNodeGroups: Seq[RendererWithGroup[_, _ <: NodeUI[_]]] =
+    nodeRenderersWithUiElements.map(_.attachTo(this.svg.append("g")))
   // Create the force simulation.
   val simulation = d3
-    .forceSimulation()
-    // TODO .force("link", d3.forceLink().id((d) => d.id).distance(50))
+    .forceSimulation[NodeUI[_]]()
     .force("charge", d3.forceManyBody())
     .force("center", d3.forceCenter(width / 2, height / 2))
-    .force("collide", d3.forceCollide[SimulationNode]().radius((_: SimulationNode) => TRANSITION_SIDE * 2.0))
+    .force("collide", d3.forceCollide[NodeUI[_]]().radius((_: SimulationNode) => 30 * 2.0))
     .on(
       "tick",
       () => {
-        rendererNodeGroups.foreach { case rg =>
+        nodeAttachments.foreach { case NodeAttachment(source, target) =>
+          source.x = target.x
+          source.y = target.y
+        }
+        (rendererEdgeGroups ++ rendererNodeGroups).foreach { case rg =>
           rg.renderer.updatePositions(
             rg.group
               .selectAll[rg.renderer.UiElement]("g")
           )
         }
-        this.arcsGroup
-          .selectAll[ArcUi]("g line")
-          .attr("x1", d => d.source.x)
-          .attr("y1", d => d.source.y)
-          .attr("x2", d => d.target.x)
-          .attr("y2", d => d.target.y)
-        this.arcsGroup
-          .selectAll[ArcUi]("g text")
-          .attr("x", d => (d.source.x.get + d.target.x.get) / 2)
-          .attr("y", d => (d.source.y.get + d.target.y.get) / 2)
+
       }
     )
 
@@ -237,36 +234,33 @@ class PetriNetD3Visualization(element: String, renderers: Seq[PositionedRenderer
     d.fy = null
 
   }
-  case class RendererWithGroup[T <: Vertex](renderer: PositionedRenderer[T], group: Selection[EventTarget]) {
+
+  case class RendererWithGroup[C, T](
+    renderer: PositionedRenderer[C, T],
+    uiElements: Seq[T],
+    group: Selection[EventTarget]
+  ) {
     def selector: Selection[T] = group.selectAll[T]("g")
   }
 
   def render() = {
     // Draw new places and new transitions.
-    var arcs = this.arcsGroup
-      .selectAll[ArcUi]("g")
-      .data(js.Array(edges.toSeq: _*), (d: ArcUi) => d.id)
-    arcs.exit().remove()
+    rendererEdgeGroups.foreach { case rg @ RendererWithGroup(renderer, uiElements, _) =>
+      val arcs = rg.selector
+        .data(js.Array(uiElements: _*), renderer.id _)
 
-    val arcsEnter = arcs
-      .enter()
-      .append("g")
-      .attr("id", _.id)
-    arcsEnter
-      .append("line")
-      .attr("stroke", "black")
-      .attr("stroke-width", 1)
-      .attr("marker-end", "url(#end)")
-    arcsEnter
-      .filter(_.id != "1")
-      .append("text")
-      .text(_.label)
+      val arcsEnter = arcs
+        .enter()
+        .append("g")
+        //TODO .attr("id", _.id)
+        .attr("class", renderer.name)
+      arcs.exit().remove()
+      renderer.renderer(arcsEnter)
+    }
 
-    arcs = arcsEnter.merge(arcs)
-
-    rendererNodeGroups.foreach { case rg @ RendererWithGroup(renderer, _) =>
+    rendererNodeGroups.foreach { case rg @ RendererWithGroup(renderer, uiElements, _) =>
       val nodesy = rg.selector
-        .data(js.Array(renderer.uiElements: _*), _.id)
+        .data(js.Array(uiElements: _*), _.id)
 
       val nodesEnterNoDrag = nodesy
         .enter()
@@ -274,7 +268,7 @@ class PetriNetD3Visualization(element: String, renderers: Seq[PositionedRenderer
         .attr("id", _.id)
         .attr("class", renderer.name)
       val nodesEnter =
-        if (renderer.draggable)
+        if (renderer.movable)
           nodesEnterNoDrag
             .call(
               d3.drag[Vertex]()
@@ -286,9 +280,11 @@ class PetriNetD3Visualization(element: String, renderers: Seq[PositionedRenderer
 
       renderer.renderer(nodesEnter)
     }
+    val movableUiElements = rendererNodeGroups.filter(_.renderer.movable).flatMap(_.uiElements)
+    val edgeUiElements = rendererEdgeGroups.flatMap(_.uiElements)
     this.simulation
-      .nodes(js.Array(rendererNodeGroups.filter(_.renderer.draggable).flatMap(_.renderer.uiElements): _*))
-      .force("link", d3.forceLink(js.Array(edges.toSeq: _*)))
+      .nodes(js.Array[NodeUI[_]](movableUiElements: _*))
+      .force("link", d3.forceLink[NodeUI[_], EdgeUI[_, _, _]](js.Array(edgeUiElements: _*)).distance(50))
 
   }
 
