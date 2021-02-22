@@ -55,9 +55,9 @@ lazy val akka = project
         scalatest % "test"
       ),
       PB.protocVersion := "-v2.6.1",
-      PB.targets in Compile := Seq(
+      Compile / PB.targets := Seq(
         //PB.gens.java("2.6.1") -> (sourceManaged in Compile).value
-        scalapb.gen() -> (sourceManaged in Compile).value
+        scalapb.gen() -> (Compile / sourceManaged).value
       )
     )
   )
@@ -66,7 +66,7 @@ lazy val demo = (crossProject(JSPlatform, JVMPlatform) in file("demo"))
   .enablePlugins(JSDependenciesPlugin)
   .settings(defaultProjectSettings: _*)
   .settings(
-    unmanagedSourceDirectories in Compile += baseDirectory.value / "shared" / "main" / "scala",
+    Compile / unmanagedSourceDirectories += baseDirectory.value / "shared" / "main" / "scala",
     libraryDependencies ++= Seq("com.lihaoyi" %%% "scalatags" % "0.9.1", "com.lihaoyi" %%% "upickle" % "1.1.0")
   )
   .jsSettings(
@@ -93,10 +93,10 @@ lazy val demoJs = demo.js
 lazy val demoJvm = demo.jvm
   .dependsOn(api, visualization, akka)
   .settings(
-// include the compiled javascript result from js module
-    (resources in Compile) += (fastOptJS in (demoJs, Compile)).value.data,
-// include the javascript dependencies
-    (resources in Compile) += (packageJSDependencies in (demoJs, Compile)).value
+    // include the compiled javascript result from js module
+    Compile / resources += (demoJs / Compile / fastOptJS).value.data,
+    // include the javascript dependencies
+    Compile / resources += (demoJs / Compile / packageJSDependencies).value
   )
 
 lazy val root = Project("kagera", file("."))
