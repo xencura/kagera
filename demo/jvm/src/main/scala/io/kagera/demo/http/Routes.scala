@@ -1,17 +1,17 @@
 package io.kagera.demo.http
 
-import akka.http.scaladsl.common.{EntityStreamingSupport, JsonEntityStreamingSupport}
+import akka.http.scaladsl.common.{ EntityStreamingSupport, JsonEntityStreamingSupport }
 import akka.http.scaladsl.marshalling.PredefinedToEntityMarshallers._
-import akka.http.scaladsl.marshalling.{Marshaller, Marshalling}
-import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpResponse, StatusCodes}
+import akka.http.scaladsl.marshalling.{ Marshaller, Marshalling }
+import akka.http.scaladsl.model.{ ContentTypes, HttpEntity, HttpResponse, StatusCodes }
 import akka.http.scaladsl.server.Directives
 import akka.pattern.ask
-import akka.util.{ByteString, Timeout}
+import akka.util.{ ByteString, Timeout }
 import de.heikoseeberger.akkahttpupickle.UpickleSupport
 import io.kagera.akka.actor.PetriNetInstance
 import io.kagera.akka.actor.PetriNetInstanceProtocol._
-import io.kagera.api.colored.{ExecutablePetriNet, Generators, Marking}
-import io.kagera.demo.{ConfiguredActorSystem, Queries}
+import io.kagera.api.colored.{ ExecutablePetriNet, Generators, Marking }
+import io.kagera.demo.{ ConfiguredActorSystem, Queries }
 import upickle.default._
 
 trait Routes extends Directives with Queries with UpickleSupport {
@@ -24,14 +24,15 @@ trait Routes extends Directives with Queries with UpickleSupport {
   implicit val timeout = Timeout(2 seconds)
 
   implicit val stringMarshaller = Marshaller.strict[String, ByteString] { t =>
-    Marshalling.WithFixedContentType(ContentTypes.`application/json`, () => {
-      ByteString(s""""$t"""")
-    })
+    Marshalling.WithFixedContentType(
+      ContentTypes.`application/json`,
+      () => {
+        ByteString(s""""$t"""")
+      }
+    )
   }
 
-  val repository: Map[String, ExecutablePetriNet[_]] = Map(
-    "test" -> Generators.Uncolored.sequence(5)
-  )
+  val repository: Map[String, ExecutablePetriNet[_]] = Map("test" -> Generators.Uncolored.sequence(5))
 
   val indexRoute = path("index.html") {
     get {
@@ -48,7 +49,7 @@ trait Routes extends Directives with Queries with UpickleSupport {
       path("by_id" / Segment) { id =>
         get {
           repository.get(id) match {
-            case None          => complete(StatusCodes.NotFound -> s"no such process: $id")
+            case None => complete(StatusCodes.NotFound -> s"no such process: $id")
             case Some(process) => complete(upickle.default.write(Util.toModel(process)))
           }
         }
@@ -75,14 +76,13 @@ trait Routes extends Directives with Queries with UpickleSupport {
         }
       } ~
       pathPrefix("by_id" / Segment) { id =>
-
         val processActor = actorForProcess(id)
 
         pathEndOrSingleSlash {
           get {
             // should return the current state (marking) of the process
-            val futureResult = processActor.ask(GetState).mapTo[InstanceState[_]].map {
-              state => state.marking.toString
+            val futureResult = processActor.ask(GetState).mapTo[InstanceState[_]].map { state =>
+              state.marking.toString
             }
             complete(futureResult)
           }
@@ -95,8 +95,8 @@ trait Routes extends Directives with Queries with UpickleSupport {
           post {
             val msg = FireTransition(tid.toLong, ())
             val futureResult = processActor.ask(msg).mapTo[TransitionResponse].map {
-              case success: TransitionFired[_]      => "success"
-              case failure: TransitionFailed        => "failure"
+              case success: TransitionFired[_] => "success"
+              case failure: TransitionFailed => "failure"
               case notEnabled: TransitionNotEnabled => "not enabled"
             }
             complete(futureResult)

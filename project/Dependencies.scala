@@ -3,13 +3,13 @@ import sbt._
 
 object Dependencies {
 
-  val akkaVersion = "2.5.31"
+  val akkaVersion = "2.5.32"
   val akkaHttpVersion = "10.1.12"
   val sprayVersion = "1.3.2"
   val scalazVersion = "7.1.3"
   val cytoscapeVersion = "2.7.9"
 
-  val collectionCompat = "org.scala-lang.modules" %% "scala-collection-compat" % "2.2.0"
+  val collectionCompat = "org.scala-lang.modules" %% "scala-collection-compat" % "2.4.2"
   val akkaActor = "com.typesafe.akka" %% "akka-actor" % akkaVersion
   val akkaPersistence = "com.typesafe.akka" %% "akka-persistence" % akkaVersion
   val akkaTestkit = "com.typesafe.akka" %% "akka-testkit" % akkaVersion
@@ -29,10 +29,10 @@ object Dependencies {
   val scalaGraph = "org.scala-graph" %% "graph-core" % "1.13.1"
   val scalaGraphDot = "org.scala-graph" %% "graph-dot" % "1.13.0"
 
-  val fs2Core = "co.fs2" %% "fs2-core" % "2.1.0"
-  val catsCore = "org.typelevel" %% "cats-core" % "2.0.0"
+  val fs2Core = "co.fs2" %% "fs2-core" % "2.5.3"
+  val catsCore = "org.typelevel" %% "cats-core" % "2.4.2"
 
   val logback = "ch.qos.logback" % "logback-classic" % "1.1.2"
   val ficus = "net.ceedubs" %% "ficus" % "1.1.2"
-  val scalatest = "org.scalatest" %% "scalatest" % "3.0.8"
+  val scalatest = "org.scalatest" %% "scalatest" % "3.0.9"
 }

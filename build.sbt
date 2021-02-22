@@ -15,7 +15,7 @@ val commonScalacOptions = Seq(
 lazy val basicSettings =
   Seq(
     organization := "io.kagera",
-    crossScalaVersions := Seq("2.13.3", "2.12.12"),
+    crossScalaVersions := Seq("2.13.4", "2.12.12"),
     scalaVersion := crossScalaVersions.value.head,
     scalacOptions := commonScalacOptions
   )
@@ -35,7 +35,6 @@ lazy val visualization = project
   .dependsOn(api)
   .settings(defaultProjectSettings: _*)
   .settings(name := "kagera-visualization", libraryDependencies ++= Seq(scalaGraph, scalaGraphDot))
-
 
 lazy val akka = project
   .in(file("akka"))

@@ -47,9 +47,7 @@ class PetriNetInstanceApiSpec extends AkkaTestBase {
 
       val waitTimeout = 2 seconds
 
-      override val sequence = Seq(
-        transition()(_ => Added(1))
-      )
+      override val sequence = Seq(transition()(_ => Added(1)))
 
       val actor = PetriNetInstanceSpec.createPetriNetActor[Set[Int]](petriNet)
       val api = new PetriNetInstanceApi(petriNet, actor)

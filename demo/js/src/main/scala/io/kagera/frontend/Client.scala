@@ -21,24 +21,29 @@ object Client extends {
       backgroundColor := "#fafaff",
       borderWidth := "2px",
       borderStyle := "solid",
-      borderColor := "#0000cc").render
+      borderColor := "#0000cc"
+    ).render
 
     def getTestProcess() = Api.getProcess("test").foreach { pn =>
-
       val nodes = pn.nodes.map {
-        case Left(p)  => Node(p.label, NodeStyle(width = 30, height = 30, shape = NodeShape.Ellipse, backgroundColor = "blue"))
-        case Right(t) => Node(t.label, NodeStyle(width = 30, height = 30, shape = NodeShape.Rectangle, backgroundColor = "red"))
+        case Left(p) =>
+          Node(p.label, NodeStyle(width = 30, height = 30, shape = NodeShape.Ellipse, backgroundColor = "blue"))
+        case Right(t) =>
+          Node(t.label, NodeStyle(width = 30, height = 30, shape = NodeShape.Rectangle, backgroundColor = "red"))
       }
 
-      val edges = pn.edges.zipWithIndex.map {
-        case (e, i) =>
-          Edge(i.toString, e.source, e.target, EdgeStyle(
+      val edges = pn.edges.zipWithIndex.map { case (e, i) =>
+        Edge(
+          i.toString,
+          e.source,
+          e.target,
+          EdgeStyle(
             width = 2,
             curveStyle = CurveStyle.Bezier,
             lineColor = "black",
-            targetArrow = ArrowStyle(
-              color = "black",
-              shape = ArrowShape.Triangle)))
+            targetArrow = ArrowStyle(color = "black", shape = ArrowShape.Triangle)
+          )
+        )
       }
 
       CytoScape.drawGraph(graphContainer, nodes, edges)
