@@ -25,15 +25,16 @@ class AkkaObjectSerializer(system: ActorSystem) extends ObjectSerializer {
     SerializedData(
       serializerId = Some(serializer.identifier),
       manifest = Some(ByteString.copyFrom(manifest.getBytes)),
-      data = Some(ByteString.copyFrom(bytes))
+      data = Some(ByteString.copyFrom(bytes)),
+      unknownFields = scalapb.UnknownFieldSet()
     )
   }
 
   override def deserializeObject(data: SerializedData): AnyRef = {
     data match {
-      case SerializedData(None, _, Some(data)) =>
+      case SerializedData(None, _, Some(data), _) =>
         throw new IllegalStateException(s"Missing serializer id")
-      case SerializedData(Some(serializerId), _, Some(data)) =>
+      case SerializedData(Some(serializerId), _, Some(data), _) =>
         val serializer = serialization.serializerByIdentity.getOrElse(
           serializerId,
           throw new IllegalStateException(s"No serializer found with id $serializerId")
