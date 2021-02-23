@@ -72,7 +72,7 @@ class Serialization(serializer: ObjectSerializer) {
 
   private def deserializeProducedMarking[S](instance: Instance[S], produced: Seq[messages.ProducedToken]): Marking = {
     produced.foldLeft(Marking.empty) {
-      case (accumulated, messages.ProducedToken(Some(placeId), Some(tokenId), Some(count), data)) =>
+      case (accumulated, messages.ProducedToken(Some(placeId), Some(tokenId), Some(count), data, _)) =>
         val place = instance.process.places.getById(placeId)
         val value = data.map(serializer.deserializeObject).getOrElse(BoxedUnit.UNIT)
         accumulated.add(place.asInstanceOf[Place[Any]], value, count)
@@ -106,7 +106,7 @@ class Serialization(serializer: ObjectSerializer) {
 
   private def deserializeConsumedMarking[S](instance: Instance[S], e: messages.TransitionFired): Marking = {
     e.consumed.foldLeft(Marking.empty) {
-      case (accumulated, messages.ConsumedToken(Some(placeId), Some(tokenId), Some(count))) =>
+      case (accumulated, messages.ConsumedToken(Some(placeId), Some(tokenId), Some(count), _)) =>
         val place = instance.marking.keySet.getById(placeId)
         val value = instance.marking(place).keySet.find(e => tokenIdentifier(place)(e) == tokenId).get
         accumulated.add(place.asInstanceOf[Place[Any]], value, count)
@@ -135,9 +135,9 @@ class Serialization(serializer: ObjectSerializer) {
       val input = e.inputData.map(serializer.deserializeObject)
       val failureReason = e.failureReason.getOrElse("")
       val failureStrategy = e.failureStrategy.getOrElse(missingFieldException("time_failed")) match {
-        case FailureStrategy(Some(StrategyType.BLOCK_TRANSITION), _) => BlockTransition
-        case FailureStrategy(Some(StrategyType.BLOCK_ALL), _) => Fatal
-        case FailureStrategy(Some(StrategyType.RETRY), Some(delay)) => RetryWithDelay(delay)
+        case FailureStrategy(Some(StrategyType.BLOCK_TRANSITION), _, _) => BlockTransition
+        case FailureStrategy(Some(StrategyType.BLOCK_ALL), _, _) => Fatal
+        case FailureStrategy(Some(StrategyType.RETRY), Some(delay), _) => RetryWithDelay(delay)
         case other @ _ => throw new IllegalStateException(s"Invalid failure strategy: $other")
       }
 
