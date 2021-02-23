@@ -3,7 +3,8 @@ package io.kagera.akka
 import akka.actor.ActorSystem
 import akka.testkit.{ ImplicitSender, TestKit }
 import com.typesafe.config.ConfigFactory
-import org.scalatest.{ BeforeAndAfterAll, WordSpecLike }
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.wordspec.AnyWordSpecLike
 
 object AkkaTestBase {
 
@@ -31,7 +32,7 @@ object AkkaTestBase {
 
 abstract class AkkaTestBase
     extends TestKit(ActorSystem("testSystem", AkkaTestBase.defaultTestConfig))
-    with WordSpecLike
+    with AnyWordSpecLike
     with ImplicitSender
     with BeforeAndAfterAll {
 
