@@ -5,7 +5,7 @@ import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{ Sink, Source }
 import io.kagera.akka.actor.PetriNetInstanceApi
 import io.kagera.akka.actor.PetriNetInstanceProtocol._
-import org.scalatest.Matchers._
+import org.scalatest.matchers.should.Matchers._
 
 import scala.concurrent.duration._
 import scala.concurrent.{ Await, ExecutionContext }
