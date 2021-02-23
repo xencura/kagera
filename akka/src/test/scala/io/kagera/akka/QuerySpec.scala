@@ -12,15 +12,15 @@ import io.kagera.api.colored.dsl._
 import io.kagera.api.colored.{ Marking, Place }
 import io.kagera.execution.EventSourcing.{ InitializedEvent, TransitionFiredEvent }
 import org.scalatest.Inside._
-import org.scalatest.Matchers._
-import org.scalatest.WordSpecLike
+import org.scalatest.matchers.should.Matchers._
 
 import scala.concurrent.duration._
 import scala.concurrent.{ Await, ExecutionContext }
+import org.scalatest.wordspec.AnyWordSpecLike
 
 class QuerySpec
     extends TestKit(ActorSystem("QuerySpec", AkkaTestBase.defaultTestConfig))
-    with WordSpecLike
+    with AnyWordSpecLike
     with ImplicitSender {
 
   val timeOut: Duration = 2 seconds
