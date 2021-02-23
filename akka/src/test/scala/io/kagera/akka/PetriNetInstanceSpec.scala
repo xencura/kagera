@@ -1,7 +1,6 @@
 package io.kagera.akka
 
 import java.util.UUID
-
 import akka.actor.{ ActorSystem, PoisonPill, Terminated }
 import io.kagera.akka.PetriNetInstanceSpec._
 import io.kagera.akka.actor.PetriNetInstance
@@ -10,6 +9,7 @@ import io.kagera.akka.actor.PetriNetInstanceProtocol._
 import io.kagera.api.colored.ExceptionStrategy.{ BlockTransition, Fatal, RetryWithDelay }
 import io.kagera.api.colored._
 import io.kagera.api.colored.dsl._
+import org.scalatest.concurrent.TimeLimits.failAfter
 import org.scalatest.time.{ Milliseconds, Span }
 
 import scala.concurrent.ExecutionContext
@@ -268,8 +268,6 @@ class PetriNetInstanceSpec extends AkkaTestBase {
       actor ! FireTransition(1, ())
 
       expectMsgPF() { case TransitionFired(1, _, _, _) => }
-
-      import org.scalatest.concurrent.Timeouts._
 
       failAfter(Span(1000, Milliseconds)) {
 
