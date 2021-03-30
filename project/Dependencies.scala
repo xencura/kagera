@@ -29,8 +29,8 @@ object Dependencies {
   val scalaGraph = "org.scala-graph" %% "graph-core" % "1.13.1"
   val scalaGraphDot = "org.scala-graph" %% "graph-dot" % "1.13.0"
 
-  val fs2Core = "co.fs2" %% "fs2-core" % "3.0.0"
-  val catsCore = "org.typelevel" %% "cats-core" % "2.4.2"
+  val fs2Core = "co.fs2" %% "fs2-core" % "2.5.3"
+  val catsCore = "org.typelevel" %% "cats-core" % "2.5.0"
 
   val logback = "ch.qos.logback" % "logback-classic" % "1.1.2"
   val ficus = "net.ceedubs" %% "ficus" % "1.1.2"
