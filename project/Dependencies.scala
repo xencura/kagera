@@ -34,5 +34,5 @@ object Dependencies {
 
   val logback = "ch.qos.logback" % "logback-classic" % "1.1.2"
   val ficus = "net.ceedubs" %% "ficus" % "1.1.2"
-  val scalatest = "org.scalatest" %% "scalatest" % "3.2.6"
+  val scalatest = "org.scalatest" %% "scalatest" % "3.2.7"
 }
