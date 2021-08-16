@@ -35,7 +35,7 @@ lazy val basicSettings =
 
 lazy val defaultProjectSettings = basicSettings
 
-lazy val api = project
+lazy val api = crossProject(JSPlatform, JVMPlatform)
   .in(file("api"))
   .settings(defaultProjectSettings: _*)
   .settings(
@@ -45,13 +45,42 @@ lazy val api = project
 
 lazy val visualization = project
   .in(file("visualization"))
-  .dependsOn(api)
+  .dependsOn(api.jvm)
   .settings(defaultProjectSettings: _*)
   .settings(name := "kagera-visualization", libraryDependencies ++= Seq(scalaGraph, scalaGraphDot))
 
+lazy val visualizationJs = crossProject(JSPlatform, JVMPlatform)
+  .in(file("visualization-js"))
+  .dependsOn(api)
+  .enablePlugins(JSDependenciesPlugin)
+  .settings(defaultProjectSettings: _*)
+  .settings(
+    resolvers += "jitpack" at "https://jitpack.io",
+    Compile / unmanagedSourceDirectories += baseDirectory.value / "shared" / "main" / "scala",
+    libraryDependencies ++= Seq("com.lihaoyi" %%% "scalatags" % "0.9.1", "com.lihaoyi" %%% "upickle" % "1.1.0")
+  )
+  .jsSettings(
+    jsDependencies ++= Seq(
+    ),
+    libraryDependencies ++= Seq(
+      "org.scala-js" %%% "scalajs-dom" % "1.0.0",
+      "com.github.fdietze.scala-js-d3v4" %%% "scala-js-d3v4" % "23be8f92a3"
+    )
+  )
+  .jvmSettings(
+    libraryDependencies ++= Seq(
+      "de.heikoseeberger" %% "akka-http-upickle" % "1.32.0",
+      akkaHttp,
+      akkaQuery,
+      akkaPersistenceCassandra
+    ),
+    name := "demo-app",
+    mainClass := Some("io.kagera.demo.Main")
+  )
+
 lazy val execution = project
   .in(file("execution"))
-  .dependsOn(api)
+  .dependsOn(api.jvm)
   .settings(
     defaultProjectSettings ++ Seq(
       name := "kagera-execution",
@@ -65,7 +94,7 @@ lazy val execution = project
 
 lazy val akka = project
   .in(file("akka"))
-  .dependsOn(api, execution)
+  .dependsOn(api.jvm, execution)
   .settings(
     defaultProjectSettings ++ Seq(
       name := "kagera-akka",
@@ -131,7 +160,7 @@ lazy val demo = (crossProject(JSPlatform, JVMPlatform) in file("demo"))
 
 lazy val demoJs = demo.js
 lazy val demoJvm = demo.jvm
-  .dependsOn(api, visualization, akka)
+  .dependsOn(api.jvm, visualization, akka)
   .settings(
     // include the compiled javascript result from js module
     Compile / resources += (demoJs / Compile / fastOptJS).value.data,
@@ -140,7 +169,7 @@ lazy val demoJvm = demo.jvm
   )
 
 lazy val root = Project("kagera", file("."))
-  .aggregate(api, akka, execution, visualization, zio)
+  .aggregate(api.jvm, akka, execution, visualization, zio)
   .enablePlugins(BuildInfoPlugin)
   .settings(defaultProjectSettings)
   .settings(
