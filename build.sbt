@@ -14,7 +14,7 @@ val commonScalacOptions = Seq(
 
 lazy val basicSettings =
   Seq(
-    organization := "io.kagera",
+    organization := "io.github.xencura",
     crossScalaVersions := Seq("2.13.6", "2.12.14"),
     scalaVersion := crossScalaVersions.value.head,
     scalacOptions := commonScalacOptions
