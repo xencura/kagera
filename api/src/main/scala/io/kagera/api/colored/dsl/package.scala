@@ -17,8 +17,8 @@ import scala.concurrent.duration.Duration
  *
  * Insight:
  *
- * Since each transition is different in what kind of in/out places & edges it can take we should probably not
- * create a general connectivity DSL based on the base trait Transition.
+ * Since each transition is different in what kind of in/out places & edges it can take we should probably not create a
+ * general connectivity DSL based on the base trait Transition.
  */
 package object dsl {
 

@@ -45,8 +45,7 @@ object PetriNetInstanceProtocol {
   sealed trait Response
 
   /**
-   * Response indicating that the command could not be processed because of
-   * the current state of the actor.
+   * Response indicating that the command could not be processed because of the current state of the actor.
    *
    * This message is only send in response to Command messages.
    */
@@ -67,7 +66,7 @@ object PetriNetInstanceProtocol {
   }
 
   /**
-   *  Response indicating that a transition has fired successfully
+   * Response indicating that a transition has fired successfully
    */
   case class TransitionFired[S](
     override val transitionId: Long,
@@ -77,7 +76,7 @@ object PetriNetInstanceProtocol {
   ) extends TransitionResponse
 
   /**
-   *  Response indicating that a transition has failed.
+   * Response indicating that a transition has failed.
    */
   case class TransitionFailed(
     override val transitionId: Long,

@@ -21,16 +21,20 @@ package object colored {
   /**
    * Type alias for a single marked place, meaning a place containing tokens.
    *
-   * @tparam Color the color of the place.
+   * @tparam Color
+   *   the color of the place.
    */
   type MarkedPlace[Color] = (Place[Color], MultiSet[Color])
 
   /**
    * An (asynchronous) function associated with a transition
    *
-   * @tparam Input  The input delivered to the transition from outside the process.
-   * @tparam Output The output emitted by the transition.
-   * @tparam State  The state the transition closes over.
+   * @tparam Input
+   *   The input delivered to the transition from outside the process.
+   * @tparam Output
+   *   The output emitted by the transition.
+   * @tparam State
+   *   The state the transition closes over.
    */
   type TransitionFunction[F[_], Input, Output, State] = (Marking, State, Input) => F[(Marking, Output)]
 
@@ -88,17 +92,15 @@ package object colored {
    *
    * Incorporate the upper bounds of type parameters into this type
    *
-   * Place color:       C
-   * Transition input:  I
-   * Transition output: E
+   * Place color: C Transition input: I Transition output: E
    *
    * That way we can define different types of Petri nets:
    *
-   * Uncolored petri nets, where C is Unit
-   * Non interactive nets, Where I is Unit
-   * Nets without State & Event sourcing, Where S & E are Unit
+   * Uncolored petri nets, where C is Unit Non interactive nets, Where I is Unit Nets without State & Event sourcing,
+   * Where S & E are Unit
    *
-   * @tparam S The 'global' state transitions close over
+   * @tparam S
+   *   The 'global' state transitions close over
    */
   type ExecutablePetriNet[S] = ColoredPetriNet with ColoredTokenGame
 
