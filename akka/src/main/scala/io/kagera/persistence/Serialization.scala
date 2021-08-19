@@ -17,8 +17,8 @@ object Serialization {
   /**
    * TODO:
    *
-   * This approach is fragile, the identifier function cannot change ever or recovery breaks
-   * a more robust alternative is to generate the ids and persist them
+   * This approach is fragile, the identifier function cannot change ever or recovery breaks a more robust alternative
+   * is to generate the ids and persist them
    */
   def tokenIdentifier[C](p: Place[C]): Any => Int = obj => hashCodeOf[Any](obj)
 
@@ -40,8 +40,8 @@ object Serialization {
 class Serialization(serializer: ObjectSerializer) {
 
   /**
-   * De-serializes a persistence.messages.Event to a EvenSourcing.Event. An Instance is required to 'wire' or 'reference'
-   * the message back into context.
+   * De-serializes a persistence.messages.Event to a EvenSourcing.Event. An Instance is required to 'wire' or
+   * 'reference' the message back into context.
    */
   def deserializeEvent[S](event: AnyRef): Instance[S] => EventSourcing.Event = event match {
     case e: messages.Initialized => deserializeInitialized(e)

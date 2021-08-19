@@ -50,8 +50,8 @@ package object api {
   type BiPartiteGraph[P, T, E[+X] <: EdgeLikeIn[X]] = Graph[Either[P, T], E]
 
   /**
-   * TODO; can we remove this wrapper? It seems only needed because we need to mix in other traits with PetriNet
-   * which cannot be done with Graph.apply
+   * TODO; can we remove this wrapper? It seems only needed because we need to mix in other traits with PetriNet which
+   * cannot be done with Graph.apply
    */
   class ScalaGraphPetriNet[P, T](val innerGraph: BiPartiteGraph[P, T, WLDiEdge]) extends PetriNet[P, T] {
 

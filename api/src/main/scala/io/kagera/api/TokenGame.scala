@@ -25,9 +25,12 @@ object TokenGame {
 /**
  * Interface for deciding which (transition, marking) parameters are 'enabled'
  *
- * @tparam P Place
- * @tparam T Transition
- * @tparam M Marking     The type of Marking in the PetriNet
+ * @tparam P
+ *   Place
+ * @tparam T
+ *   Transition
+ * @tparam M
+ *   Marking The type of Marking in the PetriNet
  */
 trait TokenGame[P, T, M] {
 
@@ -43,8 +46,10 @@ trait TokenGame[P, T, M] {
   /**
    * Checks whether a transition is 'enabled' in a marking.
    *
-   * @param marking The marking.
-   * @param t The transition.
+   * @param marking
+   *   The marking.
+   * @param t
+   *   The transition.
    * @return
    */
   def isEnabled(marking: M)(t: T): Boolean = consumableMarkings(marking)(t).nonEmpty
@@ -52,7 +57,8 @@ trait TokenGame[P, T, M] {
   /**
    * Returns all enabled transitions for a marking.
    *
-   * @param marking marking
+   * @param marking
+   *   marking
    * @return
    */
   def enabledTransitions(marking: M): Set[T]
