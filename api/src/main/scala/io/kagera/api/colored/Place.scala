@@ -17,14 +17,16 @@ trait Place[Color] {
   /**
    * The unique identifier of this place.
    *
-   * @return A unique identifier.
+   * @return
+   *   A unique identifier.
    */
   def id: Long
 
   /**
    * A human readable label of this place.
    *
-   * @return The label.
+   * @return
+   *   The label.
    */
   def label: String
 
