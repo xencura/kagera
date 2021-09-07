@@ -1,20 +1,17 @@
 import Dependencies._
 
-inThisBuild(List(
-  organization := "io.github.xencura",
-  homepage := Some(url("https://github.com/xencura/kagera")),
-  licenses := List("MIT" -> url("https://opensource.org/licenses/MIT")),
-  sonatypeCredentialHost := "s01.oss.sonatype.org",
-  sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
-  developers := List(
-    Developer(
-      "nightscape",
-      "Martin Mauch",
-      "martin.mauch@gmail.com",
-      url("https://github.com/nightscape")
+inThisBuild(
+  List(
+    organization := "io.github.xencura",
+    homepage := Some(url("https://github.com/xencura/kagera")),
+    licenses := List("MIT" -> url("https://opensource.org/licenses/MIT")),
+    sonatypeCredentialHost := "s01.oss.sonatype.org",
+    sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
+    developers := List(
+      Developer("nightscape", "Martin Mauch", "martin.mauch@gmail.com", url("https://github.com/nightscape"))
     )
   )
-))
+)
 
 val commonScalacOptions = Seq(
   "-encoding",
@@ -69,7 +66,7 @@ lazy val akka = project
         akkaTestkit % "test",
         scalatest % "test"
       ),
-      PB.protocVersion := "-v3.15.1",
+      PB.protocVersion := "3.17.3",
       Compile / PB.targets := Seq(scalapb.gen() -> (Compile / sourceManaged).value)
     )
   )
@@ -127,7 +124,7 @@ lazy val root = Project("kagera", file("."))
       BuildInfoKey.action("buildTime") {
         buildTime
       }
-    ),
+    )
   )
 
 def buildTime = {
