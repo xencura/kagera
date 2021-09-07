@@ -66,7 +66,7 @@ lazy val akka = project
         akkaTestkit % "test",
         scalatest % "test"
       ),
-      PB.protocVersion := "-v3.15.1",
+      PB.protocVersion := "3.17.3",
       Compile / PB.targets := Seq(scalapb.gen() -> (Compile / sourceManaged).value)
     )
   )

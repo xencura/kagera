@@ -4,6 +4,7 @@ import akka.actor.{ ActorLogging, ActorRef, PoisonPill, Props }
 import akka.pattern.pipe
 import akka.persistence.PersistentActor
 import cats.effect.IO
+import cats.effect.unsafe.implicits.global
 import io.kagera.akka.actor.PetriNetInstance.Settings
 import io.kagera.akka.actor.PetriNetInstanceProtocol._
 import io.kagera.api.colored.ExceptionStrategy.RetryWithDelay
