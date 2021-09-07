@@ -110,13 +110,13 @@ package object api {
     def findTPEdge(from: T, to: P): Option[WLDiEdge[Either[P, T]]] =
       graph.get(Right(from)).outgoing.find(_.target.value == Left(to)).map(_.toOuter)
 
-    def incomingPlaces(t: T): Set[P] = graph.get(t).incomingPlaces
+    def incomingPlaces(t: T): Set[P] = graph.get(t).incomingPlaces.asInstanceOf[Set[P]]
 
-    def incomingTransitions(p: P): Set[T] = graph.get(p).incomingTransitions
+    def incomingTransitions(p: P): Set[T] = graph.get(p).incomingTransitions.asInstanceOf[Set[T]]
 
-    def outgoingPlaces(t: T): Set[P] = graph.get(t).outgoingPlaces
+    def outgoingPlaces(t: T): Set[P] = graph.get(t).outgoingPlaces.asInstanceOf[Set[P]]
 
-    def outgoingTransitions(p: P): Set[T] = graph.get(p).outgoingTransitions
+    def outgoingTransitions(p: P): Set[T] = graph.get(p).outgoingTransitions.asInstanceOf[Set[T]]
 
     def places() = graph.nodes.collect { case n if n.isPlace => n.asPlace }
 
