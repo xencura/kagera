@@ -76,7 +76,7 @@ lazy val demo = (crossProject(JSPlatform, JVMPlatform) in file("demo"))
   .settings(defaultProjectSettings: _*)
   .settings(
     Compile / unmanagedSourceDirectories += baseDirectory.value / "shared" / "main" / "scala",
-    libraryDependencies ++= Seq("com.lihaoyi" %%% "scalatags" % "0.9.1", "com.lihaoyi" %%% "upickle" % "1.1.0")
+    libraryDependencies ++= Seq(scalaTags.value, upickle.value)
   )
   .jsSettings(
     jsDependencies ++= Seq(
@@ -85,15 +85,10 @@ lazy val demo = (crossProject(JSPlatform, JVMPlatform) in file("demo"))
         minified s"$cytoscapeVersion/dist/cytoscape.min.js"
         commonJSName "cytoscape"
     ),
-    libraryDependencies ++= Seq("org.scala-js" %%% "scalajs-dom" % "1.0.0")
+    libraryDependencies ++= Seq(scalaJsDom.value)
   )
   .jvmSettings(
-    libraryDependencies ++= Seq(
-      "de.heikoseeberger" %% "akka-http-upickle" % "1.32.0",
-      akkaHttp,
-      akkaQuery,
-      akkaPersistenceCassandra
-    ),
+    libraryDependencies ++= Seq(akkaHttpUpickle, akkaHttp, akkaQuery, akkaPersistenceCassandra),
     name := "demo-app",
     mainClass := Some("io.kagera.demo.Main")
   )
