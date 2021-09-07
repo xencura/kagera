@@ -31,7 +31,7 @@ object Dependencies {
 
   val scalaGraph = "org.scala-graph" %% "graph-core" % "1.13.1"
   val scalaGraphDot = "org.scala-graph" %% "graph-dot" % "1.13.0"
-  val scalaJsDom = Def.setting("org.scala-js" %%% "scalajs-dom" % "1.0.0")
+  val scalaJsDom = Def.setting("org.scala-js" %%% "scalajs-dom" % "1.2.0")
   val scalaTags = Def.setting("com.lihaoyi" %%% "upickle" % "1.4.1")
 
   val fs2Core = "co.fs2" %% "fs2-core" % "3.1.1"

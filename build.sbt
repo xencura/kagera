@@ -27,7 +27,7 @@ val commonScalacOptions = Seq(
 
 lazy val basicSettings =
   Seq(
-    crossScalaVersions := Seq("2.13.6", "2.12.14"),
+    crossScalaVersions := Seq("3.0.2", "2.13.6", "2.12.14"),
     scalaVersion := crossScalaVersions.value.head,
     scalacOptions := commonScalacOptions
   )
@@ -39,15 +39,32 @@ lazy val api = project
   .settings(defaultProjectSettings: _*)
   .settings(
     name := "kagera-api",
-    libraryDependencies ++= Seq(collectionCompat, scalaGraph, catsCore, fs2Core, scalatest % "test")
+    libraryDependencies ++= Seq(
+      collectionCompat,
+      scalaGraph.cross(CrossVersion.for3Use2_13),
+      catsCore,
+      fs2Core,
+      scalatest % "test"
+    )
   )
 
 lazy val visualization = project
   .in(file("visualization"))
   .dependsOn(api)
   .settings(defaultProjectSettings: _*)
-  .settings(name := "kagera-visualization", libraryDependencies ++= Seq(scalaGraph, scalaGraphDot))
+  .settings(
+    name := "kagera-visualization",
+    libraryDependencies ++= Seq(
+      scalaGraph.cross(CrossVersion.for3Use2_13),
+      scalaGraphDot.cross(CrossVersion.for3Use2_13)
+    )
+  )
 
+lazy val scalaReflect = Def.setting(if (scalaVersion.value >= "3.0.0") {
+  Seq[ModuleID]()
+} else {
+  Seq("org.scala-lang" % "scala-reflect" % scalaVersion.value)
+})
 lazy val akka = project
   .in(file("akka"))
   .dependsOn(api)
@@ -55,17 +72,16 @@ lazy val akka = project
     defaultProjectSettings ++ Seq(
       name := "kagera-akka",
       libraryDependencies ++= Seq(
-        "org.scala-lang" % "scala-reflect" % scalaVersion.value,
-        akkaActor,
-        akkaPersistence,
-        akkaSlf4j,
-        akkaStream,
-        akkaQuery,
-        scalaGraph,
-        akkaInmemoryJournal % "test",
-        akkaTestkit % "test",
+        akkaActor.cross(CrossVersion.for3Use2_13),
+        akkaPersistence.cross(CrossVersion.for3Use2_13),
+        akkaSlf4j.cross(CrossVersion.for3Use2_13),
+        akkaStream.cross(CrossVersion.for3Use2_13),
+        akkaQuery.cross(CrossVersion.for3Use2_13),
+        scalaGraph.cross(CrossVersion.for3Use2_13),
+        (akkaInmemoryJournal % "test").cross(CrossVersion.for3Use2_13),
+        (akkaTestkit % "test").cross(CrossVersion.for3Use2_13),
         scalatest % "test"
-      ),
+      ) ++ scalaReflect.value,
       PB.protocVersion := "3.17.3",
       Compile / PB.targets := Seq(scalapb.gen() -> (Compile / sourceManaged).value)
     )
@@ -85,10 +101,15 @@ lazy val demo = (crossProject(JSPlatform, JVMPlatform) in file("demo"))
         minified s"$cytoscapeVersion/dist/cytoscape.min.js"
         commonJSName "cytoscape"
     ),
-    libraryDependencies ++= Seq(scalaJsDom.value)
+    libraryDependencies ++= Seq(scalaJsDom.value.cross(CrossVersion.for3Use2_13))
   )
   .jvmSettings(
-    libraryDependencies ++= Seq(akkaHttpUpickle, akkaHttp, akkaQuery, akkaPersistenceCassandra),
+    libraryDependencies ++= Seq(
+      akkaHttpUpickle.cross(CrossVersion.for3Use2_13),
+      akkaHttp.cross(CrossVersion.for3Use2_13),
+      akkaQuery.cross(CrossVersion.for3Use2_13),
+      akkaPersistenceCassandra.cross(CrossVersion.for3Use2_13)
+    ),
     name := "demo-app",
     mainClass := Some("io.kagera.demo.Main")
   )
