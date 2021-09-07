@@ -4,6 +4,8 @@ inThisBuild(List(
   organization := "io.github.xencura",
   homepage := Some(url("https://github.com/xencura/kagera")),
   licenses := List("MIT" -> url("https://opensource.org/licenses/MIT")),
+  sonatypeCredentialHost := "s01.oss.sonatype.org",
+  sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
   developers := List(
     Developer(
       "nightscape",
