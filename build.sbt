@@ -1,5 +1,18 @@
 import Dependencies._
 
+inThisBuild(
+  List(
+    organization := "io.github.xencura",
+    homepage := Some(url("https://github.com/xencura/kagera")),
+    licenses := List("MIT" -> url("https://opensource.org/licenses/MIT")),
+    sonatypeCredentialHost := "s01.oss.sonatype.org",
+    sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
+    developers := List(
+      Developer("nightscape", "Martin Mauch", "martin.mauch@gmail.com", url("https://github.com/nightscape"))
+    )
+  )
+)
+
 val commonScalacOptions = Seq(
   "-encoding",
   "utf8",
@@ -14,13 +27,12 @@ val commonScalacOptions = Seq(
 
 lazy val basicSettings =
   Seq(
-    organization := "io.github.xencura",
     crossScalaVersions := Seq("2.13.6", "2.12.14"),
     scalaVersion := crossScalaVersions.value.head,
     scalacOptions := commonScalacOptions
   )
 
-lazy val defaultProjectSettings = basicSettings ++ SonatypePublish.settings
+lazy val defaultProjectSettings = basicSettings
 
 lazy val api = project
   .in(file("api"))
