@@ -125,7 +125,9 @@ lazy val root = Project("kagera", file("."))
       BuildInfoKey.action("buildTime") {
         buildTime
       }
-    )
+    ),
+    sonatypeCredentialHost := "s01.oss.sonatype.org",
+    sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
   )
 
 def buildTime = {
