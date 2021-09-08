@@ -1,21 +1,23 @@
 package io.kagera.api.colored
 
+import cats.{ Applicative, Functor }
 import io.kagera.api.colored.ExceptionStrategy.BlockTransition
 import io.kagera.api.multiset.MultiSet
 
 import scala.concurrent.duration.Duration
+import scala.reflect.ClassTag
 
 /**
  * A transition in a Colored Petri Net
  *
- * @tparam Input
+ * @tparam I
  *   The input type of the transition, the type of value that is required as input
- * @tparam Output
+ * @tparam O
  *   The output type of the transition, the type of value that this transition 'emits' or 'produces'
- * @tparam State
+ * @tparam S
  *   The type of state the transition closes over.
  */
-trait Transition[Input, Output, State] {
+trait Transition[-I, O, S] {
 
   /**
    * The unique identifier of this transition.
@@ -58,32 +60,7 @@ trait Transition[Input, Output, State] {
   def exceptionStrategy: TransitionExceptionHandler = (e, n) => BlockTransition
 
   /**
-   * Given the in and out adjacent places with their weight returns a function:
-   *
-   * (Mi, S, I) => (Mo, O)
-   *
-   * Where:
-   *
-   * Mi is the in-adjacent marking, the tokens this transition consumes. S is the context state. I is input data
-   *
-   * Mo is the out-adjacent marking, the tokens this transition produces. O is the emitted output
-   *
-   * TODO instead of requiring this on a Transition trait a Type-Class approach looks more flexible.
-   *
-   * For example some type T[_, _, _] we have T => TransitionFunction The same goes for other properties defined on this
-   * trait.
-   *
-   * This way we can forgo with the entire Transition trait and let user's use whatever they want. For example, in
-   * simple cases (uncolored place / transition nets) an identifier (Int or Long) as a type is enough.
-   *
-   * @param inAdjacent
-   * @param outAdjacent
-   * @return
-   */
-  def apply(inAdjacent: MultiSet[Place[_]], outAdjacent: MultiSet[Place[_]]): TransitionFunction[Input, Output, State]
-
-  /**
    * The state event sourcing function.
    */
-  def updateState: State => Output => State
+  def updateState: S => O => S
 }

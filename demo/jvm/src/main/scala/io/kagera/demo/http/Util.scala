@@ -4,7 +4,7 @@ import io.kagera.api.colored.{ Place, Transition, _ }
 import io.kagera.demo.model
 
 object Util {
-  def toModel(pn: ExecutablePetriNet[_]): model.PetriNetModel = {
+  def toModel[T <: Transition[_, _, _]](pn: ExecutablePetriNet[_, T]): model.PetriNetModel = {
 
     val places = pn.nodes.collect { case Left(p) =>
       model.Place(p.id, p.label)

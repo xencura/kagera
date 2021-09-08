@@ -6,10 +6,10 @@ import io.kagera.api.colored.{ Marking, Transition, _ }
 /**
  * A Job describes all the parameters that make a firing transition in a petri net.
  */
-case class Job[S, E](
+case class Job[S, T <: Transition[_, _, S]](
   id: Long,
   processState: S,
-  transition: Transition[Any, E, S],
+  transition: T,
   consume: Marking,
   input: Any,
   failure: Option[ExceptionState] = None

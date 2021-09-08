@@ -26,7 +26,7 @@ trait Queries {
 
 }
 
-class AggregateMarking[S](topology: ExecutablePetriNet[S]) extends Actor {
+class AggregateMarking[S](topology: ExecutablePetriNet[S, _]) extends Actor {
 
   override def receive: Receive = updateMarking(MultiSet.empty)
 

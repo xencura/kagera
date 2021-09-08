@@ -43,16 +43,17 @@ class Serialization(serializer: ObjectSerializer) {
    * De-serializes a persistence.messages.Event to a EvenSourcing.Event. An Instance is required to 'wire' or
    * 'reference' the message back into context.
    */
-  def deserializeEvent[S](event: AnyRef): Instance[S] => EventSourcing.Event = event match {
-    case e: messages.Initialized => deserializeInitialized(e)
-    case e: messages.TransitionFired => deserializeTransitionFired(e)
-    case e: messages.TransitionFailed => deserializeTransitionFailed(e)
-  }
+  def deserializeEvent[S, T <: Transition[_, _, S]](event: AnyRef): Instance[S, T] => EventSourcing.Event =
+    event match {
+      case e: messages.Initialized => deserializeInitialized(e)
+      case e: messages.TransitionFired => deserializeTransitionFired(e)
+      case e: messages.TransitionFailed => deserializeTransitionFailed(e)
+    }
 
   /**
    * Serializes an EventSourcing.Event to a persistence.messages.Event.
    */
-  def serializeEvent[S](e: EventSourcing.Event): Instance[S] => AnyRef =
+  def serializeEvent[S, T <: Transition[_, _, S]](e: EventSourcing.Event): Instance[S, T] => AnyRef =
     instance =>
       e match {
         case e: InitializedEvent => serializeInitialized(e)
@@ -70,7 +71,10 @@ class Serialization(serializer: ObjectSerializer) {
     }
   }
 
-  private def deserializeProducedMarking[S](instance: Instance[S], produced: Seq[messages.ProducedToken]): Marking = {
+  private def deserializeProducedMarking[S, T <: Transition[_, _, S]](
+    instance: Instance[S, T],
+    produced: Seq[messages.ProducedToken]
+  ): Marking = {
     produced.foldLeft(Marking.empty) {
       case (accumulated, messages.ProducedToken(Some(placeId), Some(tokenId), Some(count), data)) =>
         val place = instance.process.places.getById(placeId)
@@ -104,7 +108,10 @@ class Serialization(serializer: ObjectSerializer) {
       }
     }
 
-  private def deserializeConsumedMarking[S](instance: Instance[S], e: messages.TransitionFired): Marking = {
+  private def deserializeConsumedMarking[S, T <: Transition[_, _, S]](
+    instance: Instance[S, T],
+    e: messages.TransitionFired
+  ): Marking = {
     e.consumed.foldLeft(Marking.empty) {
       case (accumulated, messages.ConsumedToken(Some(placeId), Some(tokenId), Some(count))) =>
         val place = instance.marking.keySet.getById(placeId)
@@ -114,7 +121,9 @@ class Serialization(serializer: ObjectSerializer) {
     }
   }
 
-  private def deserializeInitialized[S](e: messages.Initialized)(instance: Instance[S]): InitializedEvent = {
+  private def deserializeInitialized[S, T <: Transition[_, _, S]](
+    e: messages.Initialized
+  )(instance: Instance[S, T]): InitializedEvent = {
     val initialMarking = deserializeProducedMarking(instance, e.initialMarking)
     val initialState = e.initialState.map(serializer.deserializeObject).getOrElse(BoxedUnit.UNIT)
     InitializedEvent(initialMarking, initialState)
@@ -126,31 +135,32 @@ class Serialization(serializer: ObjectSerializer) {
     messages.Initialized(initialMarking, initialState)
   }
 
-  private def deserializeTransitionFailed[S](e: messages.TransitionFailed): Instance[S] => TransitionFailedEvent = {
-    instance =>
-      val jobId = e.jobId.getOrElse(missingFieldException("job_id"))
-      val transitionId = e.transitionId.getOrElse(missingFieldException("transition_id"))
-      val timeStarted = e.timeStarted.getOrElse(missingFieldException("time_started"))
-      val timeFailed = e.timeFailed.getOrElse(missingFieldException("time_failed"))
-      val input = e.inputData.map(serializer.deserializeObject)
-      val failureReason = e.failureReason.getOrElse("")
-      val failureStrategy = e.failureStrategy.getOrElse(missingFieldException("time_failed")) match {
-        case FailureStrategy(Some(StrategyType.BLOCK_TRANSITION), _) => BlockTransition
-        case FailureStrategy(Some(StrategyType.BLOCK_ALL), _) => Fatal
-        case FailureStrategy(Some(StrategyType.RETRY), Some(delay)) => RetryWithDelay(delay)
-        case other @ _ => throw new IllegalStateException(s"Invalid failure strategy: $other")
-      }
+  private def deserializeTransitionFailed[S, T <: Transition[_, _, S]](
+    e: messages.TransitionFailed
+  ): Instance[S, T] => TransitionFailedEvent = { instance =>
+    val jobId = e.jobId.getOrElse(missingFieldException("job_id"))
+    val transitionId = e.transitionId.getOrElse(missingFieldException("transition_id"))
+    val timeStarted = e.timeStarted.getOrElse(missingFieldException("time_started"))
+    val timeFailed = e.timeFailed.getOrElse(missingFieldException("time_failed"))
+    val input = e.inputData.map(serializer.deserializeObject)
+    val failureReason = e.failureReason.getOrElse("")
+    val failureStrategy = e.failureStrategy.getOrElse(missingFieldException("time_failed")) match {
+      case FailureStrategy(Some(StrategyType.BLOCK_TRANSITION), _) => BlockTransition
+      case FailureStrategy(Some(StrategyType.BLOCK_ALL), _) => Fatal
+      case FailureStrategy(Some(StrategyType.RETRY), Some(delay)) => RetryWithDelay(delay)
+      case other @ _ => throw new IllegalStateException(s"Invalid failure strategy: $other")
+    }
 
-      TransitionFailedEvent(
-        jobId,
-        transitionId,
-        timeStarted,
-        timeFailed,
-        Marking.empty,
-        None,
-        failureReason,
-        failureStrategy
-      )
+    TransitionFailedEvent(
+      jobId,
+      transitionId,
+      timeStarted,
+      timeFailed,
+      Marking.empty,
+      None,
+      failureReason,
+      failureStrategy
+    )
   }
 
   private def serializeTransitionFailed(e: TransitionFailedEvent): messages.TransitionFailed = {
@@ -188,19 +198,20 @@ class Serialization(serializer: ObjectSerializer) {
     )
   }
 
-  private def deserializeTransitionFired[S](e: messages.TransitionFired): Instance[S] => TransitionFiredEvent =
-    instance => {
+  private def deserializeTransitionFired[S, T <: Transition[_, _, S]](
+    e: messages.TransitionFired
+  ): Instance[S, T] => TransitionFiredEvent = instance => {
 
-      val consumed: Marking = deserializeConsumedMarking(instance, e)
-      val produced: Marking = deserializeProducedMarking(instance, e.produced)
+    val consumed: Marking = deserializeConsumedMarking(instance, e)
+    val produced: Marking = deserializeProducedMarking(instance, e.produced)
 
-      val data = e.data.map(serializer.deserializeObject)
+    val data = e.data.map(serializer.deserializeObject)
 
-      val transitionId = e.transitionId.getOrElse(missingFieldException("transition_id"))
-      val jobId = e.jobId.getOrElse(missingFieldException("job_id"))
-      val timeStarted = e.timeStarted.getOrElse(missingFieldException("time_started"))
-      val timeCompleted = e.timeCompleted.getOrElse(missingFieldException("time_completed"))
+    val transitionId = e.transitionId.getOrElse(missingFieldException("transition_id"))
+    val jobId = e.jobId.getOrElse(missingFieldException("job_id"))
+    val timeStarted = e.timeStarted.getOrElse(missingFieldException("time_started"))
+    val timeCompleted = e.timeCompleted.getOrElse(missingFieldException("time_completed"))
 
-      TransitionFiredEvent(jobId, transitionId, timeStarted, timeCompleted, consumed, produced, data)
-    }
+    TransitionFiredEvent(jobId, transitionId, timeStarted, timeCompleted, consumed, produced, data)
+  }
 }
