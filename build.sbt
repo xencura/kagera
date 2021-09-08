@@ -16,18 +16,16 @@ inThisBuild(
 val commonScalacOptions = Seq(
   "-encoding",
   "utf8",
-  "-target:jvm-1.8",
   "-feature",
   "-language:implicitConversions",
   "-language:postfixOps",
   "-unchecked",
-  "-deprecation",
-  "-Xlog-reflective-calls"
+  "-deprecation"
 )
 
 lazy val basicSettings =
   Seq(
-    crossScalaVersions := Seq("3.0.2", "2.13.6", "2.12.14"),
+    crossScalaVersions := Seq("3.0.2", "2.13.6"),
     scalaVersion := crossScalaVersions.value.head,
     scalacOptions := commonScalacOptions
   )

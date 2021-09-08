@@ -30,7 +30,7 @@ class TransitionExecutorImpl[F[_], State](topology: ColoredPetriNet)(implicit
 
   def fireTransition[Input, Output](
     t: Transition[Input, Output, State]
-  ): TransitionFunction[F, Input, Output, State] = { (consume, state, input) =>
+  ): TransitionFunction[F, Input, Output, State] = { (consume: Marking, state: State, input: Input) =>
     def handleFailure: PartialFunction[Throwable, F[(Marking, Output)]] = { case e: Throwable =>
       errorHandling.raiseError(e).asInstanceOf[F[(Marking, Output)]]
     }
