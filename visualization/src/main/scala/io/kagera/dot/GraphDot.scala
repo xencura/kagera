@@ -9,11 +9,8 @@ import scalax.collection.io.dot.implicits._
 object GraphDot {
 
   def generateDot[N, E[+X] <: EdgeLikeIn[X]](graph: Graph[N, E], theme: GraphTheme[N, E]): String = {
-    val myRoot = DotRootGraph(
-      directed = graph.isDirected,
-      id = None,
-      attrStmts = theme.attrStmts,
-      attrList = theme.rootAttrs)
+    val myRoot =
+      DotRootGraph(directed = graph.isDirected, id = None, attrStmts = theme.attrStmts, attrList = theme.rootAttrs)
 
     def myNodeTransformer(innerNode: Graph[N, E]#NodeT): Option[(DotGraph, DotNodeStmt)] = {
       Some((myRoot, DotNodeStmt(theme.nodeLabelFn(innerNode.value), theme.nodeDotAttrFn(innerNode.value))))
@@ -31,7 +28,8 @@ object GraphDot {
     graph2DotExport(graph).toDot(
       dotRoot = myRoot,
       edgeTransformer = myEdgeTransformer,
-      cNodeTransformer = Some(myNodeTransformer))
+      cNodeTransformer = Some(myNodeTransformer)
+    )
   }
 
   // TODO Generalize this for all types of graphs

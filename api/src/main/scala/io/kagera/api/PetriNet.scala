@@ -20,21 +20,24 @@ trait PetriNet[P, T] {
   /**
    * The set of places of the petri net
    *
-   * @return The set of places
+   * @return
+   *   The set of places
    */
   def places: Set[P]
 
   /**
    * The set of transitions of the petri net
    *
-   * @return The set of transitions.
+   * @return
+   *   The set of transitions.
    */
   def transitions: Set[T]
 
   /**
    * The out-adjecent places of a transition.
    *
-   * @param t transition
+   * @param t
+   *   transition
    * @return
    */
   def outgoingPlaces(t: T): Set[P]
@@ -42,7 +45,8 @@ trait PetriNet[P, T] {
   /**
    * The out-adjacent transitions of a place.
    *
-   * @param p place
+   * @param p
+   *   place
    * @return
    */
   def outgoingTransitions(p: P): Set[T]
@@ -50,7 +54,8 @@ trait PetriNet[P, T] {
   /**
    * The in-adjacent places of a transition.
    *
-   * @param t transition
+   * @param t
+   *   transition
    * @return
    */
   def incomingPlaces(t: T): Set[P]
@@ -58,7 +63,8 @@ trait PetriNet[P, T] {
   /**
    * The in-adjacent transitions of a place.
    *
-   * @param p place
+   * @param p
+   *   place
    * @return
    */
   def incomingTransitions(p: P): Set[T]
@@ -66,7 +72,8 @@ trait PetriNet[P, T] {
   /**
    * Returns the in-marking of a transition. That is; a map of place -> arc weight
    *
-   * @param t transition
+   * @param t
+   *   transition
    * @return
    */
   def inMarking(t: T): MultiSet[P]
@@ -74,7 +81,8 @@ trait PetriNet[P, T] {
   /**
    * The out marking of a transition. That is; a map of place -> arc weight
    *
-   * @param t transition
+   * @param t
+   *   transition
    * @return
    */
   def outMarking(t: T): MultiSet[P]
@@ -82,7 +90,8 @@ trait PetriNet[P, T] {
   /**
    * The set of nodes (places + transitions) in the petri net.
    *
-   * @return The set of nodes.
+   * @return
+   *   The set of nodes.
    */
   def nodes: scala.collection.Set[Either[P, T]]
 

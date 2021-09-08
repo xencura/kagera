@@ -14,38 +14,42 @@ package object colored {
   /**
    * Type alias for the node type of the scalax.collection.Graph backing the petri net.
    */
-  type Node = Either[Place[_], Transition[_, _, _]]
+  type Node[+T] = Either[Place[_], T]
 
   /**
    * Type alias for the edge type of the scalax.collection.Graph backing the petri net.
    */
-  type Arc = WLDiEdge[Node]
+  type Arc[+T] = WLDiEdge[Node[T]]
 
   /**
    * Type alias for a single marked place, meaning a place containing tokens.
    *
-   * @tparam Color the color of the place.
+   * @tparam Color
+   *   the color of the place.
    */
   type MarkedPlace[Color] = (Place[Color], MultiSet[Color])
 
   /**
    * An (asynchronous) function associated with a transition
    *
-   * @tparam Input  The input delivered to the transition from outside the process.
-   * @tparam Output The output emitted by the transition.
-   * @tparam State  The state the transition closes over.
+   * @tparam Input
+   *   The input delivered to the transition from outside the process.
+   * @tparam Output
+   *   The output emitted by the transition.
+   * @tparam State
+   *   The state the transition closes over.
    */
-  type TransitionFunction[Input, Output, State] = (Marking, State, Input) ⇒ IO[(Marking, Output)]
+  type TransitionFunctionF[F[_], Input, Output, State] = (Marking, State, Input) => F[(Marking, Output)]
 
   /**
    * An exception handler function associated with a transition.
    */
-  type TransitionExceptionHandler = (Throwable, Int) ⇒ ExceptionStrategy
+  type TransitionExceptionHandler = (Throwable, Int) => ExceptionStrategy
 
   /**
    * Type alias for a colored petri net.
    */
-  type ColoredPetriNet = PetriNet[Place[_], Transition[_, _, _]]
+  type ColoredPetriNet[T] = PetriNet[Place[_], T]
 
   /**
    * Type alias for a marking.
@@ -64,29 +68,25 @@ package object colored {
       marking.+(p -> newTokens)
     }
 
-    def |-|(other: Marking): Marking = other.keySet.foldLeft(marking) {
-
-      case (result, place) ⇒
-        marking.get(place) match {
-          case None ⇒ result
-          case Some(tokens) ⇒
-            val newTokens = tokens.multisetDifference(other(place))
-            if (newTokens.isEmpty)
-              result - place
-            else
-              result + (place -> newTokens)
-        }
+    def |-|(other: Marking): Marking = other.keySet.foldLeft(marking) { case (result, place) =>
+      marking.get(place) match {
+        case None => result
+        case Some(tokens) =>
+          val newTokens = tokens.multisetDifference(other(place))
+          if (newTokens.isEmpty)
+            result - place
+          else
+            result + (place -> newTokens)
+      }
     }
 
-    def |+|(other: Marking): Marking = other.keySet.foldLeft(marking) {
-      case (result, place) ⇒
+    def |+|(other: Marking): Marking = other.keySet.foldLeft(marking) { case (result, place) =>
+      val newTokens = marking.get(place) match {
+        case None => other(place)
+        case Some(tokens) => tokens.multisetSum(other(place))
+      }
 
-        val newTokens = marking.get(place) match {
-          case None         ⇒ other(place)
-          case Some(tokens) ⇒ tokens.multisetSum(other(place))
-        }
-
-        result + (place -> newTokens)
+      result + (place -> newTokens)
     }
   }
 
@@ -95,19 +95,17 @@ package object colored {
    *
    * Incorporate the upper bounds of type parameters into this type
    *
-   * Place color:       C
-   * Transition input:  I
-   * Transition output: E
+   * Place color: C Transition input: I Transition output: E
    *
    * That way we can define different types of Petri nets:
    *
-   * Uncolored petri nets, where C is Unit
-   * Non interactive nets, Where I is Unit
-   * Nets without State & Event sourcing, Where S & E are Unit
+   * Uncolored petri nets, where C is Unit Non interactive nets, Where I is Unit Nets without State & Event sourcing,
+   * Where S & E are Unit
    *
-   * @tparam S The 'global' state transitions close over
+   * @tparam S
+   *   The 'global' state transitions close over
    */
-  type ExecutablePetriNet[S] = ColoredPetriNet with ColoredTokenGame
+  type ExecutablePetriNet[S, T] = ColoredPetriNet[T] with ColoredTokenGame[T]
 
   implicit def toMarkedPlace(tuple: (Place[Unit], Int)): MarkedPlace[Unit] = tuple._1 -> Map[Unit, Int](() -> tuple._2)
 
@@ -115,8 +113,9 @@ package object colored {
     def toMarking: Marking = HMap[Place, MultiSet](i.toMap[Place[_], MultiSet[_]])
   }
 
-  implicit class ColoredPetriNetAdditions(petriNet: ColoredPetriNet) {
-    def getEdge(p: Place[_], t: Transition[_, _, _]): Option[PTEdge[Any]] = petriNet.innerGraph.findPTEdge(p, t).map(_.label.asInstanceOf[PTEdge[Any]])
+  implicit class ColoredPetriNetAdditions[T](petriNet: ColoredPetriNet[T]) {
+    def getEdge(p: Place[_], t: T): Option[PTEdge[Any]] =
+      petriNet.innerGraph.findPTEdge(p, t).map(_.label.asInstanceOf[PTEdge[Any]])
   }
 
   implicit def toMarking(map: Map[Place[_], MultiSet[_]]): Marking = HMap[Place, MultiSet](map)

@@ -15,8 +15,8 @@ class TokenGameSpec extends WordSpec {
   val testProcess = process(
     p1 ~> (t1, filter = _ > 42),
     p1 ~> (t2, weight = 3),
-    t1 ~> p2,
-    t2 ~> p2
+    TransitionDSL[ConstantTransition[Int, Int, Unit]](t1) ~> p2,
+    TransitionDSL[ConstantTransition[Int, Int, Unit]](t2) ~> p2
   )
 
   "The Colored Token game" should {

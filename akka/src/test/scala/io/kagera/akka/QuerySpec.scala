@@ -2,7 +2,7 @@ package io.kagera.akka
 
 import akka.actor.ActorSystem
 import akka.persistence.query.PersistenceQuery
-import akka.persistence.query.scaladsl.{CurrentEventsByPersistenceIdQuery, ReadJournal}
+import akka.persistence.query.scaladsl.{ CurrentEventsByPersistenceIdQuery, ReadJournal }
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Sink
 import akka.testkit.{ ImplicitSender, TestKit }
@@ -18,8 +18,10 @@ import org.scalatest.WordSpecLike
 import scala.concurrent.duration._
 import scala.concurrent.{ Await, ExecutionContext }
 
-class QuerySpec extends TestKit(ActorSystem("QuerySpec", AkkaTestBase.defaultTestConfig))
-    with WordSpecLike with ImplicitSender {
+class QuerySpec
+    extends TestKit(ActorSystem("QuerySpec", AkkaTestBase.defaultTestConfig))
+    with WordSpecLike
+    with ImplicitSender {
 
   val timeOut: Duration = 2 seconds
 
@@ -31,7 +33,8 @@ class QuerySpec extends TestKit(ActorSystem("QuerySpec", AkkaTestBase.defaultTes
     "Return a source of events for a petri net instance" in new PetriNetQuery[Unit] {
 
       override def readJournal =
-        PersistenceQuery(system).readJournalFor("inmemory-read-journal")
+        PersistenceQuery(system)
+          .readJournalFor("inmemory-read-journal")
           .asInstanceOf[ReadJournal with CurrentEventsByPersistenceIdQuery]
 
       val p1 = Place[Unit](id = 1)
@@ -46,8 +49,8 @@ class QuerySpec extends TestKit(ActorSystem("QuerySpec", AkkaTestBase.defaultTes
 
       instance ! Initialize(Marking(p1 -> 1))
       expectMsg(Initialized(Marking(p1 -> 1), ()))
-      expectMsgPF(timeOut) { case e: TransitionFired[_] if e.transitionId == t1.id ⇒ }
-      expectMsgPF(timeOut) { case e: TransitionFired[_] if e.transitionId == t2.id ⇒ }
+      expectMsgPF(timeOut) { case e: TransitionFired[_] if e.transitionId == t1.id => }
+      expectMsgPF(timeOut) { case e: TransitionFired[_] if e.transitionId == t2.id => }
 
       // wait for all events to be available in the read journal
       Thread.sleep(100)
@@ -57,22 +60,18 @@ class QuerySpec extends TestKit(ActorSystem("QuerySpec", AkkaTestBase.defaultTes
 
       eventList.size shouldBe 3
 
-      eventList(0) shouldBe InitializedEvent(
-        marking = Marking(p1 -> 1),
-        state = ())
+      eventList(0) shouldBe InitializedEvent(marking = Marking(p1 -> 1), state = ())
 
-      inside(eventList(1)) {
-        case TransitionFiredEvent(_, transitionId, _, _, consumed, produced, _) ⇒
-          transitionId shouldBe t1.id
-          consumed shouldBe Marking(p1 -> 1)
-          produced shouldBe Marking(p2 -> 1)
+      inside(eventList(1)) { case TransitionFiredEvent(_, transitionId, _, _, consumed, produced, _) =>
+        transitionId shouldBe t1.id
+        consumed shouldBe Marking(p1 -> 1)
+        produced shouldBe Marking(p2 -> 1)
       }
 
-      inside(eventList(2)) {
-        case TransitionFiredEvent(_, transitionId, _, _, consumed, produced, _) ⇒
-          transitionId shouldBe t2.id
-          consumed shouldBe Marking(p2 -> 1)
-          produced shouldBe Marking(p3 -> 1)
+      inside(eventList(2)) { case TransitionFiredEvent(_, transitionId, _, _, consumed, produced, _) =>
+        transitionId shouldBe t2.id
+        consumed shouldBe Marking(p2 -> 1)
+        produced shouldBe Marking(p3 -> 1)
       }
     }
   }

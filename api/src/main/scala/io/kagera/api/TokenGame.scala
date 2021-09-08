@@ -3,13 +3,13 @@ package io.kagera.api
 object TokenGame {
 
   // given a process and current marking picks the next transition and marking to fire
-  type Step[P, T, M] = (TokenGame[P, T, M], M) ⇒ Option[(M, T)]
+  type Step[P, T, M] = (TokenGame[P, T, M], M) => Option[(M, T)]
 
-  def stepFirst[P, T, M]: Step[P, T, M] = (process, marking) ⇒ {
-    process.enabledParameters(marking).headOption.map { case (t, enabledMarkings) ⇒ (enabledMarkings.head, t) }
+  def stepFirst[P, T, M]: Step[P, T, M] = (process, marking) => {
+    process.enabledParameters(marking).headOption.map { case (t, enabledMarkings) => (enabledMarkings.head, t) }
   }
 
-  def stepRandom[P, T, M]: Step[P, T, M] = (process, marking) ⇒ {
+  def stepRandom[P, T, M]: Step[P, T, M] = (process, marking) => {
     import scala.util.Random
 
     val params = process.enabledParameters(marking)
@@ -25,17 +25,20 @@ object TokenGame {
 /**
  * Interface for deciding which (transition, marking) parameters are 'enabled'
  *
- * @tparam P Place
- * @tparam T Transition
- * @tparam M Marking     The type of Marking in the PetriNet
+ * @tparam P
+ *   Place
+ * @tparam T
+ *   Transition
+ * @tparam M
+ *   Marking The type of Marking in the PetriNet
  */
 trait TokenGame[P, T, M] {
 
-  this: PetriNet[P, T] ⇒
+  this: PetriNet[P, T] =>
 
   def enabledParameters(marking: M): Map[T, Iterable[M]] = {
     // inefficient, fix
-    enabledTransitions(marking).view.map(t ⇒ t -> consumableMarkings(marking)(t)).toMap
+    enabledTransitions(marking).view.map(t => t -> consumableMarkings(marking)(t)).toMap
   }
 
   def consumableMarkings(marking: M)(t: T): Iterable[M]
@@ -43,8 +46,10 @@ trait TokenGame[P, T, M] {
   /**
    * Checks whether a transition is 'enabled' in a marking.
    *
-   * @param marking The marking.
-   * @param t The transition.
+   * @param marking
+   *   The marking.
+   * @param t
+   *   The transition.
    * @return
    */
   def isEnabled(marking: M)(t: T): Boolean = consumableMarkings(marking)(t).nonEmpty
@@ -52,7 +57,8 @@ trait TokenGame[P, T, M] {
   /**
    * Returns all enabled transitions for a marking.
    *
-   * @param marking marking
+   * @param marking
+   *   marking
    * @return
    */
   def enabledTransitions(marking: M): Set[T]

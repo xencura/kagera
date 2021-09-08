@@ -14,11 +14,11 @@ val sum = {
 
     // transitions
     val init = Transition(id = 1, label = "init") {
-      () ⇒ (5, 5)
+      () => (5, 5)
     }
 
     val sum = Transition(id = 2, label = "sum") {
-      (a: Int, b: Int) ⇒ a + b
+      (a: Int, b: Int) => a + b
     }
 
     // process topology

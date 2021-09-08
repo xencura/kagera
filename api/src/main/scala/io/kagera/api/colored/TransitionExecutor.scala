@@ -1,42 +1,55 @@
 package io.kagera.api.colored
 
-import cats.effect.IO
+import cats.ApplicativeError
+import cats.syntax.applicativeError._
 import io.kagera.api._
 
-trait TransitionExecutor[State] {
+trait TransitionExecutor[F[_], T] {
 
   /**
    * Given a transition returns an input output function
    *
    * @param t
-   * @tparam Input
-   * @tparam Output
    * @return
    */
-  def fireTransition[Input, Output](t: Transition[Input, Output, State]): TransitionFunction[Input, Output, State]
+  def fireTransition(t: T)(implicit
+    executorFactory: TransitionExecutorFactory[F, T]
+  ): TransitionFunctionF[F, executorFactory.Input, executorFactory.Output, executorFactory.State]
 }
 
-class TransitionExecutorImpl[State](topology: ColoredPetriNet) extends TransitionExecutor[State] {
+class TransitionExecutorImpl[F[_], T](topology: ColoredPetriNet[T])(implicit
+  errorHandling: ApplicativeError[F, Throwable]
+) extends TransitionExecutor[F, T] {
 
-  val cachedTransitionFunctions: Map[Transition[_, _, _], _] =
-    topology.transitions.map(t ⇒ t -> t.apply(topology.inMarking(t), topology.outMarking(t))).toMap
+  /*
+  TODO: Reintroduce caching
+  val cachedTransitionFunctions: Map[T, TransitionFunctionF[F, Input, Output, State]] =
+    topology.transitions.map(t => t -> executorFactory.createTransitionExecutor(t, topology.inMarking(t), topology.outMarking(t))).toMap
 
-  def transitionFunction[Input, Output](t: Transition[Input, Output, State]) =
-    cachedTransitionFunctions(t).asInstanceOf[TransitionFunction[Input, Output, State]]
+  def transitionFunction(t: T): TransitionFunctionF[F, Input, Output, State] = cachedTransitionFunctions(t)
+   */
 
-  def fireTransition[Input, Output](t: Transition[Input, Output, State]): TransitionFunction[Input, Output, State] = {
-    (consume, state, input) ⇒
-
-      def handleFailure: PartialFunction[Throwable, IO[(Marking, Output)]] = {
-        case e: Throwable ⇒ IO.raiseError(e).asInstanceOf[IO[(Marking, Output)]]
+  def fireTransition(t: T)(implicit
+    executorFactory: TransitionExecutorFactory[F, T]
+  ): TransitionFunctionF[F, executorFactory.Input, executorFactory.Output, executorFactory.State] = {
+    (consume, state, input) =>
+      def handleFailure: PartialFunction[Throwable, F[(Marking, executorFactory.Output)]] = { case e: Throwable =>
+        errorHandling.raiseError(e).asInstanceOf[F[(Marking, executorFactory.Output)]]
       }
 
       if (consume.multiplicities != topology.inMarking(t)) {
-        IO.raiseError(new IllegalArgumentException(s"Transition $t may not consume $consume"))
+        errorHandling.raiseError(new IllegalArgumentException(s"Transition $t may not consume $consume"))
       }
 
+      val transitionFunction
+        : TransitionFunctionF[F, executorFactory.Input, executorFactory.Output, executorFactory.State] =
+        executorFactory.createTransitionExecutor(t, topology.inMarking(t), topology.outMarking(t))
       try {
-        transitionFunction(t)(consume, state, input).handleErrorWith { handleFailure }
-      } catch { handleFailure }
+        errorHandling.handleErrorWith(transitionFunction(consume, state, input)) {
+          handleFailure
+        }
+      } catch {
+        handleFailure
+      }
   }
 }

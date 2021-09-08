@@ -25,7 +25,13 @@ object Marking {
     HMap[Place, MultiSet](Map(m1, m2, m3, m4): MarkingData)
   }
 
-  def apply[A, B, C, D, E](m1: MarkedPlace[A], m2: MarkedPlace[B], m3: MarkedPlace[C], m4: MarkedPlace[D], m5: MarkedPlace[E]): Marking = {
+  def apply[A, B, C, D, E](
+    m1: MarkedPlace[A],
+    m2: MarkedPlace[B],
+    m3: MarkedPlace[C],
+    m4: MarkedPlace[D],
+    m5: MarkedPlace[E]
+  ): Marking = {
     HMap[Place, MultiSet](Map(m1, m2, m3, m4, m5): MarkingData)
   }
 }

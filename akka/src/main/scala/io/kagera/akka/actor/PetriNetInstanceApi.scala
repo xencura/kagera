@@ -30,36 +30,48 @@ case object UnknownProcessId extends ErrorResponse {
 /**
  * An actor that pushes all received messages on a SourceQueueWithComplete.
  */
-class QueuePushingActor[E](queue: SourceQueueWithComplete[E], takeWhile: Any ⇒ Boolean) extends Actor {
-  override def receive: Receive = {
-    case msg @ _ ⇒
-      queue.offer(msg.asInstanceOf[E])
-      if (!takeWhile(msg)) {
-        queue.complete()
-        context.stop(self)
-      }
+class QueuePushingActor[E](queue: SourceQueueWithComplete[E], takeWhile: Any => Boolean) extends Actor {
+  override def receive: Receive = { case msg @ _ =>
+    queue.offer(msg.asInstanceOf[E])
+    if (!takeWhile(msg)) {
+      queue.complete()
+      context.stop(self)
+    }
   }
 }
 
 object PetriNetInstanceApi {
 
-  def hasAutomaticTransitions[S](topology: ExecutablePetriNet[S]): InstanceState[S] ⇒ Boolean = state ⇒ {
-    state.marking.keySet.map(p ⇒ topology.outgoingTransitions(p)).foldLeft(Set.empty[Transition[_, _, _]]) {
-      case (result, transitions) ⇒ result ++ transitions
-    }.exists(isEnabledInState(topology, state))
+  def hasAutomaticTransitions[S, T <: Transition[_, _, S]](
+    topology: ExecutablePetriNet[S, T]
+  ): InstanceState[S] => Boolean = state => {
+    state.marking.keySet
+      .map(p => topology.outgoingTransitions(p))
+      .foldLeft(Set.empty[T]) { case (result, transitions) =>
+        result ++ transitions
+      }
+      .exists(isEnabledInState(topology, state))
   }
 
-  def isEnabledInState[S](topology: ExecutablePetriNet[S], state: InstanceState[S])(t: Transition[_, _, _]): Boolean =
+  def isEnabledInState[S, T <: Transition[_, _, S]](topology: ExecutablePetriNet[S, T], state: InstanceState[S])(
+    t: T
+  ): Boolean =
     t.isAutomated && !state.hasFailed(t.id) && topology.isEnabledInMarking(state.marking.multiplicities)(t)
 
-  def takeWhileNotFailed[S](topology: ExecutablePetriNet[S], waitForRetries: Boolean): Any ⇒ Boolean = e ⇒ e match {
-    case e: TransitionFired[S]                               ⇒ hasAutomaticTransitions(topology)(e.result)
-    case TransitionFailed(_, _, _, _, RetryWithDelay(delay)) ⇒ waitForRetries
-    case msg @ _                                             ⇒ false
-  }
+  def takeWhileNotFailed[S, T <: Transition[_, _, S]](
+    topology: ExecutablePetriNet[S, T],
+    waitForRetries: Boolean
+  ): Any => Boolean = e =>
+    e match {
+      case e: TransitionFired[S] => hasAutomaticTransitions(topology)(e.result)
+      case TransitionFailed(_, _, _, _, RetryWithDelay(delay)) => waitForRetries
+      case msg @ _ => false
+    }
 
-  def askSource[E](actor: ActorRef, msg: Any, takeWhile: Any ⇒ Boolean)(implicit actorSystem: ActorSystem): Source[E, NotUsed] = {
-    Source.queue[E](100, OverflowStrategy.fail).mapMaterializedValue { queue ⇒
+  def askSource[E](actor: ActorRef, msg: Any, takeWhile: Any => Boolean)(implicit
+    actorSystem: ActorSystem
+  ): Source[E, NotUsed] = {
+    Source.queue[E](100, OverflowStrategy.fail).mapMaterializedValue { queue =>
       val sender = actorSystem.actorOf(Props(new QueuePushingActor[E](queue, takeWhile)))
       actor.tell(msg, sender)
       NotUsed.getInstance()
@@ -70,7 +82,10 @@ object PetriNetInstanceApi {
 /**
  * Contains some methods to interact with a petri net instance actor.
  */
-class PetriNetInstanceApi[S](topology: ExecutablePetriNet[S], actor: ActorRef)(implicit actorSystem: ActorSystem, materializer: Materializer) {
+class PetriNetInstanceApi[S, T <: Transition[_, _, S]](topology: ExecutablePetriNet[S, T], actor: ActorRef)(implicit
+  actorSystem: ActorSystem,
+  materializer: Materializer
+) {
 
   import PetriNetInstanceApi._
   import actorSystem.dispatcher
@@ -80,8 +95,8 @@ class PetriNetInstanceApi[S](topology: ExecutablePetriNet[S], actor: ActorRef)(i
    */
   def askAndConfirmFirst(msg: Any)(implicit timeout: Timeout): Future[Either[UnexpectedMessage, InstanceState[S]]] = {
     actor.ask(msg).map {
-      case e: TransitionFired[_] ⇒ Right(e.result.asInstanceOf[InstanceState[S]])
-      case msg @ _               ⇒ Left(UnexpectedMessage(s"Received unexepected message: $msg"))
+      case e: TransitionFired[_] => Right(e.result.asInstanceOf[InstanceState[S]])
+      case msg @ _ => Left(UnexpectedMessage(s"Received unexepected message: $msg"))
     }
   }
 
@@ -92,15 +107,17 @@ class PetriNetInstanceApi[S](topology: ExecutablePetriNet[S], actor: ActorRef)(i
   /**
    * Fires a transition and confirms (waits) for all responses of subsequent automated transitions.
    */
-  def askAndConfirmAll(msg: Any, waitForRetries: Boolean = false)(implicit timeout: Timeout): Future[Either[ErrorResponse, InstanceState[S]]] = {
+  def askAndConfirmAll(msg: Any, waitForRetries: Boolean = false)(implicit
+    timeout: Timeout
+  ): Future[Either[ErrorResponse, InstanceState[S]]] = {
 
     val futureMessages = askAndCollectAll(msg, waitForRetries).runWith(Sink.seq)
 
     futureMessages.map {
       _.lastOption match {
-        case Some(e: TransitionFired[_]) ⇒ Right(e.result.asInstanceOf[InstanceState[S]])
-        case Some(msg)                   ⇒ Left(UnexpectedMessage(s"Received unexpected message: $msg"))
-        case None                        ⇒ Left(UnknownProcessId)
+        case Some(e: TransitionFired[_]) => Right(e.result.asInstanceOf[InstanceState[S]])
+        case Some(msg) => Left(UnexpectedMessage(s"Received unexpected message: $msg"))
+        case None => Left(UnknownProcessId)
       }
     }
   }
@@ -108,7 +125,9 @@ class PetriNetInstanceApi[S](topology: ExecutablePetriNet[S], actor: ActorRef)(i
   /**
    * Synchronously collects all messages in response to a message sent to a PetriNet instance.
    */
-  def askAndCollectAllSync(msg: Any, waitForRetries: Boolean = false)(implicit timeout: Timeout): Seq[TransitionResponse] = {
+  def askAndCollectAllSync(msg: Any, waitForRetries: Boolean = false)(implicit
+    timeout: Timeout
+  ): Seq[TransitionResponse] = {
     val futureResult = askAndCollectAll(msg, waitForRetries).runWith(Sink.seq)
     Await.result(futureResult, timeout.duration)
   }
@@ -125,9 +144,12 @@ class PetriNetInstanceApi[S](topology: ExecutablePetriNet[S], actor: ActorRef)(i
    * If the instance is 'uninitialized' returns an empty source.
    */
   def askAndCollectAll(msg: Any, waitForRetries: Boolean = false): Source[TransitionResponse, NotUsed] = {
-    askSource[Any](actor, msg, takeWhileNotFailed(topology, waitForRetries)).map {
-      case e: TransitionResponse ⇒ Right(e)
-      case msg @ _               ⇒ Left(s"Received unexpected message: $msg")
-    }.takeWhile(_.isRight).map(_.right.get)
+    askSource[Any](actor, msg, takeWhileNotFailed(topology, waitForRetries))
+      .map {
+        case e: TransitionResponse => Right(e)
+        case msg @ _ => Left(s"Received unexpected message: $msg")
+      }
+      .takeWhile(_.isRight)
+      .map(_.right.get)
   }
 }

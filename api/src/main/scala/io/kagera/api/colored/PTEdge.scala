@@ -23,7 +23,8 @@ trait PTEdge[T] {
    *
    * in which case you can provide a reason message for not being able to consume a token.
    *
-   * @return A predicate function from token -> boolean, indicating whether the token may be consumed (true) or not (false)
+   * @return
+   *   A predicate function from token -> boolean, indicating whether the token may be consumed (true) or not (false)
    */
-  val filter: T ⇒ Boolean
+  val filter: T => Boolean
 }

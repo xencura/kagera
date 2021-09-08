@@ -22,7 +22,7 @@ object CytoScape {
 
     val data = new js.Object {
 
-      val nodeElements: Seq[js.Object] = nodes.map { n ⇒
+      val nodeElements: Seq[js.Object] = nodes.map { n =>
         val style = n.style
         new js.Object {
           val data = new js.Object {
@@ -35,7 +35,7 @@ object CytoScape {
         }
       }.toSeq
 
-      val edgeElements: Seq[js.Object] = edges.map { e ⇒
+      val edgeElements: Seq[js.Object] = edges.map { e =>
         val style = e.edgeStyle
         new js.Object {
           val data = new js.Object {

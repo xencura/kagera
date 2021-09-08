@@ -24,8 +24,8 @@ object Main extends App with ConfiguredActorSystem with Routes {
   val httpBind = s"http://${interface}:${port}"
 
   bind.onComplete {
-    case Success(result) ⇒ println(s"Successfully bound to: $httpBind")
-    case Failure(reason) ⇒ println(s"Failed to bind to: $httpBind")
+    case Success(result) => println(s"Successfully bound to: $httpBind")
+    case Failure(reason) => println(s"Failed to bind to: $httpBind")
   }
 
   scala.sys.ShutdownHookThread {

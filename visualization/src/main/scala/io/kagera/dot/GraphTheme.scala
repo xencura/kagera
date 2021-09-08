@@ -15,5 +15,5 @@ trait GraphTheme[N, E[X] <: EdgeLikeIn[X]] {
 
   def rootAttrs: scala.Seq[DotAttr] = List.empty
 
-//  def edgeDotAttrFn: Graph[N, E#EdgeT => List[DotAttr] = edge => List.empty
+  //  def edgeDotAttrFn: Graph[N, E#EdgeT => List[DotAttr] = edge => List.empty
 }
