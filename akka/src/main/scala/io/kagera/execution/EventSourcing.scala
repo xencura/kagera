@@ -44,10 +44,10 @@ object EventSourcing {
    */
   case class InitializedEvent(marking: Marking, state: Any) extends Event
 
-  def applyEvent[S](e: Event): State[Instance[S], Unit] = State.modify { instance =>
+  def applyEvent[S, T <: Transition[_, _, S]](e: Event): State[Instance[S, T], Unit] = State.modify { instance =>
     e match {
       case InitializedEvent(initialMarking, initialState) =>
-        Instance[S](instance.process, 1, initialMarking, initialState.asInstanceOf[S], Map.empty)
+        Instance[S, T](instance.process, 1, initialMarking, initialState.asInstanceOf[S], Map.empty)
       case e: TransitionFiredEvent =>
         val t = instance.process.transitions.getById(e.transitionId).asInstanceOf[Transition[_, Any, S]]
         val newState = e.output.map(t.updateState(instance.state)).getOrElse(instance.state)
@@ -60,8 +60,8 @@ object EventSourcing {
         )
       case e: TransitionFailedEvent =>
         val job = instance.jobs.get(e.jobId).getOrElse {
-          val transition = instance.process.transitions.getById(e.transitionId).asInstanceOf[Transition[Any, Any, S]]
-          Job[S, Any](e.jobId, instance.state, transition, e.consume, e.input, None)
+          val transition = instance.process.transitions.getById(e.transitionId)
+          Job[S, T](e.jobId, instance.state, transition, e.consume, e.input, None)
         }
         val failureCount = job.failureCount + 1
         val updatedJob =

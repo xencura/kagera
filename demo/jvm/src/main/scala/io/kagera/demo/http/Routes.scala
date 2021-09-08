@@ -10,7 +10,7 @@ import akka.util.{ ByteString, Timeout }
 import de.heikoseeberger.akkahttpupickle.UpickleSupport
 import io.kagera.akka.actor.PetriNetInstance
 import io.kagera.akka.actor.PetriNetInstanceProtocol._
-import io.kagera.api.colored.{ ExecutablePetriNet, Generators, Marking }
+import io.kagera.api.colored.{ ExecutablePetriNet, Generators, Marking, Transition }
 import io.kagera.demo.{ ConfiguredActorSystem, Queries }
 import upickle.default._
 
@@ -32,7 +32,9 @@ trait Routes extends Directives with Queries with UpickleSupport {
     )
   }
 
-  val repository: Map[String, ExecutablePetriNet[_]] = Map("test" -> Generators.Uncolored.sequence(5))
+  val repository: Map[String, ExecutablePetriNet[_, Transition[_, _, _]]] = Map(
+    "test" -> Generators.Uncolored.sequence(5)
+  )
 
   val indexRoute = path("index.html") {
     get {
@@ -50,7 +52,7 @@ trait Routes extends Directives with Queries with UpickleSupport {
         get {
           repository.get(id) match {
             case None => complete(StatusCodes.NotFound -> s"no such process: $id")
-            case Some(process) => complete(upickle.default.write(Util.toModel(process)))
+            case Some(process) => complete(upickle.default.write(Util.toModel[Transition[_, _, _]](process)))
           }
         }
       }
@@ -69,9 +71,9 @@ trait Routes extends Directives with Queries with UpickleSupport {
     } ~
       path("create" / Segment) { topologyId =>
         post {
-          val topology = repository(topologyId).asInstanceOf[ExecutablePetriNet[Unit]]
+          val topology = repository(topologyId).asInstanceOf[ExecutablePetriNet[Unit, _]]
           val id = java.util.UUID.randomUUID.toString
-//          system.actorOf(PetriNetInstance.props(topology, Marking.empty, ()), id)
+          //          system.actorOf(PetriNetInstance.props(topology, Marking.empty, ()), id)
           complete(id)
         }
       } ~
