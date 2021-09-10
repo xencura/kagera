@@ -28,7 +28,7 @@ object PetriNetInstance {
 
   def petriNetInstancePersistenceId(processId: String): String = s"process-$processId"
 
-  def instanceState[S](instance: Instance[S]): InstanceState[S] = {
+  def instanceState[S, T <: Transition[_, _, S]](instance: Instance[S, T]): InstanceState[S] = {
     val failures = instance.failedJobs.map { e =>
       e.transitionId -> PetriNetInstanceProtocol.ExceptionState(
         e.consecutiveFailureCount,
@@ -40,20 +40,23 @@ object PetriNetInstance {
     InstanceState[S](instance.sequenceNr, instance.marking, instance.state, failures)
   }
 
-  def props[S](topology: ExecutablePetriNet[S], settings: Settings = defaultSettings): Props =
-    Props(new PetriNetInstance[S](topology, settings, new TransitionExecutorImpl[IO, S](topology)))
+  def props[S, T <: Transition[Any, _, S]](topology: ExecutablePetriNet[S, T], settings: Settings = defaultSettings)(
+    implicit executorFactory: TransitionExecutorFactory.WithInputOutputState[IO, T, Any, _, S]
+  ): Props =
+    Props(new PetriNetInstance[S, T](topology, settings, new TransitionExecutorImpl[IO, T](topology)))
 }
 
 /**
  * This actor is responsible for maintaining the state of a single petri net instance.
  */
-class PetriNetInstance[S](
-  override val topology: ExecutablePetriNet[S],
+class PetriNetInstance[S, T <: Transition[Any, _, S]](
+  override val topology: ExecutablePetriNet[S, T],
   val settings: Settings,
-  executor: TransitionExecutor[IO, S]
-) extends PersistentActor
+  executor: TransitionExecutor[IO, T]
+)(implicit executorFactory: TransitionExecutorFactory.WithInputOutputState[IO, T, Any, _, S])
+    extends PersistentActor
     with ActorLogging
-    with PetriNetInstanceRecovery[S] {
+    with PetriNetInstanceRecovery[S, T] {
 
   import PetriNetInstance._
 
@@ -68,7 +71,7 @@ class PetriNetInstance[S](
   def uninitialized: Receive = {
     case msg @ Initialize(marking, state) =>
       log.debug(s"Received message: {}", msg)
-      val uninitialized = Instance.uninitialized[S](topology)
+      val uninitialized = Instance.uninitialized[S, T](topology)
       persistEvent(uninitialized, InitializedEvent(marking, state.asInstanceOf[S])) {
         (applyEvent(uninitialized) _)
           .andThen(step)
@@ -79,7 +82,7 @@ class PetriNetInstance[S](
       context.stop(context.self)
   }
 
-  def running(instance: Instance[S]): Receive = {
+  def running(instance: Instance[S, T]): Receive = {
     case IdleStop(n) if n == instance.sequenceNr && instance.activeJobs.isEmpty =>
       context.stop(context.self)
 
@@ -105,7 +108,7 @@ class PetriNetInstance[S](
 
       val updatedInstance = applyEvent(instance)(e)
 
-      def updateAndRespond(instance: Instance[S]) = {
+      def updateAndRespond(instance: Instance[S, T]) = {
         sender() ! TransitionFailed(transitionId, consume, input, reason, strategy)
         context become running(instance)
       }
@@ -116,7 +119,9 @@ class PetriNetInstance[S](
             s"Scheduling a retry of transition '${topology.transitions.getById(transitionId)}' in $delay milliseconds"
           )
           val originalSender = sender()
-          system.scheduler.scheduleOnce(delay milliseconds) { executeJob(updatedInstance.jobs(jobId), originalSender) }
+          system.scheduler.scheduleOnce(delay milliseconds) {
+            executeJob(updatedInstance.jobs(jobId), originalSender)
+          }
           updateAndRespond(applyEvent(instance)(e))
         case _ =>
           persistEvent(instance, e)((applyEvent(instance) _).andThen(updateAndRespond _))
@@ -125,7 +130,7 @@ class PetriNetInstance[S](
     case msg @ FireTransition(id, input, correlationId) =>
       log.debug(s"Received message: {}", msg)
 
-      fireTransitionById[S](id, input).run(instance).value match {
+      fireTransitionById[S, T](id, input).run(instance).value match {
         case (updatedInstance, Right(job)) =>
           executeJob(job, sender())
           context become running(updatedInstance)
@@ -138,7 +143,7 @@ class PetriNetInstance[S](
   }
 
   // TODO remove side effecting here
-  def step(instance: Instance[S]): Instance[S] = {
+  def step(instance: Instance[S, T]): Instance[S, T] = {
     fireAllEnabledTransitions.run(instance).value match {
       case (updatedInstance, jobs) =>
         if (jobs.isEmpty && updatedInstance.activeJobs.isEmpty)
@@ -153,8 +158,10 @@ class PetriNetInstance[S](
     }
   }
 
-  def executeJob[E](job: Job[S, E], originalSender: ActorRef) =
-    runJobAsync(job, executor)(settings.evaluationStrategy).unsafeToFuture().pipeTo(context.self)(originalSender)
+  def executeJob(job: Job[S, T], originalSender: ActorRef) =
+    runJobAsync[S, T](job, executor)(settings.evaluationStrategy, executorFactory)
+      .unsafeToFuture()
+      .pipeTo(context.self)(originalSender)
 
-  override def onRecoveryCompleted(instance: Instance[S]) = step(instance)
+  override def onRecoveryCompleted(instance: Instance[S, T]) = step(instance)
 }

@@ -5,7 +5,8 @@ import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{ Sink, Source }
 import io.kagera.akka.actor.PetriNetInstanceApi
 import io.kagera.akka.actor.PetriNetInstanceProtocol._
-import org.scalatest.matchers.should.Matchers._
+import io.kagera.api.colored.dsl.SequenceNetTransition
+import org.scalatest.Matchers._
 
 import scala.concurrent.duration._
 import scala.concurrent.{ Await, ExecutionContext }
@@ -27,12 +28,12 @@ class PetriNetInstanceApiSpec extends AkkaTestBase {
         transition(automated = true)(_ => Added(3))
       )
 
-      val actor = PetriNetInstanceSpec.createPetriNetActor[Set[Int]](petriNet)
+      val actor = PetriNetInstanceSpec.createPetriNetActor(petriNet)
 
       actor ! Initialize(initialMarking, Set.empty)
       expectMsgClass(classOf[Initialized[_]])
 
-      val api = new PetriNetInstanceApi(petriNet, actor)
+      val api = new PetriNetInstanceApi[Set[Int], SequenceNetTransition[Set[Int], Event]](petriNet, actor)
       val source: Source[TransitionResponse, NotUsed] = api.askAndCollectAll(FireTransition(1, ()))
       val responses = Await.result(source.runWith(Sink.seq[TransitionResponse]), waitTimeout)
 
@@ -49,8 +50,8 @@ class PetriNetInstanceApiSpec extends AkkaTestBase {
 
       override val sequence = Seq(transition()(_ => Added(1)))
 
-      val actor = PetriNetInstanceSpec.createPetriNetActor[Set[Int]](petriNet)
-      val api = new PetriNetInstanceApi(petriNet, actor)
+      val actor = PetriNetInstanceSpec.createPetriNetActor(petriNet)
+      val api = new PetriNetInstanceApi[Set[Int], SequenceNetTransition[Set[Int], Event]](petriNet, actor)
       val source: Source[TransitionResponse, NotUsed] = api.askAndCollectAll(FireTransition(1, ()))
 
       val responses = Await.result(source.runWith(Sink.seq[TransitionResponse]), waitTimeout)
