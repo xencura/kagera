@@ -64,8 +64,10 @@ lazy val visualization = crossProject(JSPlatform, JVMPlatform)
   )
   .jsConfigure(_.enablePlugins(JSDependenciesPlugin, ScalaJSBundlerPlugin))
   .jsSettings(
+    resolvers += "jitpack" at "https://jitpack.io",
     webpackBundlingMode := BundlingMode.LibraryAndApplication(),
-    libraryDependencies ++= Seq(scalaJsDom.value),
+    addCompilerPlugin("org.typelevel" % "kind-projector" % "0.13.2" cross CrossVersion.full),
+    libraryDependencies ++= Seq(scalaJsDom.value, d3.value, laminar.value),
     jsDependencies ++= Seq(
       "org.webjars.bower" % "cytoscape" % cytoscapeVersion
         / s"$cytoscapeVersion/dist/cytoscape.js"

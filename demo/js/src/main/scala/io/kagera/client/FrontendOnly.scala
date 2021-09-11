@@ -1,15 +1,14 @@
 package io.kagera.client
 
-import io.kagera.api.colored.dsl._
+import com.raquo.airstream.signal.Signal
 import io.kagera.api.colored.Place
-import io.kagera.vis.cytoscape.CytoScapePetriNetVisualization
+import io.kagera.api.colored.dsl._
+import io.kagera.vis.laminar.PetriNetLaminarVisualization
 import org.scalajs.dom.html
-
-import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
-import scala.scalajs.js.annotation.{ JSExport, JSExportTopLevel }
-import scalatags.JsDom.svgTags._
 import scalatags.JsDom.all._
 
+import scala.concurrent.Future
+import scala.scalajs.js.annotation.{ JSExport, JSExportTopLevel }
 import scala.util.Random
 
 @JSExportTopLevel("FrontendOnly")
@@ -28,6 +27,9 @@ object FrontendOnly {
       edge <- Seq(place ~> transition, transition ~> place)
     } yield edge
     val randomEdges = Random.shuffle(allEdges).take(allEdges.size / 3)
-    CytoScapePetriNetVisualization.drawPetriNet(graphContainer, process(randomEdges: _*))
+    PetriNetLaminarVisualization(
+      graphContainer,
+      Signal.fromFuture(Future.successful(process(randomEdges: _*))).map(_.get)
+    )
   }
 }
