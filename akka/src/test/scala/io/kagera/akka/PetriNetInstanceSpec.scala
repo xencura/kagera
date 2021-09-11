@@ -2,6 +2,7 @@ package io.kagera.akka
 
 import java.util.UUID
 import akka.actor.{ ActorSystem, PoisonPill, Terminated }
+import cats.effect.IO
 import io.kagera.akka.PetriNetInstanceSpec._
 import io.kagera.akka.actor.PetriNetInstance
 import io.kagera.akka.actor.PetriNetInstance.Settings
@@ -16,11 +17,19 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
 object PetriNetInstanceSpec {
-
-  def createPetriNetActor[S](petriNet: ExecutablePetriNet[S], processId: String = UUID.randomUUID().toString)(implicit
-    system: ActorSystem
-  ) =
-    system.actorOf(PetriNetInstance.props(petriNet), processId)
+  implicit val sequenceNetTransitionExecutorFactoryImp
+    : TransitionExecutorFactory.WithInputOutputState[IO, SequenceNetTransition[Set[Int], Event], Any, _, Set[Int]] =
+    SequenceNetTransitionExecutorFactory
+      .sequenceNetTransitionExecutorFactory[IO, Set[Int], Event]
+      .asInstanceOf[TransitionExecutorFactory.WithInputOutputState[IO, SequenceNetTransition[
+        Set[Int],
+        Event
+      ], Any, _, Set[Int]]]
+  def createPetriNetActor(
+    petriNet: ExecutablePetriNet[Set[Int], SequenceNetTransition[Set[Int], Event]],
+    processId: String = UUID.randomUUID().toString
+  )(implicit system: ActorSystem) =
+    system.actorOf(PetriNetInstance.props[Set[Int], SequenceNetTransition[Set[Int], Event]](petriNet), processId)
 }
 
 class PetriNetInstanceSpec extends AkkaTestBase {
@@ -31,7 +40,7 @@ class PetriNetInstanceSpec extends AkkaTestBase {
 
       override val sequence = Seq(transition()(_ => Added(1)), transition()(_ => Added(2)))
 
-      val actor = createPetriNetActor[Set[Int]](petriNet)
+      val actor = createPetriNetActor(petriNet)
 
       actor ! Initialize(initialMarking, Set(1, 2, 3))
       expectMsg(Initialized(initialMarking, Set(1, 2, 3)))
@@ -41,7 +50,7 @@ class PetriNetInstanceSpec extends AkkaTestBase {
 
       override val sequence = Seq(transition()(_ => Added(1)), transition()(_ => Added(2)))
 
-      val actor = createPetriNetActor[Set[Int]](petriNet)
+      val actor = createPetriNetActor(petriNet)
 
       actor ! GetState
       expectMsgClass(classOf[IllegalCommand])
@@ -51,7 +60,7 @@ class PetriNetInstanceSpec extends AkkaTestBase {
 
       override val sequence = Seq(transition()(_ => Added(1)), transition()(_ => Added(2)))
 
-      val actor = createPetriNetActor[Set[Int]](petriNet)
+      val actor = createPetriNetActor(petriNet)
 
       actor ! Initialize(initialMarking, Set(1, 2, 3))
       expectMsgClass(classOf[Initialized[_]])
@@ -68,7 +77,7 @@ class PetriNetInstanceSpec extends AkkaTestBase {
         transition()(_ => throw new RuntimeException("t2 failed!"))
       )
 
-      val actor = createPetriNetActor[Set[Int]](petriNet)
+      val actor = createPetriNetActor(petriNet)
 
       actor ! Initialize(initialMarking, Set.empty)
       expectMsgClass(classOf[Initialized[_]])
@@ -83,7 +92,7 @@ class PetriNetInstanceSpec extends AkkaTestBase {
       override val sequence =
         Seq(transition()(_ => throw new RuntimeException("t1 failed!")), transition()(_ => Added(2)))
 
-      val actor = createPetriNetActor[Set[Int]](petriNet)
+      val actor = createPetriNetActor(petriNet)
 
       actor ! Initialize(initialMarking, Set.empty)
       expectMsgClass(classOf[Initialized[_]])
@@ -102,7 +111,7 @@ class PetriNetInstanceSpec extends AkkaTestBase {
 
       override val sequence = Seq(transition()(_ => Added(1)), transition()(_ => Added(2)))
 
-      val actor = createPetriNetActor[Set[Int]](petriNet)
+      val actor = createPetriNetActor(petriNet)
 
       actor ! Initialize(initialMarking, Set.empty)
       expectMsgClass(classOf[Initialized[_]])
@@ -128,7 +137,7 @@ class PetriNetInstanceSpec extends AkkaTestBase {
 
       val id = UUID.randomUUID()
 
-      val actor = createPetriNetActor[Set[Int]](petriNet)
+      val actor = createPetriNetActor(petriNet)
 
       actor ! Initialize(initialMarking, Set.empty)
       expectMsgClass(classOf[Initialized[_]])
@@ -153,7 +162,7 @@ class PetriNetInstanceSpec extends AkkaTestBase {
 
       val actorName = java.util.UUID.randomUUID().toString
 
-      val actor = createPetriNetActor[Set[Int]](petriNet, actorName)
+      val actor = createPetriNetActor(petriNet, actorName)
 
       actor ! Initialize(initialMarking, Set.empty)
       expectMsgClass(classOf[Initialized[_]])
@@ -178,7 +187,7 @@ class PetriNetInstanceSpec extends AkkaTestBase {
       Thread.sleep(100)
 
       // create a new actor with the same persistent identifier
-      val newActor = createPetriNetActor[Set[Int]](petriNet, actorName)
+      val newActor = createPetriNetActor(petriNet, actorName)
 
       newActor ! GetState
 
@@ -195,7 +204,7 @@ class PetriNetInstanceSpec extends AkkaTestBase {
 
       val actorName = java.util.UUID.randomUUID().toString
 
-      val actor = createPetriNetActor[Set[Int]](petriNet, actorName)
+      val actor = createPetriNetActor(petriNet, actorName)
 
       actor ! Initialize(initialMarking, Set.empty)
       expectMsgClass(classOf[Initialized[_]])
@@ -210,7 +219,7 @@ class PetriNetInstanceSpec extends AkkaTestBase {
       expectMsgClass(classOf[Terminated])
 
       // create a new actor with the same persistent identifier
-      val newActor = createPetriNetActor[Set[Int]](petriNet, actorName)
+      val newActor = createPetriNetActor(petriNet, actorName)
 
       // TODO assert t2 is not fired again using mocks
 
@@ -232,7 +241,7 @@ class PetriNetInstanceSpec extends AkkaTestBase {
         Seq(transition(automated = false)(_ => Added(1)), transition(automated = false)(_ => Added(2)))
 
       val actor = system.actorOf(
-        props = PetriNetInstance.props(petriNet, customSettings),
+        props = PetriNetInstance.props[Set[Int], SequenceNetTransition[Set[Int], Event]](petriNet, customSettings),
         name = java.util.UUID.randomUUID().toString
       )
 

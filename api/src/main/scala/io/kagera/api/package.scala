@@ -1,5 +1,6 @@
 package io.kagera
 
+import io.kagera.api.colored.{ Place, Transition }
 import io.kagera.api.multiset.MultiSet
 
 import scala.PartialFunction._
@@ -13,7 +14,11 @@ package object api {
   case class Id(value: Long) extends AnyVal
   case class Label(value: String) extends AnyVal
 
-  type Identifiable[T] = T => Id
+  trait Identifiable[T] {
+    def identify(t: T): Id
+  }
+  implicit def identifiableTransition[T <: Transition[_, _, _]]: Identifiable[T] = t => Id(t.id)
+  implicit def identifiablePlace[P <: Place[_]]: Identifiable[P] = p => Id(p.id)
   type Labeled[T] = T => Label
 
   implicit class LabeledFn[T : Labeled](seq: Iterable[T]) {
@@ -24,7 +29,7 @@ package object api {
   }
 
   implicit class IdFn[T : Identifiable](seq: Iterable[T]) {
-    def findById(id: Long): Option[T] = seq.find(e => implicitly[Identifiable[T]].apply(e).value == id)
+    def findById(id: Long): Option[T] = seq.find(e => implicitly[Identifiable[T]].identify(e).value == id)
     def getById(id: Long): T = findById(id).getOrElse {
       throw new IllegalStateException(s"No element found with id: $id")
     }

@@ -42,19 +42,26 @@ class QueuePushingActor[E](queue: SourceQueueWithComplete[E], takeWhile: Any => 
 
 object PetriNetInstanceApi {
 
-  def hasAutomaticTransitions[S](topology: ExecutablePetriNet[S]): InstanceState[S] => Boolean = state => {
+  def hasAutomaticTransitions[S, T <: Transition[_, _, S]](
+    topology: ExecutablePetriNet[S, T]
+  ): InstanceState[S] => Boolean = state => {
     state.marking.keySet
       .map(p => topology.outgoingTransitions(p))
-      .foldLeft(Set.empty[Transition[_, _, _]]) { case (result, transitions) =>
+      .foldLeft(Set.empty[T]) { case (result, transitions) =>
         result ++ transitions
       }
       .exists(isEnabledInState(topology, state))
   }
 
-  def isEnabledInState[S](topology: ExecutablePetriNet[S], state: InstanceState[S])(t: Transition[_, _, _]): Boolean =
+  def isEnabledInState[S, T <: Transition[_, _, S]](topology: ExecutablePetriNet[S, T], state: InstanceState[S])(
+    t: T
+  ): Boolean =
     t.isAutomated && !state.hasFailed(t.id) && topology.isEnabledInMarking(state.marking.multiplicities)(t)
 
-  def takeWhileNotFailed[S](topology: ExecutablePetriNet[S], waitForRetries: Boolean): Any => Boolean = e =>
+  def takeWhileNotFailed[S, T <: Transition[_, _, S]](
+    topology: ExecutablePetriNet[S, T],
+    waitForRetries: Boolean
+  ): Any => Boolean = e =>
     e match {
       case e: TransitionFired[S] => hasAutomaticTransitions(topology)(e.result)
       case TransitionFailed(_, _, _, _, RetryWithDelay(delay)) => waitForRetries
@@ -75,7 +82,7 @@ object PetriNetInstanceApi {
 /**
  * Contains some methods to interact with a petri net instance actor.
  */
-class PetriNetInstanceApi[S](topology: ExecutablePetriNet[S], actor: ActorRef)(implicit
+class PetriNetInstanceApi[S, T <: Transition[_, _, S]](topology: ExecutablePetriNet[S, T], actor: ActorRef)(implicit
   actorSystem: ActorSystem,
   materializer: Materializer
 ) {

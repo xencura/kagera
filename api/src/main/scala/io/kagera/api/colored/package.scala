@@ -1,22 +1,25 @@
 package io.kagera.api
 
+import cats.effect.IO
 import io.kagera.api.multiset._
-import scala.collection.compat._
-import scalax.collection.edge.WLDiEdge
 
-import scala.language.{ existentials, higherKinds }
+import scala.language.existentials
+import scala.collection.compat._
+import scala.language.higherKinds
+import scalax.collection.Graph
+import scalax.collection.edge.WLDiEdge
 
 package object colored {
 
   /**
    * Type alias for the node type of the scalax.collection.Graph backing the petri net.
    */
-  type Node = Either[Place[_], Transition[_, _, _]]
+  type Node[+T] = Either[Place[_], T]
 
   /**
    * Type alias for the edge type of the scalax.collection.Graph backing the petri net.
    */
-  type Arc = WLDiEdge[Node]
+  type Arc[+T] = WLDiEdge[Node[T]]
 
   /**
    * Type alias for a single marked place, meaning a place containing tokens.
@@ -36,7 +39,7 @@ package object colored {
    * @tparam State
    *   The state the transition closes over.
    */
-  type TransitionFunction[F[_], Input, Output, State] = (Marking, State, Input) => F[(Marking, Output)]
+  type TransitionFunctionF[F[_], Input, Output, State] = (Marking, State, Input) => F[(Marking, Output)]
 
   /**
    * An exception handler function associated with a transition.
@@ -46,7 +49,7 @@ package object colored {
   /**
    * Type alias for a colored petri net.
    */
-  type ColoredPetriNet = PetriNet[Place[_], Transition[_, _, _]]
+  type ColoredPetriNet[T] = PetriNet[Place[_], T]
 
   /**
    * Type alias for a marking.
@@ -102,7 +105,7 @@ package object colored {
    * @tparam S
    *   The 'global' state transitions close over
    */
-  type ExecutablePetriNet[S] = ColoredPetriNet with ColoredTokenGame
+  type ExecutablePetriNet[S, T] = ColoredPetriNet[T] with ColoredTokenGame[T]
 
   implicit def toMarkedPlace(tuple: (Place[Unit], Int)): MarkedPlace[Unit] = tuple._1 -> Map[Unit, Int](() -> tuple._2)
 
@@ -110,8 +113,8 @@ package object colored {
     def toMarking: Marking = HMap[Place, MultiSet](i.toMap[Place[_], MultiSet[_]])
   }
 
-  implicit class ColoredPetriNetAdditions(petriNet: ColoredPetriNet) {
-    def getEdge(p: Place[_], t: Transition[_, _, _]): Option[PTEdge[Any]] =
+  implicit class ColoredPetriNetAdditions[T](petriNet: ColoredPetriNet[T]) {
+    def getEdge(p: Place[_], t: T): Option[PTEdge[Any]] =
       petriNet.innerGraph.findPTEdge(p, t).map(_.label.asInstanceOf[PTEdge[Any]])
   }
 
