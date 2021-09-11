@@ -1,6 +1,6 @@
-package io.kagera.frontend.cytoscape
+package io.kagera.vis.cytoscape
 
-import io.kagera.frontend.cytoscape.NodeShape.Ellipse
+import io.kagera.vis.cytoscape.NodeShape.Ellipse
 
 object NodeStyle {
   val default = NodeStyle(20, 20, Ellipse, "grey")

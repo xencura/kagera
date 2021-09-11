@@ -1,4 +1,4 @@
-package io.kagera.frontend.cytoscape
+package io.kagera.vis.cytoscape
 
 import org.scalajs.dom.html
 
