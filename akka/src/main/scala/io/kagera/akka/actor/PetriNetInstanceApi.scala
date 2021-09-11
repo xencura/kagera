@@ -54,12 +54,11 @@ object PetriNetInstanceApi {
   def isEnabledInState[S](topology: ExecutablePetriNet[S], state: InstanceState[S])(t: Transition[_, _, _]): Boolean =
     t.isAutomated && !state.hasFailed(t.id) && topology.isEnabledInMarking(state.marking.multiplicities)(t)
 
-  def takeWhileNotFailed[S](topology: ExecutablePetriNet[S], waitForRetries: Boolean): Any => Boolean = e =>
-    e match {
-      case e: TransitionFired[S] => hasAutomaticTransitions(topology)(e.result)
-      case TransitionFailed(_, _, _, _, RetryWithDelay(delay)) => waitForRetries
-      case msg @ _ => false
-    }
+  def takeWhileNotFailed[S](topology: ExecutablePetriNet[S], waitForRetries: Boolean): Any => Boolean = {
+    case e: TransitionFired[S] => hasAutomaticTransitions(topology)(e.result)
+    case TransitionFailed(_, _, _, _, RetryWithDelay(_)) => waitForRetries
+    case _ => false
+  }
 
   def askSource[E](actor: ActorRef, msg: Any, takeWhile: Any => Boolean)(implicit
     actorSystem: ActorSystem
@@ -143,6 +142,6 @@ class PetriNetInstanceApi[S](topology: ExecutablePetriNet[S], actor: ActorRef)(i
         case msg @ _ => Left(s"Received unexpected message: $msg")
       }
       .takeWhile(_.isRight)
-      .map(_.right.get)
+      .collect { case Right(r) => r }
   }
 }

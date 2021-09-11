@@ -1,10 +1,9 @@
 package io.kagera.api
 
 import io.kagera.api.multiset._
-import scala.collection.compat._
 import scalax.collection.edge.WLDiEdge
 
-import scala.language.{ existentials, higherKinds }
+import scala.language.existentials
 
 package object colored {
 

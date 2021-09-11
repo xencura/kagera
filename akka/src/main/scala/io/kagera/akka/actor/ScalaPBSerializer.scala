@@ -6,7 +6,7 @@ import java.nio.charset.Charset
 
 import akka.actor.ExtendedActorSystem
 import akka.serialization.SerializerWithStringManifest
-import scalapb.{ GeneratedMessage, GeneratedMessageCompanion, Message }
+import scalapb.{ GeneratedMessage, GeneratedMessageCompanion }
 import io.kagera.akka.actor.ScalaPBSerializer._
 import io.kagera.persistence.messages._
 
@@ -15,7 +15,7 @@ object ScalaPBSerializer {
 
   private lazy val universeMirror = ru.runtimeMirror(getClass.getClassLoader)
 
-  def scalaPBType[T <: GeneratedMessage with Message[T]](implicit tt: ru.TypeTag[T]) = {
+  def scalaPBType[T <: GeneratedMessage](implicit tt: ru.TypeTag[T]): (Class[T], GeneratedMessageCompanion[T]) = {
     val messageType = universeMirror.runtimeClass(ru.typeOf[T].typeSymbol.asClass).asInstanceOf[Class[T]]
     val companionType = universeMirror
       .reflectModule(ru.typeOf[T].typeSymbol.companion.asModule)
@@ -38,7 +38,7 @@ class ScalaPBSerializer(system: ExtendedActorSystem) extends SerializerWithStrin
 
   private val class2ManifestMap: Map[Class[_ <: AnyRef], String] = manifests.map { case (key, value) =>
     value._1 -> key
-  }.toMap
+  }
 
   override def identifier: Int = ScalaPBSerializer.Identifier
 

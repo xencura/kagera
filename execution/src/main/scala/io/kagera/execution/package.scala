@@ -5,11 +5,10 @@ import java.io.{ PrintWriter, StringWriter }
 import cats.data.State
 import cats.effect.IO
 import execution.EventSourcing.TransitionEvent
-import io.kagera.api._
 import io.kagera.api.colored._
 import execution.EventSourcing._
 
-import scala.collection.Set
+import scala.collection.immutable.Set
 import scala.concurrent.ExecutionContext
 
 package object execution {
@@ -54,8 +53,8 @@ package object execution {
    */
   def fireFirstEnabled[S]: State[Instance[S], Option[Job[S, _]]] = State { instance =>
     instance.enabledParameters
-      .find { case (t, markings) =>
-        t.isAutomated && !instance.isBlockedReason(t.id).isDefined
+      .find { case (t, _) =>
+        t.isAutomated && instance.isBlockedReason(t.id).isEmpty
       }
       .map { case (t, markings) =>
         val job =
@@ -106,7 +105,7 @@ package object execution {
           Some(out)
         )
       }
-      .handleErrorWith { case e: Throwable =>
+      .handleErrorWith { e: Throwable =>
         val sw = new StringWriter()
         e.printStackTrace(new PrintWriter(sw))
         val stackTraceString = sw.toString

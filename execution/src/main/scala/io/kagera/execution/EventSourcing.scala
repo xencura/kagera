@@ -4,7 +4,7 @@ import cats.data.State
 import io.kagera.api._
 import io.kagera.api.colored._
 
-import scala.collection.Map
+import scala.collection.immutable.Map
 
 object EventSourcing {
 
