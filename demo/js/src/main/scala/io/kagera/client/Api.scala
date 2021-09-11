@@ -1,4 +1,4 @@
-package io.kagera.frontend
+package io.kagera.client
 
 import io.kagera.demo.model.{ PetriNetModel, ProcessState }
 import org.scalajs.dom.ext.Ajax

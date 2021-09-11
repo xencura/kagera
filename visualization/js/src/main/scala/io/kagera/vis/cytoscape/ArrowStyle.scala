@@ -1,6 +1,6 @@
-package io.kagera.frontend.cytoscape
+package io.kagera.vis.cytoscape
 
-import io.kagera.frontend.cytoscape.ArrowShape.NoArrow
+import io.kagera.vis.cytoscape.ArrowShape.NoArrow
 
 object ArrowStyle {
   val default = ArrowStyle()

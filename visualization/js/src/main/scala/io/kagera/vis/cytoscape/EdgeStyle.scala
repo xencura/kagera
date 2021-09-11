@@ -1,4 +1,4 @@
-package io.kagera.frontend.cytoscape
+package io.kagera.vis.cytoscape
 
 object EdgeStyle {
   val default = EdgeStyle()

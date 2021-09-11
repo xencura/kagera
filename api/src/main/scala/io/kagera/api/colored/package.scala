@@ -1,5 +1,6 @@
 package io.kagera.api
 
+import io.kagera.api.colored.dsl.{ PlaceDSL, TransitionDSL }
 import io.kagera.api.multiset._
 import scalax.collection.edge.WLDiEdge
 
@@ -112,6 +113,9 @@ package object colored {
   implicit class ColoredPetriNetAdditions(petriNet: ColoredPetriNet) {
     def getEdge(p: Place[_], t: Transition[_, _, _]): Option[PTEdge[Any]] =
       petriNet.innerGraph.findPTEdge(p, t).map(_.label.asInstanceOf[PTEdge[Any]])
+
+    def edges: Set[Arc] = petriNet.places.flatMap(p => petriNet.incomingTransitions(p).map(t => t ~> p)) ++
+      petriNet.transitions.flatMap(t => petriNet.incomingPlaces(t).map(p => p ~> t))
   }
 
   implicit def toMarking(map: Map[Place[_], MultiSet[_]]): Marking = HMap[Place, MultiSet](map)

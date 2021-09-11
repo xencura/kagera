@@ -32,7 +32,7 @@ class AggregateMarking[S](topology: ExecutablePetriNet[S]) extends Actor {
 
   def updateMarking(aggregateMarking: MultiSet[Long]): Receive = {
 
-    case TransitionFired(_, _, Some(tid), Some(started), Some(completed), consumed, produced, data) =>
+    case TransitionFired(_, _, Some(tid), Some(started), Some(completed), consumed, produced, data, _) =>
       val minusConsumed = consumed.foldLeft(aggregateMarking) { case (aggregate, token) =>
         aggregate.multisetDecrement(token.placeId.get, token.count.get)
       }
