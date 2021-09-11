@@ -7,7 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        scala: ["2.13.3", "2.12.14"]
+        scala: ["2.13.6"]
 
     runs-on: ubuntu-latest
 
