@@ -1,5 +1,6 @@
 package io.kagera.akka.actor
 
+import akka.actor.ActorSystem
 import akka.persistence.{ PersistentActor, RecoveryCompleted }
 import io.kagera.api.colored.ExecutablePetriNet
 import io.kagera.execution.EventSourcing._
@@ -12,21 +13,21 @@ trait PetriNetInstanceRecovery[S] {
 
   def topology: ExecutablePetriNet[S]
 
-  implicit val system = context.system
+  implicit val system: ActorSystem = context.system
   val serializer = new Serialization(new AkkaObjectSerializer(context.system))
 
-  def onRecoveryCompleted(state: Instance[S])
+  def onRecoveryCompleted(state: Instance[S]): Unit
 
   def applyEvent(i: Instance[S])(e: Event): Instance[S] = EventSourcing.applyEvent(e).runS(i).value
 
   def persistEvent[T, E <: Event](instance: Instance[S], e: E)(fn: E => T): Unit = {
     val serializedEvent = serializer.serializeEvent(e)(instance)
-    persist(serializedEvent) { persisted => fn.apply(e) }
+    persist(serializedEvent) { _ => fn.apply(e) }
   }
 
   private var recoveringState: Instance[S] = Instance.uninitialized[S](topology)
 
-  private def applyToRecoveringState(e: AnyRef) = {
+  private def applyToRecoveringState(e: AnyRef): Unit = {
     val deserializedEvent = serializer.deserializeEvent(e)(recoveringState)
     recoveringState = applyEvent(recoveringState)(deserializedEvent)
   }

@@ -16,7 +16,7 @@ object TokenGame {
 
     params.nonEmpty.option {
       val n = Random.nextInt(Math.min(10, params.size))
-      val (t, enabledMarkings) = Stream.continually(params.toStream).flatten.apply(n)
+      val (t, enabledMarkings) = LazyList.continually(params.to(LazyList)).flatten.apply(n)
       (enabledMarkings.head, t)
     }
   }

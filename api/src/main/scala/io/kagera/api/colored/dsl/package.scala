@@ -32,18 +32,23 @@ package object dsl {
   }
 
   def arc(t: Transition[_, _, _], p: Place[_], weight: Long): Arc =
-    WLDiEdge[Node, String](Right(t), Left(p))(weight, "")
+    WLDiEdge[Node, String](Right(t), Left(p))(weight.toDouble, "")
 
   def arc[C](p: Place[C], t: Transition[_, _, _], weight: Long, filter: C => Boolean = (token: C) => true): Arc = {
     val innerEdge = new PTEdgeImpl[C](weight, filter)
-    WLDiEdge[Node, PTEdge[C]](Left(p), Right(t))(weight, innerEdge)
+    WLDiEdge[Node, PTEdge[C]](Left(p), Right(t))(weight.toDouble, innerEdge)
   }
 
-  def constantTransition[I, O, S](id: Long, label: Option[String] = None, automated: Boolean = false, constant: O) =
+  def constantTransition[I, O, S](
+    id: Long,
+    label: Option[String] = None,
+    automated: Boolean = false,
+    constant: O
+  ): Transition[I, O, S] =
     new AbstractTransition[I, O, S](id, label.getOrElse(s"t$id"), automated, Duration.Undefined)
       with IdentityTransition[I, O, S] {
 
-      override val toString = label
+      override val toString: String = label
 
       override def apply[F[_]](inAdjacent: MultiSet[Place[_]], outAdjacent: MultiSet[Place[_]])(implicit
         sync: Sync[F],

@@ -13,7 +13,7 @@ trait StateTransitionNet[S, E] {
   def eventSourcing: S => E => S
 
   def transition(
-    id: Long = Math.abs(Random.nextLong),
+    id: Long = Math.abs(Random.nextLong()),
     label: Option[String] = None,
     automated: Boolean = false,
     exceptionStrategy: TransitionExceptionHandler = (e, n) => BlockTransition
