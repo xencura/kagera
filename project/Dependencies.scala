@@ -9,7 +9,7 @@ object Dependencies {
   val sprayVersion = "1.3.2"
   val scalazVersion = "7.1.3"
   val zioVersion = "1.0.11"
-  val zioActorsVersion = "0.0.7+25-34551a32-SNAPSHOT"
+  val zioActorsVersion = "0.0.7+41-7038679d-SNAPSHOT"
   val cytoscapeVersion = "3.2.5"
 
   val collectionCompat = "org.scala-lang.modules" %% "scala-collection-compat" % "2.5.0"
