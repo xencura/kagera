@@ -58,7 +58,7 @@ lazy val visualization = crossProject(JSPlatform, JVMPlatform)
     name := "kagera-visualization",
     libraryDependencies ++= Seq(
       scalaGraph.value,
-      "com.lihaoyi" %%% "scalatags" % "0.9.1",
+      "com.lihaoyi" %%% "scalatags" % "0.9.4",
       "com.lihaoyi" %%% "upickle" % "1.1.0"
     )
   )
