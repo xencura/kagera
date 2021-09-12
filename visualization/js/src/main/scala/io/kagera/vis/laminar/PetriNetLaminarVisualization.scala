@@ -3,15 +3,13 @@ package io.kagera.vis.laminar
 import cats._
 import cats.effect.Sync
 import cats.effect.kernel.{ CancelScope, Poll }
-import com.raquo.airstream.signal.Var
 import com.raquo.laminar.api.L.svg._
-import com.raquo.laminar.api.L.{ child, children, EventBus, Signal }
+import com.raquo.laminar.api.L.{ child, children, EventBus, Signal, Var }
 import com.raquo.laminar.api._
 import com.raquo.laminar.nodes.ReactiveSvgElement
 import d3v4.{ d3, SimulationLinkImpl, SimulationNode, SimulationNodeImpl }
 import io.kagera.api.colored
 import io.kagera.api.colored.{ Arc, ExecutablePetriNet, Marking, Node, Place, Transition }
-import org.scalajs.dom
 import org.scalajs.dom.raw.Element
 import org.scalajs.dom.svg.G
 
@@ -85,7 +83,7 @@ class PetriNetLaminarVisualization(
 
     override def onCancel[A](fa: Id[A], fin: Id[Unit]): Id[A] = fa
   }
-  val instances =
+  val marking: Signal[Marking] =
     transitionsFiredBus.events.combineWith(petriNet.changes).foldLeft(initialMarking) { case (mrk, (trns, petriNet)) =>
       println(s"Trying to fire $trns in $mrk")
       val transitionFunction = trns
@@ -95,7 +93,6 @@ class PetriNetLaminarVisualization(
         .apply(mrk, ().asInstanceOf[Any], "YO".asInstanceOf[Any])
       res
     }
-  val marking = instances //.map(_.marking)
 
   val transitionWidth = 50
   val transitionHeight = transitionWidth * 2
@@ -118,7 +115,7 @@ class PetriNetLaminarVisualization(
   ): ReactiveSvgElement[G] = {
     val isFireable =
       marking.signal.combineWith(positionedTransition).combineWith(petriNet).map {
-        case ((marking, Positioned(transition, _)), petriNet) =>
+        case (marking: Marking, Positioned(transition, _), petriNet) =>
           petriNet.isEnabled(marking)(transition)
       }
     g(
@@ -223,12 +220,12 @@ class PetriNetLaminarVisualization(
   class PetriNetSimulationLink(val source: PetriNetSimulationNode, val target: PetriNetSimulationNode)
       extends SimulationLinkImpl[PetriNetSimulationNode, PetriNetSimulationNode]
   def render(): Unit = {
-    val layout = petriNet.combineWith(positionedPlaces.combineWith(positionedTransitions)).map {
-      case (pn, (places, transitions)) =>
+    val layout =
+      petriNet.combineWith(positionedPlaces.combineWith(positionedTransitions)).map { case (pn, places, transitions) =>
         println(s"Place coordinates: ${places.map(_.coordinates.now())}")
         val layoutNodeMap =
           (places.asInstanceOf[Iterable[Positioned[_]]] ++ transitions
-            .asInstanceOf[Iterable[Positioned[_]]]).map { case (n) =>
+            .asInstanceOf[Iterable[Positioned[_]]]).map { n =>
             n -> new PetriNetSimulationNode
           }.toMap
         def findNode(n: colored.Node): PetriNetSimulationNode = n match {
@@ -251,7 +248,7 @@ class PetriNetLaminarVisualization(
               }
             }
           )
-    }
+      }
     val graph = svg(
       defs(
         // Build the arrow en marker. Note that arrows are drawn like that: ``-->-``. Hence we should draw
