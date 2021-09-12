@@ -1,6 +1,6 @@
 package io.kagera.client
 
-import com.raquo.airstream.signal.Signal
+import com.raquo.laminar.api.L.Signal
 import io.kagera.api.colored.Place
 import io.kagera.api.colored.dsl._
 import io.kagera.vis.laminar.PetriNetLaminarVisualization

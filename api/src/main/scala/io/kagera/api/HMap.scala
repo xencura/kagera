@@ -1,7 +1,5 @@
 package io.kagera.api
 
-import scala.language.higherKinds
-
 /**
  * Simple Heterogeneous map implementation.
  *
