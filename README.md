@@ -1,6 +1,7 @@
 # Kagera: A discrete, colored Petri Net DSL and executor.
 [![Build Status](https://github.com/xencura/kagera/workflows/Scala%20CI/badge.svg)](https://github.com/xencura/kagera/actions)
-[![Sonatype Nexus](https://img.shields.io/nexus/s/io.github.xencura/kagera_2.13.svg?server=https%3A%2F%2Fs01.oss.sonatype.org)](https://s01.oss.sonatype.org/content/repositories/public/io/github/xencura/kagera_2.13/)
+[![Sonatype Nexus Stable](https://img.shields.io/nexus/r/io.github.xencura/kagera_2.13.svg?server=https%3A%2F%2Fs01.oss.sonatype.org)](https://s01.oss.sonatype.org/content/repositories/public/io/github/xencura/kagera_2.13/)
+[![Sonatype Nexus Snapshot](https://img.shields.io/nexus/s/io.github.xencura/kagera_2.13.svg?server=https%3A%2F%2Fs01.oss.sonatype.org)](https://s01.oss.sonatype.org/content/repositories/public/io/github/xencura/kagera_2.13/)
 
 The credits for this library go to [@merlijn](https://github.com/merlijn). I've merely forked the library back in the day when we started [Baker](https://github.com/ing-bank/baker) together. It now seems that Merlijn removed it from his own GitHub account.
 
