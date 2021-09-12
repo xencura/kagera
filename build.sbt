@@ -76,6 +76,11 @@ lazy val akka = project
         akkaStream,
         akkaQuery,
         scalaGraph,
+        akkaCoordination,
+        akkaRemote,
+        akkaCluster,
+        akkaClusterTools,
+        akkaPki,
         akkaInmemoryJournal % "test",
         akkaTestkit % "test",
         scalatest % "test"
