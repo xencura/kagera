@@ -52,5 +52,5 @@ object Dependencies {
   val zioActorsPersistence = "dev.zio" %% "zio-actors-persistence" % zioActorsVersion
   val logback = "ch.qos.logback" % "logback-classic" % "1.2.5"
   val ficus = "net.ceedubs" %% "ficus" % "1.1.2"
-  val scalatest = "org.scalatest" %% "scalatest" % "3.2.9"
+  val scalatest = "org.scalatest" %% "scalatest" % "3.2.10"
 }
