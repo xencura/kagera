@@ -26,7 +26,7 @@ object Dependencies {
   val akkaCluster = "com.typesafe.akka" %% "akka-cluster" % akkaVersion
   val akkaClusterTools = "com.typesafe.akka" %% "akka-cluster-tools" % akkaVersion
   val akkaPki = "com.typesafe.akka" %% "akka-pki" % akkaVersion
-  val upickle = Def.setting("com.lihaoyi" %%% "upickle" % "1.4.1")
+  val upickle = Def.setting("com.lihaoyi" %%% "upickle" % "1.4.2")
   val akkaInmemoryJournal = "com.github.dnvriend" %% "akka-persistence-inmemory" % "2.5.15.2"
 
   val scalazCore = "org.scalaz" %% "scalaz-core" % "7.3.5"
@@ -38,7 +38,7 @@ object Dependencies {
   val scalaJsDom = Def.setting("org.scala-js" %%% "scalajs-dom" % "1.2.0")
   val laminar = Def.setting("com.raquo" %%% "laminar" % "0.13.1")
   val d3 = Def.setting("com.github.xencura.scala-js-d3v4" %%% "scala-js-d3v4" % "766d13e0c1")
-  val scalaTags = Def.setting("com.lihaoyi" %%% "upickle" % "1.4.1")
+  val scalaTags = Def.setting("com.lihaoyi" %%% "upickle" % "1.4.2")
 
   val fs2Core = Def.setting("co.fs2" %%% "fs2-core" % "3.1.3")
   val catsCore = Def.setting("org.typelevel" %%% "cats-core" % "2.6.1")
