@@ -40,7 +40,7 @@ object Dependencies {
   val d3 = Def.setting("com.github.xencura.scala-js-d3v4" %%% "scala-js-d3v4" % "766d13e0c1")
   val scalaTags = Def.setting("com.lihaoyi" %%% "upickle" % "1.4.2")
 
-  val fs2Core = Def.setting("co.fs2" %%% "fs2-core" % "3.1.3")
+  val fs2Core = Def.setting("co.fs2" %%% "fs2-core" % "3.1.4")
   val catsCore = Def.setting("org.typelevel" %%% "cats-core" % "2.6.1")
   val catsEffect = Def.setting("org.typelevel" %%% "cats-effect" % "3.2.9")
 
