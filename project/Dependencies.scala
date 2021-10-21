@@ -35,7 +35,7 @@ object Dependencies {
 
   val scalaGraph = Def.setting("org.scala-graph" %%% "graph-core" % "1.13.2")
   val scalaGraphDot = "org.scala-graph" %% "graph-dot" % "1.13.0"
-  val scalaJsDom = Def.setting("org.scala-js" %%% "scalajs-dom" % "1.2.0")
+  val scalaJsDom = Def.setting("org.scala-js" %%% "scalajs-dom" % "2.0.0")
   val laminar = Def.setting("com.raquo" %%% "laminar" % "0.13.1")
   val d3 = Def.setting("com.github.xencura.scala-js-d3v4" %%% "scala-js-d3v4" % "766d13e0c1")
   val scalaTags = Def.setting("com.lihaoyi" %%% "upickle" % "1.4.2")
