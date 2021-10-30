@@ -105,7 +105,7 @@ class PetriNetInstance[S](
                     updateAndRespond(applyEvent(instance)(e))
                    */
                   case _ =>
-                    //persistEvent(instance, e)((applyEvent(instance) _).andThen(updateAndRespond _))
+                    // persistEvent(instance, e)((applyEvent(instance) _).andThen(updateAndRespond _))
                     (
                       Command.persist(e),
                       _ =>

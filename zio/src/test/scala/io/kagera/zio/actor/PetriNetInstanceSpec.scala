@@ -228,7 +228,7 @@ object PetriNetInstanceSpec extends DefaultRunnableSpec {
           )
         }
 
-        //_ <- expectMsgPF(res1) { case TransitionFired(1, _, _, result) if result.marking == Marking(place(2) -> 1) => }
+        // _ <- expectMsgPF(res1) { case TransitionFired(1, _, _, result) if result.marking == Marking(place(2) -> 1) => }
         // TODO: We're expecting another TransitionFired here! _ <- expectMsgPF(res1) { case TransitionFired(2, _, _, result) if result.marking == Marking(place(3) -> 1) => }
       } @@ timeout(10.seconds) @@ ignore
       /*
