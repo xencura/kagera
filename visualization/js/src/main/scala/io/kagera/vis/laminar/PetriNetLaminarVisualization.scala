@@ -24,7 +24,7 @@ object PetriNetLaminarVisualization {
     element: Element,
     petriNetModel: Signal[ExecutablePetriNet[Any]],
     marking: Marking = Marking.empty,
-    //tokenRenderer: SelectionRenderer[NodeUI[Any]] = defaultTokenRenderer,
+    // tokenRenderer: SelectionRenderer[NodeUI[Any]] = defaultTokenRenderer,
     attachments: Seq[Attachment] = Seq()
   ): PetriNetLaminarVisualization = {
     new PetriNetLaminarVisualization(element, petriNetModel, marking)
@@ -190,7 +190,7 @@ class PetriNetLaminarVisualization(
       x((-tokenSize / 2).toString),
       y((-tokenSize / 2).toString)
     ),
-    //circle(r((placeRadius * 0.7).toString), fill("rgb(0, 0, 0)"), stroke("rgb(0, 0, 0)"), strokeWidth("3px")),
+    // circle(r((placeRadius * 0.7).toString), fill("rgb(0, 0, 0)"), stroke("rgb(0, 0, 0)"), strokeWidth("3px")),
     text(textAnchor("left"), dx(placeRadius.toString), child.text <-- token)
   )
   def tokens = g(
