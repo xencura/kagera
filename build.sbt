@@ -36,7 +36,7 @@ lazy val basicSettings =
 lazy val defaultProjectSettings = basicSettings
 
 lazy val api = crossProject(JSPlatform, JVMPlatform)
-  //.withoutSuffixFor(JVMPlatform)
+  // .withoutSuffixFor(JVMPlatform)
   .crossType(CrossType.Pure)
   .in(file("api"))
   .settings(defaultProjectSettings: _*)
