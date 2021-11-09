@@ -16,19 +16,17 @@ inThisBuild(
 val commonScalacOptions = Seq(
   "-encoding",
   "utf8",
-  "-target:jvm-1.8",
   "-feature",
   "-language:implicitConversions",
   "-language:postfixOps",
   "-language:higherKinds",
   "-unchecked",
-  "-deprecation",
-  "-Xlog-reflective-calls"
+  "-deprecation"
 )
 
 lazy val basicSettings =
   Seq(
-    crossScalaVersions := Seq("2.13.7"),
+    crossScalaVersions := Seq("3.1.0", "2.13.7"),
     scalaVersion := crossScalaVersions.value.head,
     scalacOptions := commonScalacOptions
   )
@@ -44,7 +42,7 @@ lazy val api = crossProject(JSPlatform, JVMPlatform)
     name := "kagera-api",
     libraryDependencies ++= Seq(
       collectionCompat,
-      scalaGraph.value,
+      scalaGraph.value.cross(CrossVersion.for3Use2_13),
       catsEffect.value,
       catsCore.value,
       fs2Core.value,
@@ -79,7 +77,7 @@ lazy val visualization = crossProject(JSPlatform, JVMPlatform)
         commonJSName "cytoscape"
     )
   )
-  .jvmSettings(libraryDependencies ++= Seq(scalaGraphDot))
+  .jvmSettings(libraryDependencies ++= Seq(scalaGraphDot.cross(CrossVersion.for3Use2_13)))
 
 lazy val execution = project
   .in(file("execution"))
@@ -94,6 +92,12 @@ lazy val execution = project
       )
     )
   )
+
+lazy val scalaReflect = Def.setting(if (scalaVersion.value >= "3.0.0") {
+  Seq[ModuleID]()
+} else {
+  Seq("org.scala-lang" % "scala-reflect" % scalaVersion.value)
+})
 
 lazy val akka = project
   .in(file("akka"))
@@ -117,7 +121,7 @@ lazy val akka = project
         akkaInmemoryJournal % "test",
         akkaTestkit % "test",
         scalatest % "test"
-      ),
+      ) ++ scalaReflect.value,
       PB.protocVersion := "3.17.3",
       Compile / PB.targets := Seq(scalapb.gen() -> (Compile / sourceManaged).value)
     )
@@ -157,7 +161,12 @@ lazy val demo = (crossProject(JSPlatform, JVMPlatform) in file("demo"))
     libraryDependencies ++= Seq(scalaJsDom.value)
   )
   .jvmSettings(
-    libraryDependencies ++= Seq(akkaHttpUpickle, akkaHttp, akkaQuery, akkaPersistenceCassandra),
+    libraryDependencies ++= Seq(
+      akkaHttpUpickle.cross(CrossVersion.for3Use2_13),
+      akkaHttp.cross(CrossVersion.for3Use2_13),
+      akkaQuery.cross(CrossVersion.for3Use2_13),
+      akkaPersistenceCassandra.cross(CrossVersion.for3Use2_13)
+    ),
     name := "demo-app",
     mainClass := Some("io.kagera.demo.Main")
   )

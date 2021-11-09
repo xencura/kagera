@@ -20,7 +20,7 @@ trait StateTransitionNet[S, E] {
   )(fn: S => E): Transition[Unit, E, S] =
     new AbstractTransition[Unit, E, S](id, label.getOrElse(s"t$id"), automated, Duration.Undefined, exceptionStrategy)
       with UncoloredTransition[Unit, E, S] {
-      override val toString = label
+      override val toString = super.label
       override val updateState = eventSourcing
       override def produceEvent[F[_]](consume: Marking, state: S, input: Unit)(implicit sync: Sync[F]): F[E] =
         Sync.apply.delay { (fn(state)) }
