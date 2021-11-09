@@ -64,11 +64,7 @@ lazy val visualization = crossProject(JSPlatform, JVMPlatform)
   .settings(defaultProjectSettings: _*)
   .settings(
     name := "kagera-visualization",
-    libraryDependencies ++= Seq(
-      scalaGraph.value,
-      "com.lihaoyi" %%% "scalatags" % "0.9.4",
-      "com.lihaoyi" %%% "upickle" % "1.1.0"
-    )
+    libraryDependencies ++= Seq(scalaGraph.value, scalaTags.value, upickle.value)
   )
   .jsConfigure(_.enablePlugins(JSDependenciesPlugin, ScalaJSBundlerPlugin))
   .jsSettings(
