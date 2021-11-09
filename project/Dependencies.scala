@@ -12,7 +12,7 @@ object Dependencies {
   val zioActorsVersion = "0.0.9"
   val cytoscapeVersion = "3.2.5"
 
-  val collectionCompat = "org.scala-lang.modules" %% "scala-collection-compat" % "2.5.0"
+  val collectionCompat = "org.scala-lang.modules" %% "scala-collection-compat" % "2.6.0"
   val akkaActor = "com.typesafe.akka" %% "akka-actor" % akkaVersion
   val akkaPersistence = "com.typesafe.akka" %% "akka-persistence" % akkaVersion
   val akkaTestkit = "com.typesafe.akka" %% "akka-testkit" % akkaVersion
