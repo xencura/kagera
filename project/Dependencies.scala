@@ -38,7 +38,7 @@ object Dependencies {
   val scalaJsDom = Def.setting("org.scala-js" %%% "scalajs-dom" % "2.0.0")
   val laminar = Def.setting("com.raquo" %%% "laminar" % "0.14.2")
   val d3 = Def.setting("com.github.xencura.scala-js-d3v4" %%% "scala-js-d3v4" % "be1e1c8")
-  val scalaTags = Def.setting("com.lihaoyi" %%% "scalatags" % "0.10.0")
+  val scalaTags = Def.setting("com.lihaoyi" %%% "scalatags" % "0.11.0")
 
   val fs2Core = Def.setting("co.fs2" %%% "fs2-core" % "3.2.2")
   val catsCore = Def.setting("org.typelevel" %%% "cats-core" % "2.7.0")
