@@ -20,7 +20,7 @@ object Dependencies {
   val akkaStream = "com.typesafe.akka" %% "akka-stream" % akkaVersion
   val akkaQuery = "com.typesafe.akka" %% "akka-persistence-query" % akkaVersion
   val akkaHttp = "com.typesafe.akka" %% "akka-http" % akkaHttpVersion
-  val akkaHttpUpickle = "de.heikoseeberger" %% "akka-http-upickle" % "1.38.2"
+  val akkaHttpUpickle = "de.heikoseeberger" %% "akka-http-upickle" % "1.39.2"
   val akkaCoordination = "com.typesafe.akka" %% "akka-coordination" % akkaVersion
   val akkaRemote = "com.typesafe.akka" %% "akka-remote" % akkaVersion
   val akkaCluster = "com.typesafe.akka" %% "akka-cluster" % akkaVersion
