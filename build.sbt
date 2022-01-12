@@ -28,7 +28,7 @@ val commonScalacOptions = Seq(
 
 lazy val basicSettings =
   Seq(
-    crossScalaVersions := Seq("2.13.7"),
+    crossScalaVersions := Seq("2.13.8"),
     scalaVersion := crossScalaVersions.value.head,
     scalacOptions := commonScalacOptions
   )
