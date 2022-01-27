@@ -26,7 +26,7 @@ object Dependencies {
   val akkaCluster = "com.typesafe.akka" %% "akka-cluster" % akkaVersion
   val akkaClusterTools = "com.typesafe.akka" %% "akka-cluster-tools" % akkaVersion
   val akkaPki = "com.typesafe.akka" %% "akka-pki" % akkaVersion
-  val upickle = Def.setting("com.lihaoyi" %%% "upickle" % "1.4.4")
+  val upickle = Def.setting("com.lihaoyi" %%% "upickle" % "1.5.0")
   val akkaInmemoryJournal = "com.github.dnvriend" %% "akka-persistence-inmemory" % "2.5.15.2"
 
   val scalazCore = "org.scalaz" %% "scalaz-core" % "7.3.5"
