@@ -45,7 +45,7 @@ object Dependencies {
   val catsEffect = Def.setting("org.typelevel" %%% "cats-effect" % "3.3.5")
 
   val zioCore = "dev.zio" %% "zio" % zioVersion
-  val zioInteropCats = "dev.zio" %% "zio-interop-cats" % "3.2.9.0"
+  val zioInteropCats = "dev.zio" %% "zio-interop-cats" % "3.2.9.1"
   val zioTest = "dev.zio" %% "zio-test" % zioVersion
   val zioTestSbt = "dev.zio" %% "zio-test-sbt" % zioVersion
   val zioActors = "dev.zio" %% "zio-actors" % zioActorsVersion
