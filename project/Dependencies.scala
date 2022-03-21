@@ -4,7 +4,7 @@ import org.portablescala.sbtplatformdeps.PlatformDepsPlugin.autoImport._
 
 object Dependencies {
 
-  val akkaVersion = "2.6.18"
+  val akkaVersion = "2.6.19"
   val akkaHttpVersion = "10.2.9"
   val sprayVersion = "1.3.2"
   val scalazVersion = "7.1.3"
