@@ -123,18 +123,18 @@ lazy val akka = project
     )
   )
 
-lazy val zio = project
-  .in(file("zio"))
+lazy val zioActors = project
+  .in(file("zio-actors"))
   .dependsOn(api.jvm, execution)
   .settings(
     defaultProjectSettings ++ Seq(
-      name := "kagera-zio",
+      name := "kagera-zio-actors",
       resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
       libraryDependencies ++= Seq(
         "org.scala-lang" % "scala-reflect" % scalaVersion.value,
         zioCore,
         zioInteropCats,
-        zioActors,
+        Dependencies.zioActors,
         zioActorsPersistence,
         scalaGraph.value,
         zioTest % "test",
@@ -173,7 +173,7 @@ lazy val demoJvm = demo.jvm
   )
 
 lazy val root = Project("kagera", file("."))
-  .aggregate(api.jvm, akka, execution, visualization.jvm, visualization.js, demo.jvm, demo.js, zio)
+  .aggregate(api.jvm, akka, execution, visualization.jvm, visualization.js, demo.jvm, demo.js, zioActors)
   .enablePlugins(BuildInfoPlugin)
   .settings(defaultProjectSettings)
   .settings(
