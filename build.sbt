@@ -81,9 +81,11 @@ lazy val visualization = crossProject(JSPlatform, JVMPlatform)
   )
   .jvmSettings(libraryDependencies ++= Seq(scalaGraphDot))
 
-lazy val execution = project
+lazy val execution = crossProject(JSPlatform, JVMPlatform)
+  .withoutSuffixFor(JVMPlatform)
+  .crossType(CrossType.Pure)
   .in(file("execution"))
-  .dependsOn(api.jvm)
+  .dependsOn(api)
   .settings(
     defaultProjectSettings ++ Seq(
       name := "kagera-execution",
@@ -97,7 +99,7 @@ lazy val execution = project
 
 lazy val akka = project
   .in(file("akka"))
-  .dependsOn(api.jvm, execution)
+  .dependsOn(api.jvm, execution.jvm)
   .settings(
     defaultProjectSettings ++ Seq(
       name := "kagera-akka",
@@ -123,18 +125,18 @@ lazy val akka = project
     )
   )
 
-lazy val zio = project
-  .in(file("zio"))
-  .dependsOn(api.jvm, execution)
+lazy val zioActors = project
+  .in(file("zio-actors"))
+  .dependsOn(api.jvm, execution.jvm)
   .settings(
     defaultProjectSettings ++ Seq(
-      name := "kagera-zio",
+      name := "kagera-zio-actors",
       resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
       libraryDependencies ++= Seq(
         "org.scala-lang" % "scala-reflect" % scalaVersion.value,
         zioCore,
         zioInteropCats,
-        zioActors,
+        Dependencies.zioActors,
         zioActorsPersistence,
         scalaGraph.value,
         zioTest % "test",
@@ -173,7 +175,7 @@ lazy val demoJvm = demo.jvm
   )
 
 lazy val root = Project("kagera", file("."))
-  .aggregate(api.jvm, akka, execution, visualization.jvm, visualization.js, demo.jvm, demo.js, zio)
+  .aggregate(api.jvm, akka, execution.jvm, visualization.jvm, visualization.js, demo.jvm, demo.js, zioActors)
   .enablePlugins(BuildInfoPlugin)
   .settings(defaultProjectSettings)
   .settings(

@@ -17,7 +17,7 @@ import zio.test._
 import zio.test.environment.TestEnvironment
 
 object PetriNetInstanceSpec extends DefaultRunnableSpec {
-  val configFile = Some(new File("./zio/src/test/resources/application.conf"))
+  val configFile = Some(new File("./zio-actors/src/test/resources/application.conf"))
   def createPetriNetActor[S](
     actorSystem: ActorSystem,
     petriNet: ExecutablePetriNet[S],
