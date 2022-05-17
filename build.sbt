@@ -3,10 +3,13 @@ import Dependencies._
 inThisBuild(
   List(
     organization := "io.github.xencura",
+    organizationName := "Xencura GmbH",
     homepage := Some(url("https://github.com/xencura/kagera")),
-    licenses := List("MIT" -> url("https://opensource.org/licenses/MIT")),
-    sonatypeCredentialHost := "s01.oss.sonatype.org",
-    sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
+    licenses := List(License.MIT),
+    tlBaseVersion := "0.5",
+    crossScalaVersions := Seq("2.13.8"),
+    scalaVersion := crossScalaVersions.value.head,
+    tlSonatypeUseLegacyHost := false,
     developers := List(
       Developer("nightscape", "Martin Mauch", "martin.mauch@gmail.com", url("https://github.com/nightscape"))
     )
@@ -174,8 +177,8 @@ lazy val demoJvm = demo.jvm
     Compile / resources += (demoJs / Compile / packageJSDependencies).value
   )
 
-lazy val root = Project("kagera", file("."))
-  .aggregate(api.jvm, akka, execution.jvm, visualization.jvm, visualization.js, demo.jvm, demo.js, zioActors)
+lazy val root = tlCrossRootProject
+  .aggregate(api, akka, execution, visualization, visualization, demo, demo, zioActors)
   .enablePlugins(BuildInfoPlugin)
   .settings(defaultProjectSettings)
   .settings(
