@@ -1,8 +1,8 @@
-package io.kagera.api.colored
+package io.kagera.execution
 
 import cats.ApplicativeError
-import cats.effect.{ IO, Sync }
-import io.kagera.api._
+import cats.effect.Sync
+import io.kagera.api.colored.{ColoredPetriNet, Marking, Transition, TransitionFunction}
 
 trait TransitionExecutor[F[_], State] {
 
