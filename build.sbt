@@ -137,13 +137,35 @@ lazy val zioActors = project
       resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
       libraryDependencies ++= Seq(
         "org.scala-lang" % "scala-reflect" % scalaVersion.value,
-        zioCore,
+        Zio1.core.value,
         zioInteropCats,
         Dependencies.zioActors,
         zioActorsPersistence,
         scalaGraph.value,
-        zioTest % "test",
-        zioTestSbt % "test"
+        Zio1.test.value % "test",
+        Zio1.testSbt % "test"
+      ),
+      testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
+    )
+  )
+
+lazy val zioStreams = crossProject(JSPlatform, JVMPlatform)
+  .withoutSuffixFor(JVMPlatform)
+  .crossType(CrossType.Pure)
+  .in(file("zio-streams"))
+  .dependsOn(api, execution)
+  .settings(
+    defaultProjectSettings ++ Seq(
+      name := "kagera-zio-streams",
+      resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
+      libraryDependencies ++= Seq(
+        "org.scala-lang" % "scala-reflect" % scalaVersion.value,
+        Zio2.core.value,
+        Zio2.streams.value,
+        zioInteropCats,
+        scalaGraph.value,
+        Zio2.test.value % "test",
+        Zio2.testSbt % "test"
       ),
       testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
     )
