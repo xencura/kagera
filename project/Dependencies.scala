@@ -8,7 +8,7 @@ object Dependencies {
   val akkaHttpVersion = "10.2.9"
   val sprayVersion = "1.3.2"
   val scalazVersion = "7.1.3"
-  val zioVersion = "1.0.14"
+  val zioVersion = "1.0.15"
   val zioActorsVersion = "0.0.9"
   val cytoscapeVersion = "3.2.5"
 
@@ -41,7 +41,7 @@ object Dependencies {
   val scalaTags = Def.setting("com.lihaoyi" %%% "scalatags" % "0.11.1")
 
   val fs2Core = Def.setting("co.fs2" %%% "fs2-core" % "3.2.9")
-  val catsCore = Def.setting("org.typelevel" %%% "cats-core" % "2.7.0")
+  val catsCore = Def.setting("org.typelevel" %%% "cats-core" % "2.8.0")
   val catsEffect = Def.setting("org.typelevel" %%% "cats-effect" % "3.3.12")
 
   val zioCore = "dev.zio" %% "zio" % zioVersion
