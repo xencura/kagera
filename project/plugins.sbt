@@ -1,4 +1,4 @@
-addSbtPlugin("org.typelevel" % "sbt-typelevel" % "0.4.9")
+addSbtPlugin("org.typelevel" % "sbt-typelevel" % "0.4.12")
 
 addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "1.2.0")
 
