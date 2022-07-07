@@ -41,7 +41,7 @@ object Dependencies {
   val scalaTags = Def.setting("com.lihaoyi" %%% "scalatags" % "0.11.1")
 
   val fs2Core = Def.setting("co.fs2" %%% "fs2-core" % "3.2.7")
-  val catsCore = Def.setting("org.typelevel" %%% "cats-core" % "2.7.0")
+  val catsCore = Def.setting("org.typelevel" %%% "cats-core" % "2.8.0")
   val catsEffect = Def.setting("org.typelevel" %%% "cats-effect" % "3.3.12")
 
   val zioCore = "dev.zio" %% "zio" % zioVersion
