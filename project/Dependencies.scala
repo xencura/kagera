@@ -12,7 +12,7 @@ object Dependencies {
   val zioActorsVersion = "0.0.9"
   val cytoscapeVersion = "3.2.5"
 
-  val collectionCompat = "org.scala-lang.modules" %% "scala-collection-compat" % "2.7.0"
+  val collectionCompat = "org.scala-lang.modules" %% "scala-collection-compat" % "2.8.0"
   val akkaActor = "com.typesafe.akka" %% "akka-actor" % akkaVersion
   val akkaPersistence = "com.typesafe.akka" %% "akka-persistence" % akkaVersion
   val akkaTestkit = "com.typesafe.akka" %% "akka-testkit" % akkaVersion
@@ -40,9 +40,9 @@ object Dependencies {
   val d3 = Def.setting("com.github.xencura.scala-js-d3v4" %%% "scala-js-d3v4" % "be1e1c8")
   val scalaTags = Def.setting("com.lihaoyi" %%% "scalatags" % "0.11.1")
 
-  val fs2Core = Def.setting("co.fs2" %%% "fs2-core" % "3.2.9")
+  val fs2Core = Def.setting("co.fs2" %%% "fs2-core" % "3.2.10")
   val catsCore = Def.setting("org.typelevel" %%% "cats-core" % "2.8.0")
-  val catsEffect = Def.setting("org.typelevel" %%% "cats-effect" % "3.3.12")
+  val catsEffect = Def.setting("org.typelevel" %%% "cats-effect" % "3.3.13")
 
   val zioCore = "dev.zio" %% "zio" % zioVersion
   val zioInteropCats = "dev.zio" %% "zio-interop-cats" % "3.2.9.1"
