@@ -42,7 +42,7 @@ object Dependencies {
 
   val fs2Core = Def.setting("co.fs2" %%% "fs2-core" % "3.2.10")
   val catsCore = Def.setting("org.typelevel" %%% "cats-core" % "2.8.0")
-  val catsEffect = Def.setting("org.typelevel" %%% "cats-effect" % "3.3.13")
+  val catsEffect = Def.setting("org.typelevel" %%% "cats-effect" % "3.3.14")
 
   val zioCore = "dev.zio" %% "zio" % zioVersion
   val zioInteropCats = "dev.zio" %% "zio-interop-cats" % "3.2.9.1"
