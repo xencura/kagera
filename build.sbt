@@ -128,27 +128,6 @@ lazy val akka = project
     )
   )
 
-lazy val zioActors = project
-  .in(file("zio-actors"))
-  .dependsOn(api.jvm, execution.jvm)
-  .settings(
-    defaultProjectSettings ++ Seq(
-      name := "kagera-zio-actors",
-      resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
-      libraryDependencies ++= Seq(
-        "org.scala-lang" % "scala-reflect" % scalaVersion.value,
-        zioCore,
-        zioInteropCats,
-        Dependencies.zioActors,
-        zioActorsPersistence,
-        scalaGraph.value,
-        zioTest % "test",
-        zioTestSbt % "test"
-      ),
-      testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
-    )
-  )
-
 lazy val demo = (crossProject(JSPlatform, JVMPlatform) in file("demo"))
   .dependsOn(api, visualization)
   .settings(defaultProjectSettings: _*)
@@ -178,7 +157,7 @@ lazy val demoJvm = demo.jvm
   )
 
 lazy val root = tlCrossRootProject
-  .aggregate(api, akka, execution, visualization, visualization, demo, demo, zioActors)
+  .aggregate(api, akka, execution, visualization, visualization, demo)
   .enablePlugins(BuildInfoPlugin)
   .settings(defaultProjectSettings)
   .settings(

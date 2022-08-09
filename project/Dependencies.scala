@@ -9,7 +9,6 @@ object Dependencies {
   val sprayVersion = "1.3.2"
   val scalazVersion = "7.1.3"
   val zioVersion = "1.0.16"
-  val zioActorsVersion = "0.0.9"
   val cytoscapeVersion = "3.2.5"
 
   val collectionCompat = "org.scala-lang.modules" %% "scala-collection-compat" % "2.8.1"
@@ -48,8 +47,6 @@ object Dependencies {
   val zioInteropCats = "dev.zio" %% "zio-interop-cats" % "3.2.9.1"
   val zioTest = "dev.zio" %% "zio-test" % zioVersion
   val zioTestSbt = "dev.zio" %% "zio-test-sbt" % zioVersion
-  val zioActors = "dev.zio" %% "zio-actors" % zioActorsVersion
-  val zioActorsPersistence = "dev.zio" %% "zio-actors-persistence" % zioActorsVersion
   val logback = "ch.qos.logback" % "logback-classic" % "1.2.5"
   val ficus = "net.ceedubs" %% "ficus" % "1.1.2"
   val scalatest = "org.scalatest" %% "scalatest" % "3.2.13"
